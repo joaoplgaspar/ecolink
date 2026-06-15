@@ -18,9 +18,16 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 
 **Diferenciais**
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
+- 🎁 **Loja de recompensas** — troque EcoPontos (saldo) por brindes e descontos de parceiros, com geração de **voucher**
+- ⭐ **Avaliações dos pontos** — nota por estrelas + comentários
+- 📚 **Modo educação** — cores da coleta seletiva, guia por material e **quiz interativo**
 - 💬 **Chat** com os pontos de coleta (com resposta automática simulada)
-- 🔔 **Notificações** (lembretes, coleta concluída, evolução de nível)
+- 🔔 **Notificações** (lembretes, coleta concluída, recompensas)
 - 🏅 **Ranking** entre os usuários
+- 📱 **PWA** — instalável no celular e funciona offline após a primeira visita
+
+> EcoPontos: você **ganha** concluindo coletas e **gasta** na loja (saldo = ganhos − resgates). Nível, ranking e conquistas usam o total **acumulado** (não diminui ao resgatar).
+> Para testar a instalação do PWA, rode a versão de produção: `npm run build && npm run preview`.
 
 ---
 

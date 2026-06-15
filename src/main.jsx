@@ -13,3 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </BrowserRouter>
 );
+
+// PWA: registra o service worker apenas na build de produção
+// (evita interferir no hot-reload do servidor de desenvolvimento).
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

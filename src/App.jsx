@@ -12,6 +12,8 @@ import MyCollections from './pages/MyCollections.jsx';
 import Chat from './pages/Chat.jsx';
 import Ranking from './pages/Ranking.jsx';
 import Profile from './pages/Profile.jsx';
+import Rewards from './pages/Rewards.jsx';
+import Education from './pages/Education.jsx';
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
         <Route path="/coletas" element={<MyCollections />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/chat/:pontoId" element={<Chat />} />
+        <Route path="/loja" element={<Rewards />} />
+        <Route path="/educacao" element={<Education />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/perfil" element={<Profile />} />
       </Route>

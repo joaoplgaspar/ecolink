@@ -330,9 +330,9 @@ svg { flex: none; }
   .ecopoints-pill .label { display: none; }
 
   .bottombar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 40; padding: 6px 4px env(safe-area-inset-bottom); justify-content: space-around; }
-  .bottombar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; font-size: 0.64rem; font-weight: 600; color: var(--faint); border-radius: 8px; transition: color 0.15s; }
-  .bottombar a.active { color: var(--green-700); }
-  .bottombar a.active svg { stroke-width: 2.4; }
+  .bottombar a, .bottombar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; font-size: 0.64rem; font-weight: 600; color: var(--faint); border: none; background: none; border-radius: 8px; transition: color 0.15s; cursor: pointer; }
+  .bottombar a.active, .bottombar button.active { color: var(--green-700); }
+  .bottombar a.active svg, .bottombar button.active svg { stroke-width: 2.4; }
 
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   h1 { font-size: 1.35rem; }
@@ -348,4 +348,43 @@ svg { flex: none; }
   .chat-back { display: inline-flex; }
   .chat-wrap.is-conversation .thread-list { display: none; }
   .chat-wrap.is-list .chat-panel { display: none; }
+}
+
+/* ---------------------- Componentes (v3) ---------------------- */
+
+/* Estrelas de avaliação */
+.stars { display: inline-flex; gap: 2px; }
+.star { background: none; border: none; padding: 2px; display: inline-flex; cursor: pointer; line-height: 0; transition: transform 0.12s; }
+.star.readonly { cursor: default; }
+.star:not(.readonly):hover { transform: scale(1.18); }
+
+/* Voucher (loja) */
+.voucher { margin-top: 4px; font-family: var(--font-mono, ui-monospace, monospace); font-weight: 800; letter-spacing: 1.5px; color: var(--green-700); background: var(--green-50); border: 1px dashed var(--green-200); border-radius: var(--radius-sm); padding: 9px 10px; text-align: center; }
+
+/* Educação — cores da coleta seletiva */
+.color-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); transition: transform 0.16s, box-shadow 0.16s; }
+.color-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.color-card .swatch { width: 24px; height: 24px; border-radius: 7px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+
+/* Quiz */
+.quiz-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-weight: 600; font-size: 0.92rem; color: var(--ink); transition: background 0.15s, border-color 0.15s, transform 0.08s; }
+.quiz-opt:not(:disabled):hover { background: var(--green-50); border-color: var(--green-200); }
+.quiz-opt:not(:disabled):active { transform: scale(0.99); }
+.quiz-opt.correct { background: var(--status-concluida-bg); border-color: var(--green-500); color: var(--green-700); }
+.quiz-opt.wrong { background: var(--danger-bg); border-color: #f0c9c4; color: var(--danger); }
+.quiz-opt:disabled { cursor: default; }
+.quiz-dica { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: var(--amber-100); color: var(--amber-700); border-radius: var(--radius-sm); font-size: 0.86rem; }
+
+/* Bottom sheet (menu "Mais" no mobile) */
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(20, 30, 26, 0.42); z-index: 50; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; background: var(--surface); border-radius: 20px 20px 0 0; padding: 10px 12px calc(16px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-lg); }
+.sheet-handle { width: 42px; height: 5px; border-radius: 99px; background: var(--border); margin: 6px auto 12px; }
+.sheet-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 12px; border: none; background: none; font-size: 0.98rem; font-weight: 600; color: var(--ink); border-radius: var(--radius-sm); cursor: pointer; }
+.sheet-item:hover, .sheet-item.active { background: var(--green-50); color: var(--green-700); }
+
+/* Banner de instalação (PWA) */
+.install-banner { position: fixed; z-index: 45; right: 20px; bottom: 20px; width: 360px; max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px 14px; }
+
+@media (max-width: 860px) {
+  .install-banner { left: 12px; right: 12px; bottom: 80px; width: auto; }
 }

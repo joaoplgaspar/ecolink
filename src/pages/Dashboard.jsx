@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Leaf, Recycle, Scale, Globe, Droplets, Zap, TreePine, Lightbulb, ArrowRight, MapPin, Sparkles } from 'lucide-react';
+import { Leaf, Recycle, Scale, Globe, Droplets, Zap, TreePine, Lightbulb, ArrowRight, MapPin, Sparkles, Gift, GraduationCap, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDbVersion } from '../hooks/useDbVersion';
 import { getStats } from '../store/gamification';
@@ -102,6 +102,12 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="grid grid-3 mb-3">
+        <Atalho to="/loja" icon={Gift} titulo="Loja" desc="Troque EcoPontos" />
+        <Atalho to="/educacao" icon={GraduationCap} titulo="Educação" desc="Aprenda a reciclar" />
+        <Atalho to="/ranking" icon={Trophy} titulo="Ranking" desc="Veja sua posição" />
+      </div>
+
       <div className="card card-pad" style={{ background: 'var(--green-50)', borderColor: 'var(--green-100)' }}>
         <div className="row" style={{ gap: 13, alignItems: 'flex-start' }}>
           <span className="iconchip" style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
@@ -126,5 +132,20 @@ function ImpactLine({ icon: Icon, color, label, value }) {
       </span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function Atalho({ to, icon: Icon, titulo, desc }) {
+  return (
+    <Link to={to} className="card card-pad card-hover row" style={{ gap: 12, alignItems: 'center' }}>
+      <span className="iconchip" style={{ width: 44, height: 44, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+        <Icon size={22} />
+      </span>
+      <div>
+        <div style={{ fontWeight: 700 }}>{titulo}</div>
+        <div className="small faint">{desc}</div>
+      </div>
+      <ArrowRight size={18} color="var(--faint)" style={{ marginLeft: 'auto' }} />
+    </Link>
   );
 }

@@ -1,13 +1,15 @@
-// Casca do app: topo, menu lateral (desktop), barra inferior (mobile),
-// transição animada entre páginas e área de conteúdo (<Outlet/>).
+// Casca do app: topo, menu lateral (desktop), barra inferior + menu "Mais"
+// (mobile), transição animada entre páginas e o banner de instalação (PWA).
 
+import { useState } from 'react';
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, MapPin, Recycle, MessageCircle, Trophy, User, LogOut, Leaf } from 'lucide-react';
+import { Home, MapPin, Recycle, MessageCircle, Trophy, User, LogOut, Leaf, Gift, GraduationCap, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDbVersion } from '../hooks/useDbVersion';
 import { getStats } from '../store/gamification';
 import NotificationBell from './NotificationBell.jsx';
+import InstallPrompt from './InstallPrompt.jsx';
 import { Avatar } from './ui.jsx';
 import { pageVariants } from '../utils/anim';
 
@@ -16,10 +18,18 @@ const NAV = [
   { to: '/pontos', icon: MapPin, label: 'Pontos' },
   { to: '/coletas', icon: Recycle, label: 'Coletas' },
   { to: '/chat', icon: MessageCircle, label: 'Chat' },
+  { to: '/loja', icon: Gift, label: 'Loja' },
+  { to: '/educacao', icon: GraduationCap, label: 'Educação' },
   { to: '/ranking', icon: Trophy, label: 'Ranking' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
-const MOBILE = NAV.filter((n) => n.to !== '/ranking');
+const BOTTOM = NAV.slice(0, 4); // Início, Pontos, Coletas, Chat
+const EXTRA = [
+  { to: '/loja', icon: Gift, label: 'Loja' },
+  { to: '/educacao', icon: GraduationCap, label: 'Educação' },
+  { to: '/ranking', icon: Trophy, label: 'Ranking' },
+  { to: '/perfil', icon: User, label: 'Perfil' },
+];
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -27,8 +37,10 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const stats = getStats(user.id);
+  const [sheet, setSheet] = useState(false);
 
   function sair() {
+    setSheet(false);
     logout();
     navigate('/login');
   }
@@ -41,8 +53,8 @@ export default function Layout() {
           <span>ECOLINK<span className="sub">reciclar conecta</span></span>
         </Link>
         <div className="topbar-spacer" />
-        <Link to="/perfil" className="ecopoints-pill" title="Seus EcoPontos">
-          <Leaf size={16} /> {stats.ecopontos} <span className="label">EcoPontos</span>
+        <Link to="/loja" className="ecopoints-pill" title="Saldo para resgatar">
+          <Leaf size={16} /> {stats.saldo} <span className="label">EcoPontos</span>
         </Link>
         <NotificationBell />
       </header>
@@ -82,7 +94,7 @@ export default function Layout() {
       </main>
 
       <nav className="bottombar">
-        {MOBILE.map((n) => {
+        {BOTTOM.map((n) => {
           const Icon = n.icon;
           return (
             <NavLink key={n.to} to={n.to} end={n.end}>
@@ -90,7 +102,38 @@ export default function Layout() {
             </NavLink>
           );
         })}
+        <button className={sheet ? 'active' : ''} onClick={() => setSheet(true)}>
+          <MoreHorizontal size={22} /> Mais
+        </button>
       </nav>
+
+      <AnimatePresence>
+        {sheet && (
+          <>
+            <motion.div className="sheet-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSheet(false)} />
+            <motion.div
+              className="sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            >
+              <div className="sheet-handle" />
+              {EXTRA.map((n) => {
+                const Icon = n.icon;
+                return (
+                  <NavLink key={n.to} to={n.to} className="sheet-item" onClick={() => setSheet(false)}>
+                    <Icon size={20} /> {n.label}
+                  </NavLink>
+                );
+              })}
+              <button className="sheet-item" onClick={sair}><LogOut size={20} /> Sair</button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <InstallPrompt />
     </div>
   );
 }

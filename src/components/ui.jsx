@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowRight, CalendarPlus, Check, X, Trash2, Calendar, Recycle, Inbox } from 'lucide-react';
+import { MapPin, Clock, ArrowRight, CalendarPlus, Check, X, Trash2, Calendar, Recycle, Inbox, Star } from 'lucide-react';
 import { getMaterial, materialLabel } from '../utils/materials';
 import { formatDate, nf, initials } from '../utils/format';
 import { formatDistance } from '../utils/geo';
 import { pontosDaColeta } from '../store/gamification';
+import { avaliacoes } from '../store/db';
 import { MaterialIcon, StatusIcon, LevelIcon } from './icons.jsx';
 
 export function Avatar({ nome, size = 40 }) {
@@ -99,6 +100,7 @@ export function CountUp({ value, decimals = 0, duration = 850, suffix = '' }) {
 }
 
 export function PointCard({ ponto, distanceKm }) {
+  const rating = avaliacoes.resumo(ponto.id);
   return (
     <div className="card card-pad card-hover col" style={{ gap: 10 }}>
       <div className="row between" style={{ alignItems: 'flex-start' }}>
@@ -108,6 +110,15 @@ export function PointCard({ ponto, distanceKm }) {
         ) : distanceKm != null ? (
           <span className="distance"><MapPin size={13} /> {formatDistance(distanceKm)}</span>
         ) : null}
+      </div>
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+        {rating.total > 0 && (
+          <span className="row small" style={{ gap: 4 }}>
+            <Star size={14} fill="#f5a623" color="#f5a623" />
+            <strong>{rating.media.toFixed(1)}</strong>
+            <span className="faint">({rating.total})</span>
+          </span>
+        )}
       </div>
       <div className="small muted row" style={{ gap: 6 }}><MapPin size={14} /> {ponto.endereco} — {ponto.cidade}</div>
       <div className="small muted row" style={{ gap: 6 }}><Clock size={14} /> {ponto.horario}</div>
