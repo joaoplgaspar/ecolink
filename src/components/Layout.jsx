@@ -2,7 +2,7 @@
 // (mobile), transição animada entre páginas e o banner de instalação (PWA).
 
 import { useState } from 'react';
-import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Link, useOutlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, MapPin, Recycle, MessageCircle, Trophy, User, LogOut, Leaf, Gift, GraduationCap, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -30,6 +30,14 @@ const EXTRA = [
   { to: '/ranking', icon: Trophy, label: 'Ranking' },
   { to: '/perfil', icon: User, label: 'Perfil' },
 ];
+
+// Congela o conteúdo da rota durante a saída, evitando a "piscada" em que o
+// conteúdo novo aparece dentro do wrapper que ainda está saindo antes de animar.
+function FrozenOutlet() {
+  const outlet = useOutlet();
+  const [frozen] = useState(outlet);
+  return frozen;
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -86,9 +94,9 @@ export default function Layout() {
       </aside>
 
       <main className="content">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo({ top: 0, left: 0 })}>
           <motion.div key={location.pathname} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-            <Outlet />
+            <FrozenOutlet />
           </motion.div>
         </AnimatePresence>
       </main>
