@@ -531,13 +531,15 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Prévia da Fase 3: o painel do parceiro já lista as entregas dos seus pontos, só de leitura e com dados mínimos do cidadão ("Ana R.").
 - ✅ _Aceite verificado:_ nenhuma senha legível no storage (testado também com dados migrados da v3); cidadão recebe 403 em `/parceiro` e `/admin`, pela URL e chamando o repositório. São 170 testes automatizados, e um teste de ponta a ponta no navegador cobriu 14 cenários com vários perfis em abas simultâneas.
 
-### Fase 2 — Onboarding do parceiro e cadastro de pontos _(G)_ [M]
+### Fase 2 — Onboarding do parceiro e cadastro de pontos _(G)_ [M] — ✅ **concluída**
 
-- Cadastro de parceiro em etapas, com CNPJ validado e upload de documentos (IndexedDB).
-- Assistente de ponto: mapa com alfinete, materiais com condições, **grade de horários**, exceções, capacidade (D10).
-- Aprovação mínima no admin (aprovar/reprovar com motivo).
-- Tela pública do ponto reaproveitada na prévia; "aberto agora".
-- ✅ _Aceite:_ um parceiro novo chega a um ponto `ativo` visível no mapa do cidadão, passando pela aprovação.
+- ✅ "Seja parceiro" e cadastro da organização em 4 etapas, salvando a cada passo: tipo (cooperativa, associação, ecoponto público, empresa, catador autônomo), **CNPJ com dígitos verificadores, incluindo o CNPJ alfanumérico de 2026**, CPF para catador e upload de documentos no IndexedDB, com **verificação da assinatura real dos bytes**.
+- ✅ Assistente de ponto em 6 etapas: fotos, **mapa com alfinete** (busca, arrastar, "estou aqui", coordenadas editáveis), **materiais com condições, o que não aceita, limite de kg e preço por kg**, **grade de horários com intervalos e exceções** (D10 resolvido; texto antigo migrado automaticamente), regras de agendamento e prévia idêntica à página pública.
+- ✅ Fila de aprovações da plataforma: aprovar ou pedir ajustes com motivo obrigatório, notificação no app e por e-mail, documentos privados (só o responsável e a plataforma), CNPJ conferido na tela de análise. A moderação acompanha e só a administração decide.
+- ✅ Ciclo de vida do ponto: `rascunho → em_analise → ativo ⇄ pausado`, `reprovado → em_analise`; depois da aprovação, nome e endereço travados; "Recebendo/Pausado" para toda a equipe; só gestão da organização edita.
+- ✅ Cidadão: "Aberto agora · fecha às 18h", filtro "Abertos agora", selo de parceiro verificado, horários da semana, próximos feriados e regras por material. O agendamento recusa dia fechado e quantidade acima do limite.
+- ✅ Seed com 4 organizações (uma em análise, uma com CNPJ alfanumérico) e um ponto aguardando aprovação.
+- ✅ _Aceite verificado:_ um parceiro novo, criado do zero no navegador, cadastrou a organização, foi aprovado, cadastrou um ponto com foto e alfinete e, depois da aprovação, a cidadã viu o ponto e agendou nele, respeitando os limites. São 251 testes automatizados; as telas novas foram conferidas sem rolagem horizontal a 390 px.
 
 ### Fase 3 — Jornada da coleta de ponta a ponta _(G)_ [M] ⭐ **coração do projeto**
 

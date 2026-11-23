@@ -29,6 +29,17 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - 📜 **Termos e privacidade (LGPD)** com aceite versionado; **log de auditoria**, incluindo tentativas negadas
 - 🧑‍⚖️ **Plataforma**: lista de usuários, suspensão de contas (encerra as sessões na hora) e auditoria
 
+**Parceiros e pontos de coleta** (Fase 2 do [ROADMAP](./ROADMAP.md))
+
+- 🏢 **"Seja parceiro"** (`/seja-parceiro`): cooperativas, associações, ecopontos públicos, empresas e catadores autônomos criam conta e cadastram a organização em 4 etapas, salvando a cada passo
+- 🧾 **CNPJ validado pelos dígitos verificadores, inclusive o novo CNPJ alfanumérico** (formato da Receita Federal de julho/2026, ex.: `12.ABC.345/01DE-35`); CPF para catador autônomo
+- 📎 **Upload de documentos e fotos** guardados no IndexedDB. O app confere a **assinatura real dos bytes** (um executável renomeado para `.pdf` é recusado), comprime fotos no aparelho e mantém documentos privados (só o responsável e a plataforma abrem)
+- 📍 **Assistente de ponto em 6 etapas**: identificação e fotos → **mapa com alfinete** (busca de endereço, arrastar, "estou aqui") → **materiais com condições, o que não aceita, limite de kg e preço por kg** → **grade de horários com intervalos e exceções (feriados)** → regras de agendamento → **prévia exatamente como o cidadão verá**
+- ✅ **Aprovação pela plataforma**: a organização e cada ponto passam por análise (aprovar ou pedir ajustes com motivo, com notificação no app e por e-mail). Rascunhos e pontos em análise **nunca** aparecem ao público
+- 🔒 Depois de aprovado, **nome e endereço ficam travados** (o ponto verificado não pode "mudar de lugar" sem nova análise); o operacional muda na hora
+- ⏯️ **"Recebendo / Pausado"**: qualquer pessoa da equipe pausa o recebimento; o cidadão vê "Não está recebendo"
+- 🕐 Para o cidadão: **"Aberto agora · fecha às 18h"**, filtro "Abertos agora", selo **parceiro verificado**, horários da semana e regras de cada material; o agendamento **recusa dia fechado (com o motivo, ex.: Natal) e quantidade acima do limite do ponto**
+
 **Diferenciais**
 
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
@@ -64,6 +75,8 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 | Cidadão    | `ana@email.com`         | Cidadã com histórico completo (+ Bruno, Carla e mais 7)            |
 | Parceiro   | `marcos@email.com`      | Gestor do EcoPonto Centro e da Recicla Pinheiros; também é cidadão |
 | Parceiro   | `paula@email.com`       | Operadora da Coleta Vila Madalena                                  |
+| Parceiro   | `lucia@email.com`       | Gestora da ReciclaRio (CNPJ alfanumérico), com um ponto em análise |
+| Parceiro   | `rafael@email.com`      | Organização recém-cadastrada, aguardando aprovação                 |
 | Plataforma | `moderacao@ecolink.app` | Moderação (consulta usuários e auditoria)                          |
 | Plataforma | `admin@ecolink.app`     | Administração (também suspende e reativa contas)                   |
 
@@ -130,13 +143,14 @@ src/
 │   ├── config.js            # latência/falhas simuladas
 │   ├── erros.js             # ErroApi (status no estilo HTTP)
 │   ├── sessaoCliente.js     # onde o navegador guarda o token (por aba)
+│   ├── arquivos.js          # fotos e documentos no IndexedDB
 │   └── repos/               # "API": auth, usuarios, pontos, coletas, parceiro, admin…
 ├── hooks/                   # useQuery, useMutation, useDbVersion
 ├── features/
 │   ├── auth/                # login, cadastro, recuperação de senha, painel demo
 │   ├── cidadao/pages/       # área do cliente
-│   ├── parceiro/pages/      # painel do ponto de coleta
-│   ├── admin/pages/         # usuários e auditoria
+│   ├── parceiro/pages/      # seja parceiro, cadastro da organização, assistente de ponto, painel
+│   ├── admin/pages/         # usuários, aprovações e auditoria
 │   └── shared/pages/        # chat, perfil (segurança), termos, caixa de e-mail demo
 ├── components/              # UI reutilizável, mapa, ícones
 └── utils/                   # datas, formatação, geolocalização
