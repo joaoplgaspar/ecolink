@@ -25,6 +25,7 @@
 14. [Roteiro de demonstração para a banca](#14-roteiro-de-demonstração-para-a-banca)
 15. [Riscos e mitigação](#15-riscos-e-mitigação)
 16. [Decisões em aberto](#16-decisões-em-aberto)
+17. [Caminho para o Supabase](#17-caminho-para-o-supabase)
 
 ---
 
@@ -509,14 +510,15 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 
 > Tamanho relativo: **P** (1–2 dias), **M** (3–5 dias), **G** (1–2 semanas) para uma pessoa. Prioridade MoSCoW: **[M]** obrigatório para a banca, **[S]** deveria ter, **[C]** se der tempo.
 
-### Fase 0 — Fundações _(M)_ [M]
+### Fase 0 — Fundações _(M)_ [M] — ✅ **concluída**
 
-- Corrigir a dependência quebrada (D11); ESLint/Prettier; Vitest; CI.
-- Reestruturar pastas (`domain/`, `data/repos/`, `features/`).
-- Repositórios **assíncronos** com latência simulada; `useQuery`/`useMutation` simples.
-- `schema_version` + migrações; **seed relativo a hoje** (D12), mais rico (3 organizações, 8 pontos, 10 cidadãos, histórico de 60 dias).
-- **Sincronização entre abas** (D14).
-- ✅ _Aceite:_ `npm ci && npm test && npm run build` passam em um clone limpo; abrir 2 abas e ver a mudança refletir.
+- ✅ Corrigir a dependência quebrada (D11); ESLint/Prettier; Vitest; CI.
+- ✅ Reestruturar pastas (`domain/`, `data/repos/`, `features/`).
+- ✅ Repositórios **assíncronos** com latência e falha simuladas; `useQuery`/`useMutation`; erros com status HTTP.
+- ✅ `schema_version` + migrações (dados da chave antiga `ecolink:v2` são migrados); **seed relativo a hoje** (D12) com 8 pontos, 10 cidadãos e histórico de 60 dias. As organizações entram na Fase 2, junto com a entidade.
+- ✅ **Sincronização entre abas** (D14).
+- ✅ Extra: validações movidas para os repositórios (saldo da loja, data passada, material aceito, lista branca de campos do perfil), parte de D6; transações atômicas; recuperação de dados corrompidos; a sessão não cai por falha passageira de rede; coletas concluídas não podem ser apagadas.
+- ✅ _Aceite verificado:_ `npm ci && npm run check` passam num clone limpo (76 testes, cerca de 95% de cobertura em `domain/` e `data/`); teste de ponta a ponta no navegador confirmou a migração v2→v3 e a atualização automática de uma segunda aba.
 
 ### Fase 1 — Identidade, papéis e segurança base _(M)_ [M]
 
@@ -648,3 +650,35 @@ gantt
 3. O ponto pode **pagar por kg** (cooperativas)? Isso adiciona valor econômico, mas também complexidade.
 4. **TypeScript**: migrar agora (mais seguro) ou JSDoc (mais rápido)?
 5. A **`reciclaja-api`** vai ser apresentada junto? Se sim, vale alinhar o contrato dos repositórios desde a Fase 0.
+6. **Supabase** como back end: confirmado? Se sim, a recomendação é fazer a **Fase 1 já sobre o Supabase Auth** (ver §17), para não construir hash de senha e sessão locais que depois seriam jogados fora.
+
+---
+
+## 17. Caminho para o Supabase
+
+O Supabase cobre quase tudo o que este roadmap pede para o lado do servidor. A Fase 0 já deixou a "porta" pronta: as telas só falam com `src/data/repos/`, que devolvem `Promise`s e lançam `ErroApi` com status HTTP. Trocar o armazenamento local pelo Supabase é **reimplementar essa pasta, repositório por repositório**, sem mexer nas telas.
+
+| Necessidade do roadmap                                                                        | No Supabase                                                                                                                  |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Banco de dados (§10.5)                                                                        | **Postgres**: as coleções viram tabelas, com os mesmos nomes de campo (`snake_case`)                                         |
+| Senha com hash, sessão que expira, recuperação de senha, verificação de e-mail (Fase 1, §9.1) | **Supabase Auth**, pronto. A Fase 1 encolhe bastante                                                                         |
+| Matriz de permissões (§2, §9.2)                                                               | **Row Level Security (RLS)**: a regra "operador só vê coletas do seu ponto" vira uma _policy_ no banco                       |
+| Máquina de estados, extrato de EcoPontos, antifraude (§3, §9.3, §9.4)                         | **Funções Postgres** (`rpc`) com `security definer`: o cliente chama `concluir_coleta(id, itens)` e a regra roda no servidor |
+| Log de auditoria                                                                              | **Triggers** que gravam em `auditoria` a cada mudança                                                                        |
+| Fotos e documentos (§10.4)                                                                    | **Supabase Storage**, com buckets privados e políticas por dono                                                              |
+| Painel do reciclador em tempo real (§4.3)                                                     | **Supabase Realtime**: substitui a sincronização entre abas por sincronização entre aparelhos                                |
+| Expiração de solicitações, no-show, lembretes                                                 | **pg_cron** ou Edge Functions agendadas                                                                                      |
+| Migrações (§10.6)                                                                             | `supabase/migrations/*.sql` versionadas no repositório (Supabase CLI)                                                        |
+
+**O que não pode faltar, mesmo começando sem todas as verificações:**
+
+1. **RLS ligada em todas as tabelas.** A chave `anon` fica visível no front end; sem RLS, qualquer pessoa lê e altera tudo pelo console do navegador. Comece com políticas simples ("cada um lê e edita só as próprias linhas") e refine depois.
+2. **EcoPontos nunca por `insert`/`update` direto do cliente**: só por função no servidor (ou, no mínimo, por política que bloqueie isso).
+3. A chave **`service_role` nunca vai para o front end**, nem para o repositório: só em Edge Functions e variáveis de ambiente.
+
+**Estratégia de migração sugerida:**
+
+1. Variável `VITE_FONTE_DADOS=local|supabase`, e `src/data/repos/` escolhe a implementação. O modo `local` continua servindo para testes, demo offline e plano B na apresentação.
+2. Começar por `usuarios` → Supabase Auth + tabela `perfis` (o id vira o `uuid` do `auth.users`).
+3. Depois `pontos` e `avaliacoes` (leitura pública, escrita autenticada), `coletas` (RLS por dono e por ponto) e, por fim, as funções da máquina de estados e do extrato.
+4. Os testes de `domain/` continuam valendo sem mudança. Os de repositório ganham uma versão contra um projeto Supabase de teste (ou o Supabase local via CLI).

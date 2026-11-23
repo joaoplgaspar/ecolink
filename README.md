@@ -33,15 +33,27 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 
 ---
 
-## 🗃️ Dados (mock)
+## 🗃️ Dados (no dispositivo, com cara de API)
 
-Para rodar em qualquer máquina **sem depender da API**, todos os dados são **simulados no navegador** (`localStorage`).
-O seed inicial (`src/data/seed.js`) reproduz os dados da `reciclaja-api` (Ana, Bruno, Carla; EcoPonto Centro, Vila Madalena, ReciclaRio…) e adiciona alguns extras.
+Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStorage`). Mas o app já é construído **como se falasse com um servidor**:
 
-O módulo `src/store/db.js` imita o comportamento da API (CRUD de usuários, pontos e coletas). Para plugar na API real no futuro, basta substituir as funções desse arquivo por chamadas `fetch` ao back end — o restante do app não muda.
+- **Repositórios assíncronos** (`src/data/repos/`): toda leitura/escrita é uma `Promise`, com **latência simulada** e erros com **status HTTP** (401, 404, 409, 422, 503…). As telas tratam carregando, erro e "tentar de novo". Para plugar um back end (ex.: Supabase), reimplementa-se só essa pasta.
+- **Regras na camada de dados**, não só na tela: saldo da loja, data no passado, material aceito pelo ponto, campos editáveis do perfil, etc.
+- **Transações atômicas**: se algo falha no meio, nada é gravado.
+- **Migrações versionadas** (`src/data/migrations.js`): dados salvos por versões antigas do app são atualizados, não perdidos.
+- **Sincronização entre abas**: abra o app em duas abas, mude algo em uma e veja a outra atualizar sozinha.
+- **Seed com datas relativas a hoje** (`src/data/seed.js`): 10 usuários, 8 pontos e cerca de 60 coletas nos últimos 60 dias. É determinístico: "Restaurar dados" sempre gera a mesma estrutura.
 
-> Contas de teste: `ana@email.com`, `bruno@email.com`, `carla@email.com` — senha **`senha123`**.
+> Contas de teste: `ana@email.com`, `bruno@email.com`, `carla@email.com` (e mais 7) — senha **`senha123`**.
 > No Perfil há um botão **"Restaurar dados de demonstração"** para zerar tudo.
+
+**Simular rede lenta ou instável** (no console do navegador, depois recarregue):
+
+```js
+localStorage.setItem('ecolink:dev', JSON.stringify({ latenciaMin: 800, latenciaMax: 1500 })); // rede lenta
+localStorage.setItem('ecolink:dev', JSON.stringify({ taxaFalha: 0.3 })); // 30% das chamadas falham
+localStorage.removeItem('ecolink:dev'); // volta ao normal
+```
 
 ---
 
@@ -54,7 +66,17 @@ npm install     # instala as dependências
 npm run dev     # sobe em http://localhost:5173
 ```
 
-Build de produção: `npm run build` e depois `npm run preview`.
+| Comando            | O que faz                                    |
+| ------------------ | -------------------------------------------- |
+| `npm run dev`      | servidor de desenvolvimento                  |
+| `npm run build`    | build de produção (depois `npm run preview`) |
+| `npm test`         | testes automatizados (Vitest)                |
+| `npm run coverage` | testes + relatório de cobertura              |
+| `npm run lint`     | análise estática (ESLint)                    |
+| `npm run format`   | formata o código (Prettier)                  |
+| `npm run check`    | tudo acima, como no CI                       |
+
+O **GitHub Actions** (`.github/workflows/ci.yml`) roda lint, formatação, testes e build a cada push e pull request.
 
 ---
 
@@ -74,14 +96,24 @@ Build de produção: `npm run build` e depois `npm run preview`.
 
 ```
 src/
-├── main.jsx / App.jsx        # entrada + rotas
-├── index.css                 # tema (paleta "eco")
-├── context/AuthContext.jsx   # login/sessão
-├── data/seed.js              # dados iniciais (espelham a API)
-├── store/
-│   ├── db.js                 # "banco" mock (CRUD) em localStorage
-│   └── gamification.js        # EcoPontos, níveis, conquistas, impacto
-├── hooks/useDbVersion.js     # reatividade do store
-├── components/               # Layout, MapView, NotificationBell, icons, ui
-└── pages/                    # Login, Dashboard, Points, Chat, Ranking...
+├── main.jsx                 # entrada
+├── index.css                # tema (paleta "eco")
+├── app/                     # rotas, sessão (AuthContext), layout
+├── domain/                  # REGRAS PURAS, sem React — gamificação, materiais, pontos
+├── data/
+│   ├── storage.js           # armazenamento: cache, transações, abas, recuperação
+│   ├── migrations.js        # versões do formato dos dados
+│   ├── seed.js              # dados de demonstração (relativos a hoje)
+│   ├── config.js            # latência/falhas simuladas
+│   ├── erros.js             # ErroApi (status no estilo HTTP)
+│   └── repos/               # "API": usuarios, pontos, coletas, avaliacoes, resgates, chat…
+├── hooks/                   # useQuery, useMutation, useDbVersion
+├── features/
+│   ├── auth/pages/          # login e cadastro
+│   ├── cidadao/pages/       # área do cliente
+│   └── shared/pages/        # chat e perfil
+├── components/              # UI reutilizável, mapa, ícones
+└── utils/                   # datas, formatação, geolocalização
 ```
+
+Os testes ficam ao lado do código (`*.test.js`). O planejamento das próximas fases está em [`ROADMAP.md`](./ROADMAP.md).
