@@ -5,7 +5,17 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-config-prettier';
 
 export default [
-  { ignores: ['dist', 'dist-supabase', 'dist-publicar', 'coverage', 'node_modules', 'test-results', 'playwright-report'] },
+  {
+    ignores: [
+      'dist',
+      'dist-supabase',
+      'dist-publicar',
+      'coverage',
+      'node_modules',
+      'test-results',
+      'playwright-report',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
