@@ -24,6 +24,7 @@ export * as bloqueios from './bloqueios';
 export * as estoque from './estoque';
 export * as equipe from './equipe';
 export * as relatorios from './relatorios';
+export * as privacidade from './privacidade';
 export * as manutencao from './manutencao';
 export * as parceiro from './parceiro';
 export * as organizacoes from './organizacoes';

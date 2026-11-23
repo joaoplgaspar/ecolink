@@ -19,11 +19,15 @@ import {
   Store,
   QrCode as IconeQr,
   RefreshCw,
+  Download,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import Modal from '@/components/Modal.jsx';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, auth, usuarios, coletas, reputacao, bloqueios } from '@/data/repos';
+import { estatisticas, auth, usuarios, coletas, reputacao, bloqueios, privacidade } from '@/data/repos';
 import { ChipReputacao } from '@/components/Reputacao.jsx';
 import QrCode from '@/components/QrCode.jsx';
 import { PAPEIS, PERFIS } from '@/domain/permissoes';
@@ -116,6 +120,7 @@ export default function Profile() {
       </Link>
       {(perfil === 'cidadao' || perfil === 'parceiro') && <Bloqueios perfil={perfil} />}
       <Seguranca />
+      <SeusDados />
 
       <div className="row wrap" style={{ gap: 10 }}>
         <button className="btn btn-danger" onClick={sair}>
@@ -523,5 +528,141 @@ function Bloqueios({ perfil }) {
       </ul>
       <MensagemErro erro={desfazer.error} style={{ marginTop: 6 }} />
     </div>
+  );
+}
+
+/** Direitos do titular (LGPD): baixar os próprios dados e excluir a conta. */
+function SeusDados() {
+  const [baixando, setBaixando] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [excluir, setExcluir] = useState(false);
+
+  async function baixar() {
+    setErro(null);
+    setBaixando(true);
+    try {
+      const dados = await privacidade.exportar();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meus-dados-ecolink-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setErro(e);
+    } finally {
+      setBaixando(false);
+    }
+  }
+
+  return (
+    <div className="card card-pad mb-3">
+      <h2 className="h3 row mb-1" style={{ gap: 8 }}>
+        <ShieldCheck size={18} /> Seus dados (LGPD)
+      </h2>
+      <p className="small muted mb-2">
+        Você pode baixar tudo o que guardamos sobre você ou excluir a conta. Ver a{' '}
+        <Link to="/privacidade">política de privacidade</Link>.
+      </p>
+      <div className="row wrap" style={{ gap: 8 }}>
+        <button type="button" className="btn btn-sm" onClick={baixar} disabled={baixando}>
+          {baixando ? <Loader2 size={15} className="spin" /> : <Download size={15} />} Baixar meus dados (JSON)
+        </button>
+        <button type="button" className="btn btn-sm btn-ghost perigo" onClick={() => setExcluir(true)}>
+          <Trash2 size={15} /> Excluir minha conta
+        </button>
+      </div>
+      <MensagemErro erro={erro} style={{ marginTop: 8 }} />
+      {excluir && <ExcluirConta aoFechar={() => setExcluir(false)} />}
+    </div>
+  );
+}
+
+function ExcluirConta({ aoFechar }) {
+  const q = useQuery(() => privacidade.verificarExclusao(), []);
+  const [senha, setSenha] = useState('');
+  const [confirmacao, setConfirmacao] = useState('');
+  const { logout } = useAuth();
+  const nav = useNavigate();
+  const excluir = useMutation(() => privacidade.excluirConta({ senha, confirmacao }));
+
+  return (
+    <Modal titulo="Excluir minha conta" icone={Trash2} aoFechar={aoFechar}>
+      {!q.data ? (
+        <Carregando linhas={2} altura={40} />
+      ) : q.data.impedimentos.length ? (
+        <div className="col" style={{ gap: 10 }}>
+          <div className="aviso" role="alert">
+            <AlertTriangle size={17} style={{ flex: 'none' }} />
+            <span>Ainda não dá para excluir a conta:</span>
+          </div>
+          <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+            {q.data.impedimentos.map((i) => (
+              <li key={i}>{i}</li>
+            ))}
+          </ul>
+          <button type="button" className="btn" onClick={aoFechar}>
+            Entendi
+          </button>
+        </div>
+      ) : (
+        <form
+          className="col"
+          style={{ gap: 12 }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await excluir.mutate();
+            if (r.ok) {
+              await logout();
+              nav('/login', { replace: true, state: { aviso: 'Sua conta foi excluída. Sentiremos sua falta! ♻️' } });
+            }
+          }}
+        >
+          <p className="small">O que acontece:</p>
+          <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
+            {q.data.efeitos.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <div className="aviso erro">
+            <AlertTriangle size={17} style={{ flex: 'none' }} /> Não dá para desfazer. Se quiser guardar seu histórico,
+            baixe seus dados antes.
+          </div>
+          <label className="col" style={{ gap: 4 }}>
+            <span className="small" style={{ fontWeight: 700 }}>
+              Sua senha
+            </span>
+            <input
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
+          </label>
+          <label className="col" style={{ gap: 4 }}>
+            <span className="small" style={{ fontWeight: 700 }}>
+              Digite {q.data.confirmacao} para confirmar
+            </span>
+            <input
+              className="input"
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <MensagemErro erro={excluir.error} />
+          <button
+            className="btn btn-danger solido"
+            type="submit"
+            disabled={!senha || confirmacao.trim().toUpperCase() !== q.data.confirmacao || excluir.pending}
+          >
+            {excluir.pending && <Loader2 size={15} className="spin" />} Excluir definitivamente
+          </button>
+        </form>
+      )}
+    </Modal>
   );
 }

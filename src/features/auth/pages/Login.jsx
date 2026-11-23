@@ -78,6 +78,11 @@ export default function Login() {
             </button>
           </div>
 
+          {location.state?.aviso && !aviso && (
+            <div className="aviso info mb-2" role="status">
+              <Info size={17} style={{ flex: 'none' }} /> {location.state.aviso}
+            </div>
+          )}
           {aviso && (
             <div className="aviso mb-2" role="status">
               <Info size={17} style={{ flex: 'none' }} /> {aviso}
