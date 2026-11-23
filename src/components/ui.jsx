@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowRight, CalendarPlus, Inbox, Star, AlertCircle, RotateCcw, CloudOff } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  ArrowRight,
+  CalendarPlus,
+  Inbox,
+  Star,
+  AlertCircle,
+  RotateCcw,
+  CloudOff,
+  Award,
+} from 'lucide-react';
 import { getMaterial } from '@/domain/materiais';
 import { initials } from '@/utils/format';
 import { formatDistance } from '@/utils/geo';
@@ -116,8 +127,13 @@ export function PointCard({ ponto, distanceKm }) {
           </span>
         )}
       </div>
-      <div>
+      <div className="row wrap" style={{ gap: 6 }}>
         <SeloFuncionamento ponto={ponto} />
+        {ponto.reputacao?.selos?.map((selo) => (
+          <span key={selo} className="selo-rep">
+            <Award size={12} /> {selo}
+          </span>
+        ))}
       </div>
       <div className="small muted row" style={{ gap: 6 }}>
         <MapPin size={14} /> {ponto.endereco} — {ponto.cidade}

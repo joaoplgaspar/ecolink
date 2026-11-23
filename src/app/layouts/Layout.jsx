@@ -24,6 +24,7 @@ import {
   ScrollText,
   Repeat,
   ClipboardCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
@@ -48,6 +49,7 @@ const MENUS = {
       { to: '/loja', icon: Gift, label: 'Loja' },
       { to: '/educacao', icon: GraduationCap, label: 'Educação' },
       { to: '/ranking', icon: Trophy, label: 'Ranking' },
+      { to: '/reputacao', icon: ShieldCheck, label: 'Reputação' },
       PERFIL_ITEM,
     ],
   },

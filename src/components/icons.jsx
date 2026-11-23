@@ -97,6 +97,7 @@ const NOTIF_ICONS = {
   recompensa: Gift,
   chat: MessageCircle,
   aprovacao: ClipboardCheck,
+  avaliacao: Star,
 };
 const NOTIF_COLORS = {
   coleta: '#1d9e75',
@@ -104,6 +105,7 @@ const NOTIF_COLORS = {
   recompensa: '#d4537e',
   chat: '#378add',
   aprovacao: '#0e5a7a',
+  avaliacao: '#e0a020',
 };
 export function NotifIcon({ tipo, size = 16 }) {
   const Cmp = NOTIF_ICONS[tipo] || Bell;

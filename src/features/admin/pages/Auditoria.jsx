@@ -18,6 +18,7 @@ const FILTROS = [
   { chave: 'ponto', rotulo: 'Pontos' },
   { chave: 'acesso', rotulo: 'Acessos negados' },
   { chave: 'coleta', rotulo: 'Coletas' },
+  { chave: 'avaliacao', rotulo: 'Avaliações' },
   { chave: 'resgate', rotulo: 'Loja' },
 ];
 
@@ -52,6 +53,8 @@ const DESCRICOES = {
   'codigo_pessoal.renovado': 'Gerou novo código pessoal',
   'avaliacao.criada': 'Avaliou um ponto',
   'avaliacao.editada': 'Editou avaliação',
+  'avaliacao.respondida': 'Respondeu a uma avaliação (ponto)',
+  'avaliacao.cidadao': 'Avaliou um cidadão (ponto)',
   'resgate.criado': 'Resgatou recompensa',
   'acesso.negado': 'Tentou uma ação sem permissão',
   'organizacao.iniciada': 'Iniciou cadastro de parceiro',

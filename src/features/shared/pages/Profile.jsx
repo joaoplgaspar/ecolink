@@ -23,7 +23,8 @@ import {
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, auth, usuarios, coletas } from '@/data/repos';
+import { estatisticas, auth, usuarios, coletas, reputacao } from '@/data/repos';
+import { ChipReputacao } from '@/components/Reputacao.jsx';
 import QrCode from '@/components/QrCode.jsx';
 import { PAPEIS, PERFIS } from '@/domain/permissoes';
 import { formatDate, nf, relativeTime } from '@/utils/format';
@@ -140,6 +141,8 @@ function ResumoCidadao() {
         )}
       </div>
 
+      <CartaoReputacao />
+
       <div className="grid grid-auto mb-3">
         <Metric icon={Leaf} label="EcoPontos" value={<CountUp value={stats.ecopontos} />} />
         <Metric icon={Recycle} label="Coletas concluídas" value={<CountUp value={stats.concluidas} />} />
@@ -170,6 +173,32 @@ function ResumoCidadao() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Resumo da reputação, com atalho para a explicação completa. */
+function CartaoReputacao() {
+  const q = useQuery(() => reputacao.minha(), []);
+  if (!q.data) return null;
+  const r = q.data;
+  return (
+    <Link
+      to="/reputacao"
+      className="card card-pad card-hover mb-3 row between wrap"
+      style={{ gap: 10, color: 'inherit' }}
+    >
+      <span className="col" style={{ gap: 4 }}>
+        <strong className="row" style={{ gap: 8 }}>
+          Minha reputação <ChipReputacao resumo={r} />
+        </strong>
+        <span className="small muted">
+          {r.restricoes.bloqueado_ate
+            ? `Agendamentos bloqueados até ${formatDate(r.restricoes.bloqueado_ate)}.`
+            : r.dicas[0] || 'Veja como ela é calculada e o que os pontos disseram sobre você.'}
+        </span>
+      </span>
+      <span className="btn btn-sm btn-ghost">Entender →</span>
+    </Link>
   );
 }
 

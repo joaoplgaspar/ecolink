@@ -27,6 +27,7 @@ import CadastroOrganizacao from '@/features/parceiro/pages/CadastroOrganizacao.j
 import AssistentePonto from '@/features/parceiro/pages/AssistentePonto.jsx';
 import ConferenciaColeta from '@/features/parceiro/pages/ConferenciaColeta.jsx';
 import ColetaDetalhe from '@/features/cidadao/pages/ColetaDetalhe.jsx';
+import MinhaReputacao from '@/features/cidadao/pages/MinhaReputacao.jsx';
 import Aprovacoes from '@/features/admin/pages/Aprovacoes.jsx';
 import Usuarios from '@/features/admin/pages/Usuarios.jsx';
 import Auditoria from '@/features/admin/pages/Auditoria.jsx';
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/agendar/:pontoId" element={cidadao(<ScheduleCollection />)} />
         <Route path="/coletas" element={cidadao(<MyCollections />)} />
         <Route path="/coletas/:id" element={cidadao(<ColetaDetalhe />)} />
+        <Route path="/reputacao" element={cidadao(<MinhaReputacao />)} />
         <Route path="/chat" element={cidadao(<Chat />)} />
         <Route path="/chat/:pontoId" element={cidadao(<Chat />)} />
         <Route path="/loja" element={cidadao(<Rewards />)} />

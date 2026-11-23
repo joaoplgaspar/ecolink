@@ -33,6 +33,7 @@ import { ETAPAS_ORGANIZACAO } from '@/domain/organizacoes';
 import { Carregando, ErroCarregar, EmptyState, Metric, MensagemErro } from '@/components/ui.jsx';
 import { SeloFuncionamento } from '@/components/PontoInfo.jsx';
 import Recebimentos from '@/features/parceiro/components/Recebimentos.jsx';
+import ReputacaoPonto from '@/features/parceiro/components/ReputacaoPonto.jsx';
 import { formatDate, nf, relativeTime } from '@/utils/format';
 
 const APROVADOS = ['ativo', 'pausado'];
@@ -139,6 +140,7 @@ export default function PainelParceiro() {
           </div>
 
           <Recebimentos key={ponto.id} ponto={ponto} />
+          <ReputacaoPonto key={`rep-${ponto.id}`} ponto={ponto} />
         </>
       )}
     </div>

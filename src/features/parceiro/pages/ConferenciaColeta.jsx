@@ -17,6 +17,7 @@ import {
   KeyRound,
   CircleHelp,
   Recycle,
+  Star,
 } from 'lucide-react';
 import { parceiro } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
@@ -29,6 +30,8 @@ import { isoDia } from '@/utils/datas';
 import { Carregando, ErroCarregar, EmptyState, MensagemErro } from '@/components/ui.jsx';
 import { MaterialIcon } from '@/components/icons.jsx';
 import { StatusColeta, LinhaDoTempo, Comprovante, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
+import { ChipReputacao, FormAvaliacao } from '@/components/Reputacao.jsx';
+import { TAGS_CIDADAO } from '@/domain/avaliacoes';
 
 export default function ConferenciaColeta() {
   const { id } = useParams();
@@ -65,8 +68,8 @@ export default function ConferenciaColeta() {
           <h1 style={{ fontSize: '1.4rem' }}>
             {c.tipo === 'avulsa' ? 'Entrega sem agendamento' : 'Entrega'} de {c.cidadao}
           </h1>
-          <p>
-            {quandoTexto(c)} · {c.codigo}
+          <p className="row wrap" style={{ gap: 8 }}>
+            {quandoTexto(c)} · {c.codigo} <ChipReputacao resumo={c.reputacao_cidadao} />
           </p>
         </div>
         <StatusColeta status={c.status} />
@@ -85,9 +88,12 @@ export default function ConferenciaColeta() {
             </div>
           )}
         </div>
-        <div className="card card-pad">
-          <h3 className="mb-2">Linha do tempo</h3>
-          <LinhaDoTempo eventos={c.eventos} />
+        <div className="col" style={{ gap: 16 }}>
+          {(c.pode_avaliar_cidadao || c.avaliado_pelo_ponto) && <AvaliarCidadao coleta={c} />}
+          <div className="card card-pad">
+            <h3 className="mb-2">Linha do tempo</h3>
+            <LinhaDoTempo eventos={c.eventos} />
+          </div>
         </div>
       </div>
     </div>
@@ -345,6 +351,32 @@ function Pesagem({ coleta }) {
       <p className="hint mt-1">
         Ao concluir, os EcoPontos vão direto para o extrato do cidadão e o comprovante é emitido para os dois lados.
       </p>
+    </div>
+  );
+}
+
+/** Depois da conferência, a equipe avalia o cidadão (ele vê a avaliação; entra na reputação dele). */
+function AvaliarCidadao({ coleta }) {
+  const avaliar = useMutation((dados) => parceiro.avaliarCidadao({ coleta_id: coleta.id, ...dados }));
+  return (
+    <div className="card card-pad">
+      <h3 className="row mb-2" style={{ gap: 8 }}>
+        <Star size={18} color="#f5a623" /> Avaliar {coleta.cidadao}
+      </h3>
+      {coleta.avaliado_pelo_ponto ? (
+        <p className="small row" style={{ gap: 6, color: 'var(--green-700)', fontWeight: 600 }}>
+          <CheckCircle2 size={16} /> Avaliação enviada. Obrigado por ajudar a manter a rede confiável.
+        </p>
+      ) : (
+        <FormAvaliacao
+          titulo="Como foi esta entrega?"
+          ajuda="Seja justo: a pessoa vê esta avaliação e ela entra na reputação dela."
+          tags={TAGS_CIDADAO}
+          onEnviar={avaliar.mutate}
+          pendente={avaliar.pending}
+          erro={avaliar.error}
+        />
+      )}
     </div>
   );
 }

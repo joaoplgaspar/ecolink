@@ -16,11 +16,12 @@ import {
   GraduationCap,
   Trophy,
   CalendarClock,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
-import { estatisticas, coletas } from '@/data/repos';
-import { nf } from '@/utils/format';
+import { estatisticas, coletas, reputacao } from '@/data/repos';
+import { nf, formatDate } from '@/utils/format';
 import { isoDia } from '@/utils/datas';
 import { StatusColeta, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
 import { Metric, ProgressBar, LevelChip, CountUp, Carregando, ErroCarregar } from '@/components/ui.jsx';
@@ -38,7 +39,12 @@ const DICAS = [
 export default function Dashboard() {
   const { user } = useAuth();
   const q = useQuery(
-    () => Promise.all([estatisticas.minhas(), coletas.minhas({ grupo: 'abertas', ordem: 'asc' })]),
+    () =>
+      Promise.all([
+        estatisticas.minhas(),
+        coletas.minhas({ grupo: 'abertas', ordem: 'asc' }),
+        reputacao.minha().catch(() => null), // aviso opcional: não derruba o início
+      ]),
     [user.id],
   );
 
@@ -68,7 +74,7 @@ export default function Dashboard() {
       </>
     );
 
-  const [stats, agendadas] = q.data;
+  const [stats, agendadas, rep] = q.data;
   const { nivel } = stats;
   const proximas = agendadas.slice(0, 3);
   const deHoje = agendadas.find((c) => c.status === 'confirmada' && c.data === isoDia(new Date()));
@@ -76,6 +82,26 @@ export default function Dashboard() {
   return (
     <div>
       {cabecalho(nivel.atual)}
+
+      {rep?.restricoes.bloqueado_ate ? (
+        <Link to="/reputacao" className="aviso erro mb-3" role="alert">
+          <ShieldAlert size={18} style={{ flex: 'none' }} />
+          <span>
+            <strong>Novos agendamentos bloqueados até {formatDate(rep.restricoes.bloqueado_ate)}</strong> por{' '}
+            {rep.restricoes.faltas_recentes} faltas em 30 dias. Toque para entender.
+          </span>
+        </Link>
+      ) : (
+        rep?.restricoes.faltam_para_bloqueio === 1 && (
+          <Link to="/reputacao" className="aviso mb-3" role="status">
+            <ShieldAlert size={18} style={{ flex: 'none' }} />
+            <span>
+              Atenção: {rep.restricoes.faltas_recentes} faltas nos últimos 30 dias. Mais uma bloqueia novos agendamentos
+              por 7 dias — se não puder ir, cancele com antecedência.
+            </span>
+          </Link>
+        )
+      )}
 
       {deHoje && (
         <Link

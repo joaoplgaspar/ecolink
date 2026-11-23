@@ -9,6 +9,7 @@ import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { pode } from '@/domain/permissoes';
 import { Carregando, ErroCarregar, MensagemErro, Avatar } from '@/components/ui.jsx';
+import { ChipReputacao } from '@/components/Reputacao.jsx';
 import { formatDate } from '@/utils/format';
 
 export default function Usuarios() {
@@ -90,6 +91,11 @@ export default function Usuarios() {
                         {p}
                       </span>
                     ))}
+                    {u.reputacao && (
+                      <div className="mt-1">
+                        <ChipReputacao resumo={u.reputacao} />
+                      </div>
+                    )}
                   </td>
                   <td className="hide-mobile small">{formatDate(u.criado_em)}</td>
                   <td className="hide-mobile small">{u.sessoes_ativas}</td>

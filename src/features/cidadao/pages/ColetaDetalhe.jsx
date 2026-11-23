@@ -14,8 +14,12 @@ import {
   XCircle,
   CircleHelp,
   Navigation,
+  Star,
+  ShieldCheck,
+  Pencil,
 } from 'lucide-react';
-import { coletas } from '@/data/repos';
+import { coletas, avaliacoes } from '@/data/repos';
+import { TAGS_PONTO, PRAZO_AVALIAR_DIAS } from '@/domain/avaliacoes';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
 import { getMaterial } from '@/domain/materiais';
@@ -25,6 +29,9 @@ import { Carregando, ErroCarregar, EmptyState, MensagemErro } from '@/components
 import { MaterialIcon } from '@/components/icons.jsx';
 import QrCode from '@/components/QrCode.jsx';
 import { StatusColeta, LinhaDoTempo, Comprovante, quandoTexto } from '@/components/Coleta.jsx';
+import StarRating from '@/components/StarRating.jsx';
+import { FormAvaliacao, CartaoAvaliacao, Destaques } from '@/components/Reputacao.jsx';
+import { formatDate } from '@/utils/format';
 
 export default function ColetaDetalhe() {
   const { id } = useParams();
@@ -175,6 +182,8 @@ export default function ColetaDetalhe() {
         </div>
 
         <div className="col" style={{ gap: 16 }}>
+          {['concluida', 'rejeitada'].includes(c.status) && <AvaliacoesDaEntrega coleta={c} />}
+
           <div className="card card-pad">
             <h3 className="mb-2">Acompanhamento</h3>
             <LinhaDoTempo eventos={c.eventos} />
@@ -215,6 +224,84 @@ export default function ColetaDetalhe() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Avaliação BILATERAL da entrega: você avalia o ponto e vê como o ponto avaliou você. */
+function AvaliacoesDaEntrega({ coleta }) {
+  const q = useQuery(() => avaliacoes.daColeta(coleta.id), [coleta.id]);
+  const salvar = useMutation((dados) => avaliacoes.avaliarPonto({ coleta_id: coleta.id, ...dados }));
+  const [editando, setEditando] = useState(false);
+
+  if (q.loading) return <Carregando linhas={1} altura={120} rotulo="Carregando avaliações…" />;
+  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+  const { minha, pode_avaliar, recebida } = q.data;
+
+  async function enviar(dados) {
+    const r = await salvar.mutate(dados);
+    if (r.ok) {
+      setEditando(false);
+      q.refetch();
+    }
+    return r;
+  }
+
+  return (
+    <div className="card card-pad col" style={{ gap: 14 }} id="avaliacao">
+      <h3 className="row" style={{ gap: 8 }}>
+        <Star size={18} color="#f5a623" /> Avaliação da entrega
+      </h3>
+
+      {minha && !editando && (
+        <CartaoAvaliacao
+          avaliacao={{ ...minha, usuario_nome: 'Você' }}
+          nomePonto={coleta.ponto_nome}
+          rodape={
+            minha.pode_editar && (
+              <button className="btn btn-ghost btn-sm mt-1" onClick={() => setEditando(true)}>
+                <Pencil size={14} /> Editar (até 7 dias)
+              </button>
+            )
+          }
+        />
+      )}
+      {((!minha && pode_avaliar) || editando) && (
+        <FormAvaliacao
+          titulo={editando ? 'Editar sua avaliação' : `Como foi no ${coleta.ponto_nome}?`}
+          ajuda="Sua avaliação aparece na página do ponto com o selo “entrega verificada”."
+          tags={TAGS_PONTO}
+          inicial={minha}
+          onEnviar={enviar}
+          pendente={salvar.pending}
+          erro={salvar.error}
+          rotuloBotao={editando ? 'Salvar alterações' : 'Enviar avaliação'}
+        />
+      )}
+      {!minha && !pode_avaliar && (
+        <p className="small muted">O prazo para avaliar ({PRAZO_AVALIAR_DIAS} dias após a conferência) já passou.</p>
+      )}
+
+      <div className="avaliacao-recebida">
+        <strong className="small row" style={{ gap: 6 }}>
+          <ShieldCheck size={15} color="var(--green-600)" /> Como o ponto avaliou você
+        </strong>
+        {recebida ? (
+          <>
+            <div className="row mt-1" style={{ gap: 8 }}>
+              <StarRating value={recebida.nota} size={14} readOnly />
+              <span className="faint small">{formatDate(recebida.em)}</span>
+            </div>
+            <Destaques tags={recebida.tags} />
+            {recebida.comentario && <p className="small muted mt-1">{recebida.comentario}</p>}
+          </>
+        ) : (
+          <p className="small muted mt-1">O ponto ainda não avaliou esta entrega.</p>
+        )}
+        <Link to="/reputacao" className="small mt-1" style={{ display: 'inline-block' }}>
+          Ver minha reputação →
+        </Link>
       </div>
     </div>
   );

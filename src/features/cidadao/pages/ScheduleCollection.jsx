@@ -16,8 +16,9 @@ import {
   ShieldCheck,
   Info,
   CalendarX2,
+  Ban,
 } from 'lucide-react';
-import { coletas } from '@/data/repos';
+import { coletas, reputacao } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
 import { getMaterial } from '@/domain/materiais';
@@ -32,8 +33,10 @@ import { MaterialIcon } from '@/components/icons.jsx';
 export default function ScheduleCollection() {
   const { pontoId } = useParams();
   const q = useQuery(() => coletas.agenda(pontoId), [pontoId]);
+  // Reputação: avisa ANTES de preencher se há bloqueio ou limite (o servidor valida de novo).
+  const rep = useQuery(() => reputacao.minha(), []);
 
-  if (q.loading) return <Carregando linhas={2} altura={220} rotulo="Carregando agenda do ponto…" />;
+  if (q.loading || rep.loading) return <Carregando linhas={2} altura={220} rotulo="Carregando agenda do ponto…" />;
   if (q.error?.status === 404) {
     return (
       <EmptyState icon={CircleHelp} title="Ponto não encontrado">
@@ -55,7 +58,21 @@ export default function ScheduleCollection() {
       </EmptyState>
     );
   }
-  return <FormAgendamento agenda={q.data} />;
+  const restricoes = rep.data?.restricoes;
+  if (restricoes?.bloqueado_ate) {
+    return (
+      <EmptyState icon={Ban} title="Agendamentos bloqueados por enquanto">
+        Foram {restricoes.faltas_recentes} faltas nos últimos 30 dias, então novos agendamentos ficam bloqueados até{' '}
+        <strong>{formatDate(restricoes.bloqueado_ate)}</strong>. Você ainda pode entregar na hora, mostrando seu código
+        pessoal no ponto.
+        <br />
+        <Link to="/reputacao" className="btn btn-sm btn-primary mt-2">
+          Entender minha reputação
+        </Link>
+      </EmptyState>
+    );
+  }
+  return <FormAgendamento agenda={q.data} reputacao={rep.data} />;
 }
 
 const diaRotulo = (iso) => {
@@ -69,7 +86,7 @@ const diaRotulo = (iso) => {
   });
 };
 
-function FormAgendamento({ agenda }) {
+function FormAgendamento({ agenda, reputacao: rep }) {
   const { ponto, dias } = agenda;
   const nav = useNavigate();
   const [itens, setItens] = useState([{ material: ponto.materiais[0], kg: '1' }]);
@@ -116,6 +133,16 @@ function FormAgendamento({ agenda }) {
           Em <strong>{ponto.nome}</strong> — {ponto.horario}
         </p>
       </div>
+
+      {rep && rep.faixa.chave === 'restrito' && (
+        <div className="aviso mb-3" role="status">
+          <ShieldCheck size={17} style={{ flex: 'none' }} />
+          <div>
+            Com reputação <strong>Restrito</strong>, você pode ter {rep.restricoes.max_ativas} entrega em aberto por vez
+            e a equipe do ponto confirma cada pedido. <Link to="/reputacao">Veja como recuperar</Link>.
+          </div>
+        </div>
+      )}
 
       {/* noValidate: as regras (limite do ponto, janela…) vêm do repositório, com mensagens claras em português. */}
       <form className="grid grid-2" style={{ alignItems: 'start' }} onSubmit={submit} noValidate>

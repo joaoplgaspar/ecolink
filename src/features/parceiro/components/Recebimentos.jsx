@@ -12,6 +12,7 @@ import { mensagemDeErro } from '@/data/erros';
 import { MOTIVOS_RECUSA } from '@/domain/antifraude';
 import { isoDia } from '@/utils/datas';
 import { Carregando, ErroCarregar, EmptyState, MensagemErro } from '@/components/ui.jsx';
+import { ChipReputacao } from '@/components/Reputacao.jsx';
 import { StatusColeta, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
 import LeitorQr from '@/components/LeitorQr.jsx';
 
@@ -183,7 +184,8 @@ function CartaoRecebimento({ c }) {
         <div>
           <strong>
             {c.cidadao} · {quandoTexto(c)}
-          </strong>
+          </strong>{' '}
+          <ChipReputacao resumo={c.reputacao_cidadao} />
           <div className="small muted">
             {resumoItens(c.itens, c.status === 'concluida' ? 'kg_aferido' : 'kg_declarado')} · {c.codigo}
             {c.tipo === 'avulsa' && ' · sem agendamento'}
