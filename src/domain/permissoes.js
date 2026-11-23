@@ -1,0 +1,108 @@
+// Papéis, perfis e a matriz de permissões (ROADMAP §2).
+//
+// • PAPEL: o que a pessoa É na plataforma (pode ter vários).
+// • PERFIL: o "modo" em que ela está usando o app agora (cidadão, parceiro ou
+//   plataforma). Quem tem mais de um perfil alterna pelo seletor, como num app
+//   que alterna entre conta pessoal e conta da loja.
+//
+// `pode(ator, acao, recurso)` é uma função PURA e é a única fonte das regras:
+// os repositórios a usam para BLOQUEAR (segurança) e as telas para ESCONDER
+// botões (experiência). No Supabase, as mesmas regras viram policies de RLS.
+
+export const PAPEIS = {
+  cidadao: { perfil: 'cidadao', rotulo: 'Cidadão' },
+  parceiro_gestor: { perfil: 'parceiro', rotulo: 'Gestor de ponto' },
+  parceiro_operador: { perfil: 'parceiro', rotulo: 'Operador de ponto' },
+  moderador: { perfil: 'admin', rotulo: 'Moderação' },
+  admin: { perfil: 'admin', rotulo: 'Administração' },
+};
+
+export const PERFIS = {
+  cidadao: { rotulo: 'Cidadão', inicio: '/' },
+  parceiro: { rotulo: 'Parceiro', inicio: '/parceiro' },
+  admin: { rotulo: 'Plataforma', inicio: '/admin' },
+};
+
+const ORDEM_PERFIS = ['cidadao', 'parceiro', 'admin'];
+
+/** Perfis que um conjunto de papéis libera, na ordem cidadão → parceiro → plataforma. */
+export function perfisDe(papeis = []) {
+  const set = new Set(papeis.map((p) => PAPEIS[p]?.perfil).filter(Boolean));
+  return ORDEM_PERFIS.filter((p) => set.has(p));
+}
+
+/**
+ * Perfil com que a pessoa entra quando não há um "último perfil usado".
+ * Quem trabalha num ponto ou na plataforma geralmente abre o app para trabalhar,
+ * então os perfis profissionais vêm antes do de cidadão.
+ */
+export function perfilPadrao(papeis = []) {
+  const disponiveis = perfisDe(papeis);
+  return ['parceiro', 'admin', 'cidadao'].find((p) => disponiveis.includes(p)) ?? null;
+}
+
+/** Perfil para abrir a sessão: o último usado, se a pessoa ainda o tiver. */
+export function perfilInicial(usuario) {
+  return perfisDe(usuario.papeis).includes(usuario.ultimo_perfil)
+    ? usuario.ultimo_perfil
+    : perfilPadrao(usuario.papeis);
+}
+
+export function papeisValidos(papeis) {
+  return Array.isArray(papeis) && papeis.length > 0 && papeis.every((p) => p in PAPEIS);
+}
+
+/* --------------------------------- ator --------------------------------- */
+
+/**
+ * Ator = quem está fazendo a ação, montado a partir da sessão:
+ * { id, papeis: string[], perfil: 'cidadao'|'parceiro'|'admin', pontos: number[] }
+ * `pontos` são os pontos de coleta dos quais a pessoa é membro (gestor/operador).
+ */
+const tem = (ator, papel) => ator.papeis.includes(papel);
+const membroDo = (ator, pontoId) => ator.pontos.includes(Number(pontoId));
+const comoCidadao = (ator) => ator.perfil === 'cidadao' && tem(ator, 'cidadao');
+const comoParceiro = (ator) =>
+  ator.perfil === 'parceiro' && (tem(ator, 'parceiro_gestor') || tem(ator, 'parceiro_operador'));
+const comoPlataforma = (ator) => ator.perfil === 'admin' && (tem(ator, 'admin') || tem(ator, 'moderador'));
+const comoAdmin = (ator) => ator.perfil === 'admin' && tem(ator, 'admin');
+
+/* ------------------------------- regras --------------------------------- */
+
+const REGRAS = {
+  // Coletas
+  'coleta.agendar': (a, r) => comoCidadao(a) && !membroDo(a, r.ponto_id), // conflito de interesse
+  'coleta.ver': (a, r) =>
+    (comoCidadao(a) && r.usuario_id === a.id) || (comoParceiro(a) && membroDo(a, r.ponto_id)) || comoPlataforma(a),
+  'coleta.gerenciar_propria': (a, r) => comoCidadao(a) && r.usuario_id === a.id,
+  'coleta.listar_do_ponto': (a, r) => (comoParceiro(a) && membroDo(a, r.ponto_id)) || comoPlataforma(a),
+
+  // Cidadão
+  'avaliacao.salvar': (a) => comoCidadao(a),
+  'resgate.criar': (a) => comoCidadao(a),
+  'resgate.ver': (a, r) => comoCidadao(a) && r.usuario_id === a.id,
+  'chat.usar': (a) => comoCidadao(a),
+  'estatisticas.ver_proprias': (a) => comoCidadao(a),
+
+  // Parceiro
+  'parceiro.painel': (a) => comoParceiro(a),
+
+  // Plataforma
+  'usuario.listar': (a) => comoPlataforma(a),
+  'usuario.ver': (a, r) => r.id === a.id || comoPlataforma(a),
+  'usuario.alterar_status': (a, r) => comoAdmin(a) && r.id !== a.id, // ninguém suspende a própria conta
+  'auditoria.ver': (a) => comoPlataforma(a),
+
+  // Qualquer pessoa logada
+  'ranking.ver': () => true,
+  'conta.gerenciar_propria': () => true,
+};
+
+export const ACOES = Object.keys(REGRAS);
+
+/** A pessoa pode fazer esta ação neste recurso? Ação desconhecida → não. */
+export function pode(ator, acao, recurso = {}) {
+  if (!ator) return false;
+  const regra = REGRAS[acao];
+  return regra ? Boolean(regra(ator, recurso)) : false;
+}
