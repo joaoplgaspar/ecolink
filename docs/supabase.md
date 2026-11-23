@@ -51,12 +51,7 @@ Só precisa de navegador, Node.js e uma conta gratuita no [supabase.com](https:/
 
 ### 2a. Rodar o app no seu computador (só Node)
 
-Na pasta do projeto, crie o arquivo `.env.supabase.local` (copie de `.env.supabase.local.example`):
-
-```
-VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_...
-```
+O projeto já vem apontando para o banco da apresentação (`.env.supabase`: URL e chave **publishable**, que são públicas). Basta:
 
 ```bash
 npm install
@@ -68,17 +63,20 @@ npm run dev:supabase
 
 Abra http://localhost:5173. Para mostrar os dois lados, use duas janelas (ou uma anônima): a cidadã numa, o ponto na outra — agora cada uma pode estar até num aparelho diferente.
 
-### 2b. Ou publicar o site com link (Vercel, grátis)
+Para usar **outro** projeto Supabase, crie `.env.supabase.local` (copie de `.env.supabase.local.example`) com a URL e a chave publishable dele: ele tem prioridade sobre `.env.supabase`.
 
-1. Em [vercel.com](https://vercel.com), **Add New → Project** e importe o repositório do GitHub (escolha a branch com o código).
-2. Em **Environment Variables**, adicione:
-   - `VITE_FONTE_DADOS` = `supabase`
-   - `VITE_SUPABASE_URL` = a Project URL
-   - `VITE_SUPABASE_ANON_KEY` = a chave publishable/anon
-3. **Deploy**. O `vercel.json` já cuida das rotas do app. (Na Netlify também funciona: o `public/_redirects` faz o mesmo papel.)
-4. No Supabase, **Authentication → URL Configuration → Site URL**: coloque o endereço que a Vercel gerou.
+### 2b. Ou publicar o site com link (Vercel)
 
-Sem as variáveis, o mesmo projeto publica o **modo local** (dados no navegador) — útil como plano B.
+1. Em [vercel.com](https://vercel.com), importe o repositório do GitHub. A branch de produção é a `main`.
+2. Não precisa configurar variável nenhuma: o `vercel.json` já faz o build no modo Supabase (`--mode supabase`, que lê `.env.supabase`) e cuida das rotas do app.
+3. No Supabase, **Authentication → URL Configuration → Site URL**: coloque o endereço que a Vercel gerou.
+
+Variáveis definidas no painel da Vercel têm prioridade sobre o arquivo:
+
+- outro projeto Supabase → `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (precisam do prefixo `VITE_`; as que a integração Supabase ↔ Vercel cria, como `SUPABASE_URL` ou `NEXT_PUBLIC_SUPABASE_ANON_KEY`, são ignoradas pelo app);
+- plano B com os dados no navegador → `VITE_FONTE_DADOS` = `local`.
+
+A integração da Vercel também pode criar `SUPABASE_SERVICE_ROLE_KEY`: o app nunca a lê (o Vite só expõe variáveis `VITE_`), então ela não chega ao navegador.
 
 ### 3. Provar a segurança sem Docker
 
