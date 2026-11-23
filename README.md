@@ -74,12 +74,20 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - ⚖️ **Contestação de pesagem**: em até 7 dias, uma vez; a moderação compara declarado × pesado e o histórico de quem pesou, e pode **ajustar** — a diferença entra no extrato como lançamento novo
 - 📊 **Visão geral da plataforma**: o que precisa de atenção (graves, fora do prazo, recursos, contestações, aprovações), saúde da rede e sanções em vigor (a administração revoga com motivo)
 
+**Operação do ponto e chat real** (Fase 6 do [ROADMAP](./ROADMAP.md))
+
+- 💬 **Chat de verdade nos dois lados**: a equipe do ponto responde pelo painel (caixa de entrada com não lidas), com **respostas rápidas** configuráveis (`{nome}`, `{horario}`, `{materiais}`), "visto" e **mensagem de ausência** automática quando o ponto está fechado. A equipe vê só o primeiro nome e a reputação de quem escreve — nunca telefone ou e-mail
+- 🛡️ **Detector de golpe**: pedidos de Pix/pagamento, código de entrega, CPF/cartão, links e contato fora do app geram **aviso para quem recebe** (com atalho para denunciar) e **dica para quem escreve**, antes de enviar. Respostas rápidas não podem pedir pagamento; anti-spam de 30 mensagens/hora; mensagens com mais de 1 ano são apagadas (LGPD)
+- 👥 **Equipe**: convite por e-mail com código de uso único (guardado só como hash), válido por 7 dias e preso ao e-mail convidado; papéis gestor/operador; revogação com efeito imediato; o ponto nunca fica sem gestor
+- 📦 **Estoque derivado** (pesado e aprovado − destinado), **capacidade por material** com alerta em 90% e **pausa automática do agendamento em 100%** (o que já está agendado conta como reservado)
+- 🚚 **Destinação com rastreabilidade de ponta a ponta**: cada saída para cooperativa/indústria consome primeiro o material que chegou antes (FIFO) — o cidadão vê **"Para onde foi seu material"** na entrega e é avisado quando ele segue para a reciclagem
+- 📊 **Relatórios**: kg por mês e por material (gráfico com dica e tabela), participação de cada material, atendimentos, taxa de faltas, tempo de resposta, destinado e CO₂ evitado, com **exportação CSV** no padrão brasileiro (";" e vírgula decimal, protegido contra fórmulas)
+
 **Diferenciais**
 
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
 - 🎁 **Loja de recompensas** — troque EcoPontos (saldo) por brindes e descontos de parceiros, com geração de **voucher**
 - 📚 **Modo educação** — cores da coleta seletiva, guia por material e **quiz interativo**
-- 💬 **Chat** com os pontos de coleta (com resposta automática simulada)
 - 🔔 **Notificações** (lembretes, coleta concluída, recompensas)
 - 🏅 **Ranking** entre os usuários
 - 📱 **PWA** — instalável no celular e funciona offline após a primeira visita
@@ -137,6 +145,9 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 9. **Moderação** (`moderacao@ecolink.app`): na fila, a denúncia grave e fora do prazo está no topo. Abre o caso da Ana, assume (a Ana vê "Em análise" na hora) e decide procedente com a medida sugerida. O ponto **some do mapa**.
 10. **Sérgio** (`sergio@email.com`) vê a faixa de suspensão, a decisão (sem saber quem denunciou) e recorre. A moderadora não pode julgar o recurso; a **administração** reverte e o ponto volta.
 11. Em "Contestações", a administração ajusta a pesagem contestada pela Gabriela: a diferença aparece no extrato dela.
+12. **Marcos** → aba "Conversas": responde ao Bruno com uma resposta rápida; o Bruno vê a resposta e o "visto". A **Elisa** (`elisa@email.com`) abre o chat do EcoPonto Botafogo e vê o aviso de golpe num pedido de Pix.
+13. Depois da pesagem do Diego (passo 3), aba "Estoque e destinação": registre a saída do plástico para a Cooperativa Recicla Juntos. Na entrega do Diego aparece **"Para onde foi seu material"**.
+14. Aba "Equipe": convide `joao@email.com`; o código chega na caixa de e-mail da demo. Entrando como João, em "Perfil → Usar código", ele vira operador do ponto. Aba "Relatórios": gráfico, tabela e CSV.
 
 ---
 

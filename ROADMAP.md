@@ -45,7 +45,7 @@
 | D6  | **Regras de negócio só na interface** (ex.: saldo da loja validado só no componente)             | `Rewards.jsx:30`, `db.js` → `resgates.create`         | Em um backend real, a regra tem que estar no servidor. Aqui, na camada de dados                                 |
 | D7  | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá** — ✅ resolvido na Fase 4               | `PointDetail.jsx`                                     | Avaliações manipuláveis; nenhuma confiança                                                                      |
 | D8  | Não existe denúncia, bloqueio nem moderação — ✅ resolvido na Fase 5                             | —                                                     | Requisito explícito do projeto                                                                                  |
-| D9  | O chat é uma resposta automática por palavra-chave                                               | `db.js` → `respostaAutomatica`                        | Com o lado do reciclador, vira conversa real entre os dois lados                                                |
+| D9  | O chat é uma resposta automática por palavra-chave — ✅ resolvido na Fase 6                      | `db.js` → `respostaAutomatica`                        | Com o lado do reciclador, vira conversa real entre os dois lados                                                |
 | D10 | Horário do ponto é texto livre (`"Seg-Sex 8h-18h"`)                                              | `seed.js`                                             | Impede agenda por horário, capacidade e "aberto agora"                                                          |
 | D11 | Dependência `"reciclaja-api": "file:../reciclaja-api"` aponta para uma pasta fora do repositório | `package.json`                                        | **`npm install` quebra em um clone limpo** (e pode quebrar o deploy). Não é usada em `src/`                     |
 | D12 | Seed com **datas fixas** (jun/2026)                                                              | `seed.js`                                             | Na apresentação, tudo aparece "atrasado" ou "antigo"; as datas precisam ser relativas a hoje                    |
@@ -576,13 +576,15 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Reputação ligada às decisões: procedentes contra o cidadão (−15 por 6 meses, explicado em "Minha reputação") e contra o ponto (componente "conduta").
 - ✅ _Aceite verificado:_ no navegador, uma denúncia procedente **suspende a Coleta Vila Madalena, que some do mapa**, e a cidadã acompanha o protocolo de "Recebida" a "Em análise" e à decisão, em tempo real; o gestor recorre, quem decidiu é impedido de julgar o recurso e a administração reverte. São 355 testes automatizados e testes de mutação confirmando que eles pegam a remoção da regra do recurso e da restrição de conta.
 
-### Fase 6 — Operação do ponto e chat real _(M)_ [S]
+### Fase 6 — Operação do ponto e chat real _(M)_ [S] — ✅ **concluída**
 
-- Chat bidirecional real (substitui a resposta automática, D9), respostas rápidas, detector de golpe.
-- Equipe (convites, papéis, revogação).
-- Estoque, capacidade, pausa automática e **destinação** (rastreabilidade).
-- Relatórios com gráficos e exportação CSV.
-- ✅ _Aceite:_ um kg entregue pelo cidadão aparece no estoque do ponto e na destinação final.
+- ✅ Chat bidirecional real (**D9 resolvido**): conversas com id próprio (a equipe nunca recebe o id do cidadão), caixa de entrada do ponto com não lidas, "visto", respostas rápidas com variáveis, mensagem de ausência automática (no máximo 1 a cada 12 h), notificações agrupadas por conversa, anti-spam e retenção de 1 ano.
+- ✅ Detector de golpe (`domain/chat.js`): pagamento/Pix, código de entrega, dados sensíveis, links e contato externo → aviso para quem recebe e dica para quem escreve; Pix enviado pela equipe fica auditado; a equipe também denuncia mensagens do cidadão.
+- ✅ Equipe: convites com código de uso único guardado como hash, preso ao e-mail e válido por 7 dias; papéis, revogação imediata e "o ponto nunca fica sem gestor".
+- ✅ Estoque derivado, capacidade com alerta em 90% e pausa automática do material cheio (com reserva do que já está agendado); destinação com **rastreabilidade FIFO** — o cidadão vê para onde foi o material e é avisado.
+- ✅ Relatórios com gráfico (paleta categórica validada para daltonismo), tabela e exportação CSV.
+- ✅ Painel do parceiro em abas (Recebimentos, Conversas, Estoque e destinação, Equipe, Relatórios, Avaliações), com a aba na URL; pontos suspensos continuam visíveis para a equipe.
+- ✅ _Aceite verificado:_ no navegador, os 4,9 kg de plástico pesados na entrega do Diego aparecem no estoque do EcoPonto Centro; a destinação para a Cooperativa Recicla Juntos registra que veio dessa entrega e o Diego vê "4,9 kg seguiram para Cooperativa Recicla Juntos". São 391 testes automatizados, com testes de mutação na regra do convite (e-mail) e na capacidade.
 
 ### Fase 7 — Polimento, acessibilidade e prova _(M)_ [M]
 
