@@ -1,11 +1,36 @@
-// Ferramentas do modo demonstração.
+// Ferramentas do MODO DEMONSTRAÇÃO (não existiriam em produção).
 
-import { resetar } from '../storage';
+import { ler, resetar } from '../storage';
+import { CONTAS_DEMO, SENHA_DEMO } from '../contasDemo';
+import { PAPEIS } from '../../domain/permissoes';
+import { limparToken } from '../sessaoCliente';
 import { chamar } from './_rede';
 
 /** Apaga todos os dados do dispositivo e recria o seed de demonstração. */
 export function restaurar() {
   return chamar(() => {
     resetar();
+    limparToken();
   });
+}
+
+/** Contas para o painel "Entrar como…" (com nome e papéis atuais). */
+export function contas() {
+  return chamar(() => {
+    const usuarios = ler().usuarios;
+    return CONTAS_DEMO.map((c) => {
+      const u = usuarios.find((x) => x.email === c.email);
+      return u ? { ...c, nome: u.nome, papeis: u.papeis.map((p) => PAPEIS[p]?.rotulo || p), status: u.status } : null;
+    }).filter(Boolean);
+  });
+}
+
+export const senhaDemo = SENHA_DEMO;
+
+/**
+ * Caixa de e-mail simulada: onde chegam os códigos de recuperação de senha e
+ * os avisos de segurança. Num sistema real, isso seria o e-mail da pessoa.
+ */
+export function emails() {
+  return chamar(() => [...ler().emails_demo].reverse());
 }

@@ -7,6 +7,7 @@
 // Para trocar o armazenamento local por um back end (ex.: Supabase), basta
 // reimplementar estes módulos com as mesmas assinaturas — as telas não mudam.
 
+export * as auth from './auth';
 export * as usuarios from './usuarios';
 export * as pontos from './pontos';
 export * as coletas from './coletas';
@@ -15,4 +16,6 @@ export * as resgates from './resgates';
 export * as chat from './chat';
 export * as notificacoes from './notificacoes';
 export * as estatisticas from './estatisticas';
+export * as parceiro from './parceiro';
+export * as admin from './admin';
 export * as demo from './demo';

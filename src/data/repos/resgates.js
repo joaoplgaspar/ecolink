@@ -7,7 +7,8 @@ import { ler, transacao } from '../storage';
 import { ErroApi, naoEncontrado } from '../erros';
 import { RECOMPENSAS } from '../recompensas';
 import { calcularEstatisticas } from '../../domain/gamificacao';
-import { chamar, agoraISO, proximoId } from './_rede';
+import { chamarAutenticado, agoraISO, proximoId } from './_rede';
+import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O e 1/I, que confundem
@@ -19,25 +20,24 @@ function gerarCodigo() {
   return `ECO-${c.slice(0, 4)}-${c.slice(4)}`;
 }
 
-export function listar(usuarioId) {
-  return chamar(() =>
+export function listar() {
+  return chamarAutenticado((ator) =>
     ler()
-      .resgates.filter((r) => r.usuario_id === Number(usuarioId))
+      .resgates.filter((r) => r.usuario_id === ator.id)
       .sort((a, b) => (a.em < b.em ? 1 : -1)),
   );
 }
 
-export function resgatar(usuarioId, recompensaId) {
-  return chamar(() =>
+export function resgatar(recompensaId) {
+  return chamarAutenticado((ator) =>
     transacao((s) => {
-      const id = Number(usuarioId);
-      if (!s.usuarios.some((u) => u.id === id)) throw naoEncontrado('Usuário');
+      exigir(ator, 'resgate.criar', {}, 'Entre no perfil Cidadão para usar a loja.');
       const recompensa = RECOMPENSAS.find((r) => r.id === Number(recompensaId));
       if (!recompensa) throw naoEncontrado('Recompensa');
 
       const { saldo } = calcularEstatisticas({
-        coletas: s.coletas.filter((c) => c.usuario_id === id),
-        resgates: s.resgates.filter((r) => r.usuario_id === id),
+        coletas: s.coletas.filter((c) => c.usuario_id === ator.id),
+        resgates: s.resgates.filter((r) => r.usuario_id === ator.id),
       });
       if (saldo < recompensa.custo) {
         throw new ErroApi(422, `Saldo insuficiente: faltam ${recompensa.custo - saldo} EcoPontos.`);
@@ -45,7 +45,7 @@ export function resgatar(usuarioId, recompensaId) {
 
       const novo = {
         id: proximoId(s, 'resgate'),
-        usuario_id: id,
+        usuario_id: ator.id,
         recompensa_id: recompensa.id,
         nome: recompensa.nome,
         parceiro: recompensa.parceiro,
@@ -54,10 +54,17 @@ export function resgatar(usuarioId, recompensaId) {
         em: agoraISO(),
       };
       s.resgates.push(novo);
-      registrarNotificacao(s, id, {
+      registrarNotificacao(s, ator.id, {
         tipo: 'recompensa',
         icone: '🎁',
         texto: `Recompensa resgatada: ${recompensa.nome}. Código: ${novo.codigo}.`,
+      });
+      auditar(s, {
+        ator_id: ator.id,
+        acao: 'resgate.criado',
+        recurso_tipo: 'resgate',
+        recurso_id: novo.id,
+        detalhes: { custo: recompensa.custo },
       });
       return novo;
     }),

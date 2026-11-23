@@ -2,25 +2,28 @@
 // aqui só buscamos os dados e aplicamos as regras.
 
 import { ler } from '../storage';
-import { naoEncontrado } from '../erros';
 import { calcularEstatisticas, calcularRanking } from '../../domain/gamificacao';
-import { chamar } from './_rede';
+import { chamarAutenticado } from './_rede';
+import { exigir } from './_sessao';
 
-export function doUsuario(usuarioId) {
-  return chamar(() => {
+/** Estatísticas da própria conta (perfil cidadão). */
+export function minhas() {
+  return chamarAutenticado((ator) => {
+    exigir(ator, 'estatisticas.ver_proprias', {}, 'Entre no perfil Cidadão para ver seus EcoPontos.');
     const s = ler();
-    const id = Number(usuarioId);
-    if (!s.usuarios.some((u) => u.id === id)) throw naoEncontrado('Usuário');
     return calcularEstatisticas({
-      coletas: s.coletas.filter((c) => c.usuario_id === id),
-      resgates: s.resgates.filter((r) => r.usuario_id === id),
+      coletas: s.coletas.filter((c) => c.usuario_id === ator.id),
+      resgates: s.resgates.filter((r) => r.usuario_id === ator.id),
     });
   });
 }
 
+/** Ranking entre cidadãos ativos (equipe da plataforma e de pontos não entra). */
 export function ranking() {
-  return chamar(() => {
+  return chamarAutenticado((ator) => {
+    exigir(ator, 'ranking.ver');
     const s = ler();
-    return calcularRanking({ usuarios: s.usuarios, coletas: s.coletas });
+    const cidadaos = s.usuarios.filter((u) => u.papeis.includes('cidadao') && u.status === 'ativo');
+    return calcularRanking({ usuarios: cidadaos, coletas: s.coletas });
   });
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { migrar, versaoDe, VERSAO_ATUAL } from './migrations';
+import { HASH_SENHA_DEMO } from './contasDemo';
 
 // Formato salvo pela versão anterior do app (chave "ecolink:v2"), sem `meta`.
 const legadoV2 = () => ({
@@ -68,5 +69,27 @@ describe('migrar', () => {
 
   it('recusa dados de uma versão mais nova que o app', () => {
     expect(() => migrar({ meta: { schema_version: VERSAO_ATUAL + 1 } })).toThrow(/mais nova/);
+  });
+});
+
+describe('migração v4 (segurança)', () => {
+  it('nenhuma senha em texto sobrevive: a de demonstração vira hash, as outras ficam marcadas para hash', () => {
+    const s = legadoV2();
+    s.usuarios.push({ id: 2, nome: 'Bia', email: 'bia@email.com', senha: 'senha123' });
+    migrar(s);
+    expect(s.usuarios.every((u) => !('senha' in u))).toBe(true);
+    expect(s.usuarios.find((u) => u.id === 2).senha_hash).toBe(HASH_SENHA_DEMO);
+    expect(s.usuarios.find((u) => u.id === 1).senha_legada).toBe('x'); // recebe hash ao abrir o app
+  });
+
+  it('contas antigas viram cidadãs ativas e precisam aceitar os termos', () => {
+    const s = migrar(legadoV2());
+    expect(s.usuarios[0]).toMatchObject({ papeis: ['cidadao'], status: 'ativo', aceite_termos: null });
+  });
+
+  it('cria as coleções de segurança vazias', () => {
+    const s = migrar(legadoV2());
+    for (const c of ['sessoes', 'auditoria', 'membros', 'recuperacoes', 'emails_demo']) expect(s[c]).toEqual([]);
+    expect(s.tentativas_login).toEqual({});
   });
 });

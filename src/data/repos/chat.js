@@ -4,19 +4,25 @@
 
 import { ler, transacao } from '../storage';
 import { naoEncontrado } from '../erros';
-import { chamar, agoraISO, proximoId, texto } from './_rede';
+import { chamarAutenticado, agoraISO, proximoId, texto } from './_rede';
+import { exigir } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 
 const chave = (usuarioId, pontoId) => `${Number(usuarioId)}:${Number(pontoId)}`;
+const MSG_PERFIL = 'Entre no perfil Cidadão para conversar com os pontos.';
 
-export function mensagens(usuarioId, pontoId) {
-  return chamar(() => ler().chats[chave(usuarioId, pontoId)] || []);
+export function mensagens(pontoId) {
+  return chamarAutenticado((ator) => {
+    exigir(ator, 'chat.usar', {}, MSG_PERFIL);
+    return ler().chats[chave(ator.id, pontoId)] || [];
+  });
 }
 
-/** Última mensagem de cada conversa do usuário: { [pontoId]: mensagem }. */
-export function ultimas(usuarioId) {
-  return chamar(() => {
-    const prefixo = `${Number(usuarioId)}:`;
+/** Última mensagem de cada conversa da pessoa logada: { [pontoId]: mensagem }. */
+export function ultimas() {
+  return chamarAutenticado((ator) => {
+    exigir(ator, 'chat.usar', {}, MSG_PERFIL);
+    const prefixo = `${ator.id}:`;
     return Object.fromEntries(
       Object.entries(ler().chats)
         .filter(([k, msgs]) => k.startsWith(prefixo) && msgs.length)
@@ -25,18 +31,19 @@ export function ultimas(usuarioId) {
   });
 }
 
-/** Envia a mensagem do usuário e registra a resposta automática do ponto. */
-export function enviar(usuarioId, pontoId, conteudo) {
-  return chamar(() =>
+/** Envia a mensagem e registra a resposta automática do ponto. */
+export function enviar(pontoId, conteudo) {
+  return chamarAutenticado((ator) =>
     transacao((s) => {
+      exigir(ator, 'chat.usar', {}, MSG_PERFIL);
       const t = texto(conteudo, { campo: 'uma mensagem', max: 1000 });
       const ponto = s.pontos.find((p) => p.id === Number(pontoId));
       if (!ponto) throw naoEncontrado('Ponto de coleta');
-      const k = chave(usuarioId, pontoId);
+      const k = chave(ator.id, pontoId);
       s.chats[k] = s.chats[k] || [];
       s.chats[k].push({ id: proximoId(s, 'msg'), de: 'eu', texto: t, em: agoraISO() });
       s.chats[k].push({ id: proximoId(s, 'msg'), de: 'ponto', texto: respostaAutomatica(t, ponto), em: agoraISO() });
-      registrarNotificacao(s, usuarioId, { tipo: 'chat', icone: '💬', texto: `Nova mensagem de ${ponto.nome}.` });
+      registrarNotificacao(s, ator.id, { tipo: 'chat', icone: '💬', texto: `Nova mensagem de ${ponto.nome}.` });
       return s.chats[k];
     }),
   );

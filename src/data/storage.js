@@ -109,13 +109,18 @@ export function ler() {
 /**
  * Executa `fn(rascunho)` sobre uma cópia do estado e salva o resultado.
  * Se `fn` lançar erro, nada é gravado (atomicidade).
+ *
+ * `silenciosa: true` grava sem avisar as telas desta aba — para escritas de
+ * manutenção que não mudam nada visível (ex.: renovar a validade da sessão).
+ * Sem isso, cada leitura renovaria a sessão, que recarregaria as telas, que
+ * leriam de novo… num ciclo sem fim.
  */
-export function transacao(fn) {
+export function transacao(fn, { silenciosa = false } = {}) {
   const rascunho = structuredClone(ler());
   const resultado = fn(rascunho);
   persistir(rascunho);
   cache = rascunho;
-  notificar({ origem: 'local' });
+  if (!silenciosa) notificar({ origem: 'local' });
   return resultado;
 }
 

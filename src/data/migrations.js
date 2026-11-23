@@ -5,7 +5,9 @@
 // vez de quebrar ou de apagar o que o usuário já tinha feito.
 // (Mesma ideia das migrations de um banco real — ex.: Supabase/Postgres.)
 
-export const VERSAO_ATUAL = 3;
+import { SENHA_DEMO, HASH_SENHA_DEMO } from './contasDemo';
+
+export const VERSAO_ATUAL = 4;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -15,6 +17,11 @@ const SEQUENCIAS = {
   avaliacoes: 'avaliacao',
   resgates: 'resgate',
   notificacoes: 'notif',
+  sessoes: 'sessao',
+  auditoria: 'auditoria',
+  membros: 'membro',
+  recuperacoes: 'recuperacao',
+  emails_demo: 'email',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -41,11 +48,40 @@ export const MIGRACOES = [
       // Versões antigas podiam deixar a sequência atrás do maior id existente,
       // o que geraria ids repetidos. Recalcula a partir dos dados reais.
       for (const [colecao, chave] of Object.entries(SEQUENCIAS)) {
+        if (!s[colecao]) continue; // coleções criadas em versões posteriores
         s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
       }
       const msgs = Object.values(s.chats).flat();
       s.seq.msg = Math.max(s.seq.msg || 0, maxId(msgs));
       s.meta = { ...(s.meta || {}) };
+    },
+  },
+  {
+    para: 4,
+    descricao: 'Papéis, senhas com hash, sessões, auditoria, membros de pontos e recuperação de senha',
+    aplicar(s) {
+      for (const u of s.usuarios) {
+        u.papeis = Array.isArray(u.papeis) && u.papeis.length ? u.papeis : ['cidadao'];
+        u.status = u.status || 'ativo';
+        u.aceite_termos = u.aceite_termos ?? null; // contas antigas aceitam os termos no próximo acesso
+        if ('senha' in u) {
+          // Senha em texto puro (versões anteriores) não pode continuar salva.
+          // A senha de demonstração já tem hash pronto; as demais ficam marcadas
+          // e recebem hash logo ao abrir o app (repos/auth.js → protegerSenhasLegadas).
+          if (u.senha === SENHA_DEMO) u.senha_hash = HASH_SENHA_DEMO;
+          else u.senha_legada = u.senha;
+          delete u.senha;
+        }
+      }
+      s.sessoes = s.sessoes || [];
+      s.tentativas_login = s.tentativas_login || {};
+      s.auditoria = s.auditoria || [];
+      s.membros = s.membros || [];
+      s.recuperacoes = s.recuperacoes || [];
+      s.emails_demo = s.emails_demo || [];
+      for (const [colecao, chave] of Object.entries(SEQUENCIAS)) {
+        s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
+      }
     },
   },
 ];

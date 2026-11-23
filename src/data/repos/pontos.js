@@ -1,5 +1,6 @@
-// Pontos de coleta. As listagens já vêm com o resumo das avaliações
-// (como uma API faria com um JOIN), para as telas não precisarem de N chamadas.
+// Pontos de coleta — leitura PÚBLICA (não exige login), como o mapa de um app
+// de delivery. As listagens já vêm com o resumo das avaliações (como uma API
+// faria com um JOIN), para as telas não precisarem de N chamadas.
 
 import { ler } from '../storage';
 import { naoEncontrado } from '../erros';

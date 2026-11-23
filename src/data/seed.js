@@ -8,6 +8,8 @@
 //   "Restaurar dados" sempre produz a mesma estrutura (só as datas acompanham o dia).
 
 import { VERSAO_ATUAL } from './migrations';
+import { HASH_SENHA_DEMO } from './contasDemo';
+import { TERMOS } from '../domain/termos';
 import { RECOMPENSAS } from './recompensas';
 import { pontosDaColeta } from '../domain/gamificacao';
 import { isoDia, somarDias } from '../utils/datas';
@@ -40,6 +42,45 @@ const USUARIOS = [
   { nome: 'Henrique Ciclo', email: 'henrique@email.com', cidade: 'Campinas', coletas: 3, desde: 66 },
   { nome: 'Isabela Mar', email: 'isabela@email.com', cidade: 'Rio de Janeiro', coletas: 2, desde: 40 },
   { nome: 'João Semente', email: 'joao@email.com', cidade: 'São Paulo', coletas: 1, desde: 20 },
+];
+
+// Equipe dos pontos de coleta e da plataforma. `pontos`: [id do ponto, papel no ponto].
+const EQUIPE = [
+  {
+    nome: 'Marcos Lima',
+    email: 'marcos@email.com',
+    cidade: 'São Paulo',
+    desde: 120,
+    papeis: ['parceiro_gestor', 'cidadao'],
+    pontos: [
+      [1, 'gestor'],
+      [4, 'gestor'],
+    ],
+  },
+  {
+    nome: 'Paula Santos',
+    email: 'paula@email.com',
+    cidade: 'São Paulo',
+    desde: 110,
+    papeis: ['parceiro_operador'],
+    pontos: [[2, 'operador']],
+  },
+  {
+    nome: 'Renata Moderação',
+    email: 'moderacao@ecolink.app',
+    cidade: 'São Paulo',
+    desde: 150,
+    papeis: ['moderador'],
+    pontos: [],
+  },
+  {
+    nome: 'Equipe ECOLINK',
+    email: 'admin@ecolink.app',
+    cidade: 'São Paulo',
+    desde: 180,
+    papeis: ['admin'],
+    pontos: [],
+  },
 ];
 
 const PONTOS = [
@@ -134,14 +175,17 @@ const FAIXA_KG = {
 };
 const FAIXA_PADRAO = [1, 9];
 
-// Próximas coletas agendadas: [email, dias a partir de hoje].
+// Próximas coletas agendadas: [email, dias a partir de hoje (0 = hoje), id do ponto].
+// Os pontos são escolhidos de propósito: as entregas caem nos pontos do Marcos
+// (1 e 4) e da Paula (2), para o painel do parceiro ter o que mostrar na demo.
 const AGENDADAS = [
-  ['ana@email.com', 2],
-  ['ana@email.com', 6],
-  ['bruno@email.com', 3],
-  ['carla@email.com', 1],
-  ['diego@email.com', 4],
-  ['gabriela@email.com', 8],
+  ['diego@email.com', 0, 1],
+  ['ana@email.com', 2, 2],
+  ['bruno@email.com', 3, 1],
+  ['ana@email.com', 6, 4],
+  ['gabriela@email.com', 1, 2],
+  ['carla@email.com', 1, 3],
+  ['joao@email.com', 5, 4],
 ];
 
 const COMENTARIOS = {
@@ -177,15 +221,31 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     return d.toISOString();
   };
 
-  const usuarios = USUARIOS.map((u, i) => ({
+  // Cidadãos primeiro (ids 1–10, estáveis desde as versões anteriores), depois a equipe.
+  const usuarios = [...USUARIOS, ...EQUIPE].map((u, i) => ({
     id: i + 1,
     nome: u.nome,
     email: u.email,
-    senha: 'senha123', // ⚠️ texto puro só até a Fase 1 (hash de senha) do ROADMAP
+    senha_hash: HASH_SENHA_DEMO, // nunca a senha em si
+    papeis: u.papeis || ['cidadao'],
+    status: 'ativo',
     telefone: `${u.cidade === 'Rio de Janeiro' ? 21 : u.cidade === 'Campinas' ? 19 : 11}9999900${pad(i + 1)}`,
     cidade: u.cidade,
     criado_em: dia(-u.desde),
+    aceite_termos: { versao: TERMOS.versao, em: instante(-u.desde, 9, 0) },
   }));
+  const cidadaos = usuarios.slice(0, USUARIOS.length);
+
+  const membros = EQUIPE.flatMap((e) => {
+    const u = usuarios.find((x) => x.email === e.email);
+    return e.pontos.map(([pontoId, papel]) => ({
+      usuario_id: u.id,
+      ponto_id: pontoId,
+      papel,
+      ativo: true,
+      desde: dia(-e.desde),
+    }));
+  }).map((m, i) => ({ id: i + 1, ...m }));
 
   const pontos = PONTOS.map((p, i) => ({ id: i + 1, ...p }));
   const pontoPorId = (id) => pontos.find((p) => p.id === id);
@@ -202,7 +262,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
 
   /* Coletas: histórico concluído + algumas canceladas + próximas agendadas. */
   const rascunhos = [];
-  usuarios.forEach((u, i) => {
+  cidadaos.forEach((u, i) => {
     const perfil = USUARIOS[i];
     const opcoes = pontosDaCidade(u.cidade, { incluirInativos: true });
     const janela = u.cidade === 'Campinas' ? [-60, -35] : [-60, -1];
@@ -231,9 +291,9 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       });
     }
   });
-  for (const [email, offset] of AGENDADAS) {
+  for (const [email, offset, pontoId] of AGENDADAS) {
     const u = usuarios.find((x) => x.email === email);
-    const ponto = escolher(pontosDaCidade(u.cidade));
+    const ponto = pontoPorId(pontoId);
     const material = escolher(ponto.materiais);
     rascunhos.push({
       usuario_id: u.id,
@@ -344,6 +404,11 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       resgate: resgates.length,
       notif: notificacoes.length,
       msg: 2,
+      membro: membros.length,
+      sessao: 0,
+      auditoria: 0,
+      recuperacao: 0,
+      email: 0,
     },
     usuarios,
     pontos,
@@ -352,5 +417,11 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     resgates,
     chats,
     notificacoes,
+    membros,
+    sessoes: [],
+    tentativas_login: {},
+    auditoria: [],
+    recuperacoes: [],
+    emails_demo: [],
   };
 }
