@@ -1,15 +1,14 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, Recycle, Scale, Globe, Droplets, Zap, TreePine, Lightbulb, ArrowRight, MapPin, Sparkles, Gift, GraduationCap, Trophy } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { getStats } from '../store/gamification';
-import { coletas } from '../store/db';
-import { nf, formatDate } from '../utils/format';
-import { materialLabel } from '../utils/materials';
-import { Metric, ProgressBar, LevelChip, StatusBadge, CountUp } from '../components/ui.jsx';
-import { MaterialIcon, LevelIcon } from '../components/icons.jsx';
-import { stagger, item } from '../utils/anim';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { estatisticas, coletas } from '@/data/repos';
+import { nf, formatDate } from '@/utils/format';
+import { materialLabel } from '@/domain/materiais';
+import { Metric, ProgressBar, LevelChip, StatusBadge, CountUp, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import { MaterialIcon, LevelIcon } from '@/components/icons.jsx';
+import { stagger, item } from '@/utils/anim';
 
 const DICAS = [
   'Lave as embalagens antes de reciclar — restos de comida contaminam o material.',
@@ -21,26 +20,36 @@ const DICAS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  useDbVersion();
-  const stats = getStats(user.id);
-  const { nivel } = stats;
-
-  const proximas = coletas
-    .list({ usuario_id: user.id, status: 'agendada' })
-    .sort((a, b) => (a.data_agendada > b.data_agendada ? 1 : -1))
-    .slice(0, 3);
+  const q = useQuery(
+    () =>
+      Promise.all([
+        estatisticas.doUsuario(user.id),
+        coletas.listar({ usuario_id: user.id, status: 'agendada', ordem: 'asc' }),
+      ]),
+    [user.id],
+  );
 
   const dica = DICAS[new Date().getDate() % DICAS.length];
+  const cabecalho = (nivelAtual) => (
+    <div className="page-head row between wrap" style={{ gap: 12 }}>
+      <div>
+        <h1>Olá, {user.nome.split(' ')[0]}!</h1>
+        <p>Veja seu impacto e continue reciclando.</p>
+      </div>
+      {nivelAtual && <LevelChip nivel={nivelAtual} />}
+    </div>
+  );
+
+  if (q.loading) return <>{cabecalho()}<Carregando linhas={3} altura={110} /></>;
+  if (!q.data) return <>{cabecalho()}<ErroCarregar erro={q.error} onTentar={q.refetch} /></>;
+
+  const [stats, agendadas] = q.data;
+  const { nivel } = stats;
+  const proximas = agendadas.slice(0, 3);
 
   return (
     <div>
-      <div className="page-head row between wrap" style={{ gap: 12 }}>
-        <div>
-          <h1>Olá, {user.nome.split(' ')[0]}!</h1>
-          <p>Veja seu impacto e continue reciclando.</p>
-        </div>
-        <LevelChip nivel={nivel.atual} />
-      </div>
+      {cabecalho(nivel.atual)}
 
       <motion.div className="grid grid-auto mb-3" variants={stagger} initial="initial" animate="animate">
         <motion.div variants={item}><Metric icon={Leaf} label="EcoPontos" value={<CountUp value={stats.ecopontos} />} sub={`Nível ${nivel.atual.nome}`} /></motion.div>

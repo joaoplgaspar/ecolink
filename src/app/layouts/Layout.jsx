@@ -5,13 +5,13 @@ import { useState } from 'react';
 import { NavLink, Link, useOutlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, MapPin, Recycle, MessageCircle, Trophy, User, LogOut, Leaf, Gift, GraduationCap, MoreHorizontal } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { getStats } from '../store/gamification';
-import NotificationBell from './NotificationBell.jsx';
-import InstallPrompt from './InstallPrompt.jsx';
-import { Avatar } from './ui.jsx';
-import { pageVariants } from '../utils/anim';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { estatisticas } from '@/data/repos';
+import NotificationBell from '@/components/NotificationBell.jsx';
+import InstallPrompt from '@/components/InstallPrompt.jsx';
+import { Avatar } from '@/components/ui.jsx';
+import { pageVariants } from '@/utils/anim';
 
 const NAV = [
   { to: '/', icon: Home, label: 'Início', end: true },
@@ -41,10 +41,9 @@ function FrozenOutlet() {
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  useDbVersion();
+  const { data: stats } = useQuery(() => estatisticas.doUsuario(user.id), [user.id]);
   const navigate = useNavigate();
   const location = useLocation();
-  const stats = getStats(user.id);
   const [sheet, setSheet] = useState(false);
 
   function sair() {
@@ -62,7 +61,7 @@ export default function Layout() {
         </Link>
         <div className="topbar-spacer" />
         <Link to="/loja" className="ecopoints-pill" title="Saldo para resgatar">
-          <Leaf size={16} /> {stats.saldo} <span className="label">EcoPontos</span>
+          <Leaf size={16} /> {stats ? stats.saldo : '…'} <span className="label">EcoPontos</span>
         </Link>
         <NotificationBell />
       </header>

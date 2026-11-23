@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Recycle, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
+import { Recycle, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
+import { MensagemErro } from '@/components/ui.jsx';
+import { useAuth } from '@/app/AuthContext.jsx';
 
 const DEMO = [
   { nome: 'Ana', email: 'ana@email.com' },
@@ -15,17 +16,20 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  function submit(e) {
-    e.preventDefault();
-    const r = login(email.trim(), senha);
+  async function entrar(em, sen) {
+    setErro('');
+    setEnviando(true);
+    const r = await login(em, sen);
+    setEnviando(false);
     if (r.ok) nav('/');
     else setErro(r.erro);
   }
 
-  function entrarDemo(em) {
-    const r = login(em, 'senha123');
-    if (r.ok) nav('/');
+  function submit(e) {
+    e.preventDefault();
+    entrar(email.trim(), senha);
   }
 
   return (
@@ -58,19 +62,17 @@ export default function Login() {
                 <input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••" required />
               </div>
             </div>
-            {erro && (
-              <p className="small row" style={{ color: 'var(--danger)', marginBottom: 10, gap: 6 }}>
-                <AlertCircle size={16} /> {erro}
-              </p>
-            )}
-            <button className="btn btn-primary btn-block" type="submit"><LogIn size={18} /> Entrar</button>
+            <MensagemErro erro={erro} style={{ marginBottom: 10 }} />
+            <button className="btn btn-primary btn-block" type="submit" disabled={enviando}>
+              {enviando ? <Loader2 size={18} className="spin" /> : <LogIn size={18} />} Entrar
+            </button>
           </form>
 
           <div className="divider" />
           <p className="small muted center mb-1">Entrar rápido com uma conta de teste:</p>
           <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
             {DEMO.map((d) => (
-              <button key={d.email} className="btn btn-sm" type="button" onClick={() => entrarDemo(d.email)}>
+              <button key={d.email} className="btn btn-sm" type="button" disabled={enviando} onClick={() => entrar(d.email, 'senha123')}>
                 {d.nome}
               </button>
             ))}

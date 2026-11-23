@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
+import App from './app/App.jsx';
+import { AuthProvider } from './app/AuthContext.jsx';
 import './index.css';
 
 // StrictMode propositalmente omitido: o react-leaflet não lida bem com o

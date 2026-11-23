@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Check, X, Lightbulb, RotateCcw, Trophy, ChevronRight, Recycle } from 'lucide-react';
-import { MaterialIcon } from '../components/icons.jsx';
-import { getMaterial } from '../utils/materials';
-import { stagger, item } from '../utils/anim';
+import { MaterialIcon } from '@/components/icons.jsx';
+import { getMaterial } from '@/domain/materiais';
+import { stagger, item } from '@/utils/anim';
 
 const CORES = [
   { cor: '#2563eb', nome: 'Azul', tipo: 'Papel e papelão' },

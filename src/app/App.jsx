@@ -1,19 +1,19 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
-import Layout from './components/Layout.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
+import Layout from './layouts/Layout.jsx';
 
-import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Points from './pages/Points.jsx';
-import PointDetail from './pages/PointDetail.jsx';
-import ScheduleCollection from './pages/ScheduleCollection.jsx';
-import MyCollections from './pages/MyCollections.jsx';
-import Chat from './pages/Chat.jsx';
-import Ranking from './pages/Ranking.jsx';
-import Profile from './pages/Profile.jsx';
-import Rewards from './pages/Rewards.jsx';
-import Education from './pages/Education.jsx';
+import Login from '@/features/auth/pages/Login.jsx';
+import Register from '@/features/auth/pages/Register.jsx';
+import Dashboard from '@/features/cidadao/pages/Dashboard.jsx';
+import Points from '@/features/cidadao/pages/Points.jsx';
+import PointDetail from '@/features/cidadao/pages/PointDetail.jsx';
+import ScheduleCollection from '@/features/cidadao/pages/ScheduleCollection.jsx';
+import MyCollections from '@/features/cidadao/pages/MyCollections.jsx';
+import Rewards from '@/features/cidadao/pages/Rewards.jsx';
+import Education from '@/features/cidadao/pages/Education.jsx';
+import Ranking from '@/features/cidadao/pages/Ranking.jsx';
+import Chat from '@/features/shared/pages/Chat.jsx';
+import Profile from '@/features/shared/pages/Profile.jsx';
 
 export default function App() {
   return (

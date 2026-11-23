@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Recycle, CheckCircle2, X, Inbox } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { coletas } from '../store/db';
-import { CollectionCard, EmptyState } from '../components/ui.jsx';
-import { stagger, item } from '../utils/anim';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { useMutation } from '@/hooks/useMutation';
+import { coletas } from '@/data/repos';
+import { CollectionCard, EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import { stagger, item } from '@/utils/anim';
 
 const FILTROS = [
   { key: '', label: 'Todas' },
@@ -17,21 +18,25 @@ const FILTROS = [
 
 export default function MyCollections() {
   const { user } = useAuth();
-  useDbVersion();
   const [filtro, setFiltro] = useState('');
   const [msg, setMsg] = useState(null);
 
-  const lista = coletas.list({ usuario_id: user.id, status: filtro || undefined });
+  const q = useQuery(() => coletas.listar({ usuario_id: user.id, status: filtro || undefined }), [user.id, filtro]);
+  const lista = q.data || [];
 
-  function concluir(c) {
-    const r = coletas.concluir(c.id);
-    setMsg(`Coleta concluída! Você ganhou +${r.pontos} EcoPontos.`);
+  // Uma única "ação em andamento" por vez: evita cliques duplos e ações conflitantes.
+  const acao = useMutation(({ tipo, id }) => coletas[tipo](id));
+
+  async function concluir(c) {
+    setMsg(null);
+    const r = await acao.mutate({ tipo: 'concluir', id: c.id });
+    if (r.ok) setMsg(`Coleta concluída! Você ganhou +${r.data.pontos} EcoPontos.`);
   }
   function cancelar(c) {
-    coletas.update(c.id, { status: 'cancelada' });
+    if (window.confirm(`Cancelar a coleta de ${c.material} em ${c.ponto_nome}?`)) acao.mutate({ tipo: 'cancelar', id: c.id });
   }
   function remover(c) {
-    coletas.remove(c.id);
+    if (window.confirm('Excluir esta coleta do seu histórico?')) acao.mutate({ tipo: 'remover', id: c.id });
   }
 
   return (
@@ -63,15 +68,21 @@ export default function MyCollections() {
         )}
       </AnimatePresence>
 
-      <div className="row wrap mb-3" style={{ gap: 6 }}>
+      <div className="row wrap mb-3" style={{ gap: 6 }} role="group" aria-label="Filtrar por status">
         {FILTROS.map((f) => (
-          <span key={f.key} className={`tag clickable ${filtro === f.key ? 'active' : ''}`} onClick={() => setFiltro(f.key)}>
+          <button key={f.key} type="button" aria-pressed={filtro === f.key} className={`tag clickable ${filtro === f.key ? 'active' : ''}`} onClick={() => setFiltro(f.key)}>
             {f.label}
-          </span>
+          </button>
         ))}
       </div>
 
-      {lista.length === 0 ? (
+      <MensagemErro erro={acao.error} style={{ marginBottom: 12 }} />
+
+      {q.loading ? (
+        <Carregando linhas={3} altura={120} rotulo="Carregando coletas…" />
+      ) : !q.data ? (
+        <ErroCarregar erro={q.error} onTentar={q.refetch} />
+      ) : lista.length === 0 ? (
         <EmptyState icon={Inbox} title="Nenhuma coleta aqui">
           Que tal agendar uma? Seus EcoPontos agradecem.
         </EmptyState>
@@ -79,7 +90,7 @@ export default function MyCollections() {
         <motion.div className="grid" style={{ gap: 12 }} variants={stagger} initial="initial" animate="animate" key={filtro}>
           {lista.map((c) => (
             <motion.div key={c.id} variants={item}>
-              <CollectionCard coleta={c} onConcluir={concluir} onCancelar={cancelar} onRemover={remover} />
+              <CollectionCard coleta={c} onConcluir={concluir} onCancelar={cancelar} onRemover={remover} ocupado={acao.pending} />
             </motion.div>
           ))}
         </motion.div>

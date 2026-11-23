@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { Trophy, Crown, Medal, Zap } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { getRanking } from '../store/gamification';
-import { nf } from '../utils/format';
-import { Avatar, LevelChip } from '../components/ui.jsx';
-import { stagger, item } from '../utils/anim';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { estatisticas } from '@/data/repos';
+import { nf } from '@/utils/format';
+import { Avatar, LevelChip, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import { stagger, item } from '@/utils/anim';
 
 function RankPos({ pos }) {
   if (pos === 1) return <Crown size={22} color="#d4a017" />;
@@ -16,16 +16,22 @@ function RankPos({ pos }) {
 
 export default function Ranking() {
   const { user } = useAuth();
-  useDbVersion();
-  const ranking = getRanking();
+  const q = useQuery(() => estatisticas.ranking(), []);
+  const ranking = q.data || [];
   const minhaPos = ranking.findIndex((r) => r.id === user.id) + 1;
 
   return (
     <div>
       <div className="page-head">
         <h1><Trophy size={24} color="var(--amber-500)" /> Ranking</h1>
-        <p>Os maiores recicladores do ECOLINK. Você está em {minhaPos}º lugar!</p>
+        <p>Os maiores recicladores do ECOLINK.{minhaPos > 0 && ` Você está em ${minhaPos}º lugar!`}</p>
       </div>
+
+      {q.loading ? (
+        <Carregando linhas={6} altura={64} />
+      ) : !q.data ? (
+        <ErroCarregar erro={q.error} onTentar={q.refetch} />
+      ) : (
 
       <motion.div className="card" style={{ overflow: 'hidden' }} variants={stagger} initial="initial" animate="animate">
         {ranking.map((r, i) => (
@@ -45,6 +51,7 @@ export default function Ranking() {
           </motion.div>
         ))}
       </motion.div>
+      )}
 
       <p className="small faint center row mt-2" style={{ gap: 6, justifyContent: 'center' }}>
         <Zap size={15} /> Materiais como pilhas e eletrônicos valem mais EcoPontos. Conclua coletas para subir!

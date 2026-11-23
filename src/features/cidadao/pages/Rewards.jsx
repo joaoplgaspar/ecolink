@@ -2,34 +2,39 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Leaf, Lock, Ticket, CheckCircle2, X, ShoppingBag, CupSoda, Percent, Bus, Trees, Sprout, Coffee, Trash2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { getStats } from '../store/gamification';
-import { resgates } from '../store/db';
-import { RECOMPENSAS, CATEGORIAS } from '../data/rewards';
-import { nf, formatDate } from '../utils/format';
-import { EmptyState } from '../components/ui.jsx';
-import { stagger, item } from '../utils/anim';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { useMutation } from '@/hooks/useMutation';
+import { estatisticas, resgates } from '@/data/repos';
+import { RECOMPENSAS, CATEGORIAS } from '@/data/recompensas';
+import { nf, formatDate } from '@/utils/format';
+import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import { stagger, item } from '@/utils/anim';
 
 const ICONS = { ShoppingBag, CupSoda, Percent, Bus, Trees, Sprout, Coffee, Trash2 };
 
 export default function Rewards() {
   const { user } = useAuth();
-  useDbVersion();
-  const stats = getStats(user.id);
-  const saldo = stats.saldo;
-
+  const q = useQuery(() => Promise.all([estatisticas.doUsuario(user.id), resgates.listar(user.id)]), [user.id]);
   const [view, setView] = useState('loja');
   const [categoria, setCategoria] = useState('');
   const [msg, setMsg] = useState(null);
+  const resgate = useMutation((recompensaId) => resgates.resgatar(user.id, recompensaId));
 
-  const meus = resgates.list(user.id);
+  if (q.loading) return <Carregando linhas={3} altura={140} rotulo="Carregando loja…" />;
+  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+
+  const [stats, meus] = q.data;
+  const saldo = stats.saldo;
   const lista = RECOMPENSAS.filter((r) => !categoria || r.categoria === categoria);
 
-  function resgatar(r) {
+  async function resgatar(r) {
     if (saldo < r.custo) return;
-    const novo = resgates.create(user.id, r);
-    setMsg({ nome: r.nome, codigo: novo.codigo });
+    if (!window.confirm(`Trocar ${r.custo} EcoPontos por "${r.nome}"?`)) return;
+    setMsg(null);
+    // O saldo é conferido de novo no repositório — a tela é só a primeira barreira.
+    const res = await resgate.mutate(r.id);
+    if (res.ok) setMsg({ nome: r.nome, codigo: res.data.codigo });
   }
 
   return (
@@ -74,6 +79,8 @@ export default function Rewards() {
         )}
       </AnimatePresence>
 
+      <MensagemErro erro={resgate.error} style={{ marginBottom: 12 }} />
+
       <div className="seg mb-3" style={{ maxWidth: 320 }}>
         <button className={view === 'loja' ? 'active' : ''} onClick={() => setView('loja')}><Gift size={16} /> Catálogo</button>
         <button className={view === 'meus' ? 'active' : ''} onClick={() => setView('meus')}><Ticket size={16} /> Meus resgates ({meus.length})</button>
@@ -107,7 +114,7 @@ export default function Rewards() {
                   <p className="small muted" style={{ flex: 1 }}>{r.desc}</p>
                   <div className="row between">
                     <span className="row" style={{ gap: 6, fontWeight: 800, color: 'var(--green-700)' }}><Leaf size={16} /> {r.custo}</span>
-                    <button className="btn btn-sm btn-primary" disabled={!pode} onClick={() => resgatar(r)}>
+                    <button className="btn btn-sm btn-primary" disabled={!pode || resgate.pending} onClick={() => resgatar(r)}>
                       {pode ? 'Resgatar' : <><Lock size={14} /> Faltam {nf(r.custo - saldo)}</>}
                     </button>
                   </div>

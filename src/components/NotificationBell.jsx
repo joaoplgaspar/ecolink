@@ -2,19 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { notificacoes } from '../store/db';
-import { relativeTime } from '../utils/format';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { notificacoes } from '@/data/repos';
+import { relativeTime } from '@/utils/format';
 import { NotifIcon } from './icons.jsx';
 
 export default function NotificationBell() {
   const { user } = useAuth();
-  useDbVersion();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const lista = notificacoes.list(user.id);
+  const { data } = useQuery(() => notificacoes.listar(user.id), [user.id]);
+  const lista = data || [];
   const naoLidas = lista.filter((n) => !n.lida).length;
 
   useEffect(() => {
@@ -28,12 +28,13 @@ export default function NotificationBell() {
   function toggle() {
     const abrir = !open;
     setOpen(abrir);
-    if (abrir && naoLidas) notificacoes.markAllRead(user.id);
+    // Marca como lidas em segundo plano; se falhar, o contador só continua visível.
+    if (abrir && naoLidas) notificacoes.marcarTodasLidas(user.id).catch(() => {});
   }
 
   return (
     <div className="bell" ref={ref}>
-      <button className="btn icon-btn" onClick={toggle} aria-label="Notificações">
+      <button className="btn icon-btn" onClick={toggle} aria-label={naoLidas ? `Notificações (${naoLidas} não lidas)` : 'Notificações'} aria-expanded={open}>
         <Bell size={20} />
         {naoLidas > 0 && <span className="bell-dot">{naoLidas}</span>}
       </button>

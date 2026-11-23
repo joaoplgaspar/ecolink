@@ -1,55 +1,226 @@
-// Dados iniciais (mock) — espelham o seed da reciclaja-api, com alguns extras
-// para deixar listas, filtros, ranking, avaliações e loja mais ricos na demo.
+// Dados iniciais (mock) de demonstração.
+//
+// • Espelham o seed da reciclaja-api (Ana, Bruno, Carla; EcoPonto Centro,
+//   Vila Madalena, ReciclaRio…) e acrescentam usuários e pontos extras.
+// • As DATAS SÃO RELATIVAS A HOJE: o histórico cobre os últimos 60 dias e as
+//   próximas coletas caem nos próximos dias — a demo nunca parece "velha".
+// • É DETERMINÍSTICO: usa um gerador pseudoaleatório com semente fixa, então
+//   "Restaurar dados" sempre produz a mesma estrutura (só as datas acompanham o dia).
 
-export function makeSeed() {
+import { VERSAO_ATUAL } from './migrations';
+import { RECOMPENSAS } from './recompensas';
+import { pontosDaColeta } from '../domain/gamificacao';
+import { isoDia, somarDias } from '../utils/datas';
+
+/* ------------------------------ utilitários ------------------------------ */
+
+// Gerador pseudoaleatório "mulberry32": mesma semente → mesma sequência.
+function mulberry32(semente) {
+  let a = semente >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const pad = (n) => String(n).padStart(2, '0');
+
+/* --------------------------------- dados --------------------------------- */
+
+const USUARIOS = [
+  { nome: 'Ana Recicladora', email: 'ana@email.com', cidade: 'São Paulo', coletas: 9, desde: 95 },
+  { nome: 'Bruno Verde', email: 'bruno@email.com', cidade: 'São Paulo', coletas: 7, desde: 93 },
+  { nome: 'Carla Eco', email: 'carla@email.com', cidade: 'Rio de Janeiro', coletas: 7, desde: 90 },
+  { nome: 'Diego Sustentável', email: 'diego@email.com', cidade: 'São Paulo', coletas: 5, desde: 80 },
+  { nome: 'Elisa Natureza', email: 'elisa@email.com', cidade: 'Rio de Janeiro', coletas: 4, desde: 75 },
+  { nome: 'Felipe Reuso', email: 'felipe@email.com', cidade: 'São Paulo', coletas: 3, desde: 70 },
+  { nome: 'Gabriela Terra', email: 'gabriela@email.com', cidade: 'São Paulo', coletas: 6, desde: 68 },
+  { nome: 'Henrique Ciclo', email: 'henrique@email.com', cidade: 'Campinas', coletas: 3, desde: 66 },
+  { nome: 'Isabela Mar', email: 'isabela@email.com', cidade: 'Rio de Janeiro', coletas: 2, desde: 40 },
+  { nome: 'João Semente', email: 'joao@email.com', cidade: 'São Paulo', coletas: 1, desde: 20 },
+];
+
+const PONTOS = [
+  { nome: 'EcoPonto Centro', endereco: 'Praça da Sé, 100', cidade: 'São Paulo', latitude: -23.5505, longitude: -46.6333, materiais: ['papel', 'plástico', 'vidro'], horario: 'Seg-Sex 8h-18h', ativo: true },
+  { nome: 'Coleta Vila Madalena', endereco: 'Rua Harmonia, 250', cidade: 'São Paulo', latitude: -23.5546, longitude: -46.6896, materiais: ['eletrônicos', 'pilhas'], horario: 'Seg-Sáb 9h-17h', ativo: true },
+  { nome: 'ReciclaRio Copacabana', endereco: 'Av. Atlântica, 1500', cidade: 'Rio de Janeiro', latitude: -22.9711, longitude: -43.1822, materiais: ['metal', 'plástico'], horario: 'Todos os dias 7h-19h', ativo: true },
+  { nome: 'Recicla Pinheiros', endereco: 'Rua dos Pinheiros, 1000', cidade: 'São Paulo', latitude: -23.5645, longitude: -46.6996, materiais: ['papel', 'vidro', 'metal', 'papelão'], horario: 'Seg-Sex 8h-20h', ativo: true },
+  { nome: 'EcoStation Tijuca', endereco: 'Rua Conde de Bonfim, 500', cidade: 'Rio de Janeiro', latitude: -22.9249, longitude: -43.2336, materiais: ['papel', 'plástico', 'eletrônicos', 'óleo'], horario: 'Seg-Sáb 8h-18h', ativo: true },
+  { nome: 'Verde Vale Campinas', endereco: 'Av. Norte-Sul, 800', cidade: 'Campinas', latitude: -22.9056, longitude: -47.0608, materiais: ['vidro', 'metal', 'pilhas'], horario: 'Seg-Sex 9h-17h', ativo: false },
+  { nome: 'Cooperativa Mooca', endereco: 'Rua da Mooca, 1200', cidade: 'São Paulo', latitude: -23.5587, longitude: -46.5996, materiais: ['papel', 'papelão', 'plástico', 'metal', 'isopor'], horario: 'Seg-Sáb 7h-16h', ativo: true },
+  { nome: 'EcoPonto Botafogo', endereco: 'Rua Voluntários da Pátria, 300', cidade: 'Rio de Janeiro', latitude: -22.9519, longitude: -43.1857, materiais: ['vidro', 'óleo', 'pilhas', 'eletrônicos'], horario: 'Seg-Sex 8h-19h', ativo: true },
+];
+
+// Faixa de kg típica por entrega, por material.
+const FAIXA_KG = {
+  pilhas: [0.3, 1.5],
+  eletrônicos: [1, 5],
+  óleo: [0.5, 3],
+  isopor: [0.5, 2.5],
+};
+const FAIXA_PADRAO = [1, 9];
+
+// Próximas coletas agendadas: [email, dias a partir de hoje].
+const AGENDADAS = [
+  ['ana@email.com', 2],
+  ['ana@email.com', 6],
+  ['bruno@email.com', 3],
+  ['carla@email.com', 1],
+  ['diego@email.com', 4],
+  ['gabriela@email.com', 8],
+];
+
+const COMENTARIOS = {
+  5: ['Atendimento rápido e bem organizado!', 'Aceitam vários materiais, super recomendo.', 'Equipe muito atenciosa, voltarei sempre.', 'Perfeito, tudo muito limpo e sinalizado.'],
+  4: ['Bem localizado e horário amplo.', 'Ótimo ponto, só estava com fila no sábado.', 'Bom atendimento, poderia ter mais sinalização.'],
+  3: ['Atendimento ok, mas demorou um pouco.', 'Funciona, mas o acesso é meio confuso.'],
+};
+
+/* --------------------------------- seed ---------------------------------- */
+
+/**
+ * Gera o estado inicial do "banco".
+ * @param {{ agora?: Date, semente?: number }} [opcoes]
+ */
+export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
+  const rnd = mulberry32(semente);
+  const entre = (a, b) => a + rnd() * (b - a);
+  const inteiro = (a, b) => Math.floor(entre(a, b + 1));
+  const escolher = (lista) => lista[Math.floor(rnd() * lista.length)];
+  const dia = (offset) => isoDia(somarDias(agora, offset));
+  const instante = (offset, hora = 10, minuto = 0) => {
+    const d = somarDias(agora, offset);
+    d.setHours(hora, minuto, 0, 0);
+    return d.toISOString();
+  };
+
+  const usuarios = USUARIOS.map((u, i) => ({
+    id: i + 1,
+    nome: u.nome,
+    email: u.email,
+    senha: 'senha123', // ⚠️ texto puro só até a Fase 1 (hash de senha) do ROADMAP
+    telefone: `${u.cidade === 'Rio de Janeiro' ? 21 : u.cidade === 'Campinas' ? 19 : 11}9999900${pad(i + 1)}`,
+    cidade: u.cidade,
+    criado_em: dia(-u.desde),
+  }));
+
+  const pontos = PONTOS.map((p, i) => ({ id: i + 1, ...p }));
+  const pontoPorId = (id) => pontos.find((p) => p.id === id);
+
+  // Pontos onde cada usuário costuma reciclar (os da cidade dele).
+  // Campinas só tem um ponto, hoje inativo: o histórico de lá é anterior à desativação.
+  const pontosDaCidade = (cidade, { incluirInativos = false } = {}) =>
+    pontos.filter((p) => p.cidade === cidade && (p.ativo || incluirInativos));
+
+  const kgPara = (material) => {
+    const [min, max] = FAIXA_KG[material] || FAIXA_PADRAO;
+    return Math.round(entre(min, max) * 10) / 10;
+  };
+
+  /* Coletas: histórico concluído + algumas canceladas + próximas agendadas. */
+  const rascunhos = [];
+  usuarios.forEach((u, i) => {
+    const perfil = USUARIOS[i];
+    const opcoes = pontosDaCidade(u.cidade, { incluirInativos: true });
+    const janela = u.cidade === 'Campinas' ? [-60, -35] : [-60, -1];
+    for (let k = 0; k < perfil.coletas; k++) {
+      const ponto = escolher(opcoes);
+      const material = escolher(ponto.materiais);
+      rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'concluida', data_agendada: dia(inteiro(...janela)) });
+    }
+    if (perfil.coletas >= 5) {
+      const ponto = escolher(pontosDaCidade(u.cidade));
+      const material = escolher(ponto.materiais);
+      rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'cancelada', data_agendada: dia(inteiro(-40, -5)) });
+    }
+  });
+  for (const [email, offset] of AGENDADAS) {
+    const u = usuarios.find((x) => x.email === email);
+    const ponto = escolher(pontosDaCidade(u.cidade));
+    const material = escolher(ponto.materiais);
+    rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'agendada', data_agendada: dia(offset) });
+  }
+  // Ids em ordem cronológica (como num banco real, por ordem de criação).
+  rascunhos.sort((a, b) => (a.data_agendada < b.data_agendada ? -1 : a.data_agendada > b.data_agendada ? 1 : a.usuario_id - b.usuario_id));
+  const coletas = rascunhos.map((c, i) => ({ id: i + 1, ...c }));
+
+  /* Avaliações: só de quem já concluiu coleta naquele ponto (avaliação "verificada"). */
+  const avaliacoes = [];
+  const pares = new Map(); // "usuario:ponto" → data da última coleta concluída
+  for (const c of coletas) {
+    if (c.status !== 'concluida') continue;
+    const chave = `${c.usuario_id}:${c.ponto_id}`;
+    if (!pares.has(chave) || pares.get(chave) < c.data_agendada) pares.set(chave, c.data_agendada);
+  }
+  for (const [chave, ultima] of pares) {
+    if (rnd() > 0.6) continue;
+    const [usuarioId, pontoId] = chave.split(':').map(Number);
+    const nota = escolher([5, 5, 5, 4, 4, 3]);
+    const u = usuarios.find((x) => x.id === usuarioId);
+    const quando = new Date(`${ultima}T18:00:00`);
+    avaliacoes.push({
+      id: avaliacoes.length + 1,
+      ponto_id: pontoId,
+      usuario_id: usuarioId,
+      usuario_nome: u.nome,
+      nota,
+      comentario: escolher(COMENTARIOS[nota]),
+      em: quando.toISOString(),
+    });
+  }
+
+  /* Ana (conta principal da demo): notificações, uma conversa e um resgate. */
+  const ana = usuarios[0];
+  const daAna = coletas.filter((c) => c.usuario_id === ana.id);
+  const ultimaConcluida = daAna.filter((c) => c.status === 'concluida').at(-1);
+  const proxima = daAna.find((c) => c.status === 'agendada');
+
+  const recompensa = RECOMPENSAS.reduce((a, b) => (a.custo <= b.custo ? a : b)); // a mais barata
+  const resgates = [
+    {
+      id: 1,
+      usuario_id: ana.id,
+      recompensa_id: recompensa.id,
+      nome: recompensa.nome,
+      parceiro: recompensa.parceiro,
+      custo: recompensa.custo,
+      codigo: 'ECO-DEMO-2026',
+      em: instante(-12, 16, 20),
+    },
+  ];
+
+  const notificacoes = [
+    { usuario_id: ana.id, tipo: 'coleta', icone: '♻️', texto: `Coleta de ${ultimaConcluida.material} concluída no ${pontoPorId(ultimaConcluida.ponto_id).nome}. +${pontosDaColeta(ultimaConcluida)} EcoPontos!`, em: instante(-1, 17, 5), lida: true },
+    { usuario_id: ana.id, tipo: 'lembrete', icone: '📅', texto: `Lembrete: coleta de ${proxima.material} agendada no ${pontoPorId(proxima.ponto_id).nome}.`, em: instante(0, 8, 0), lida: false },
+    { usuario_id: ana.id, tipo: 'recompensa', icone: '🎁', texto: 'Você já tem EcoPontos para resgatar recompensas na loja!', em: instante(-2, 18, 30), lida: false },
+  ].map((n, i) => ({ id: i + 1, ...n }));
+
+  const chats = {
+    [`${ana.id}:1`]: [
+      { id: 1, de: 'eu', texto: 'Olá! Vocês aceitam vidro quebrado?', em: instante(-3, 14, 2) },
+      { id: 2, de: 'ponto', texto: 'Olá, Ana! Aceitamos sim, desde que embrulhado em jornal ou caixa para proteger a equipe. 😊', em: instante(-3, 14, 4) },
+    ],
+  };
+
   return {
-    seq: { usuario: 3, ponto: 6, coleta: 12, notif: 3, msg: 0, avaliacao: 5, resgate: 0 },
-
-    usuarios: [
-      { id: 1, nome: 'Ana Recicladora', email: 'ana@email.com',   senha: 'senha123', telefone: '11999990001', cidade: 'São Paulo',      criado_em: '2026-05-20' },
-      { id: 2, nome: 'Bruno Verde',     email: 'bruno@email.com', senha: 'senha123', telefone: '11999990002', cidade: 'São Paulo',      criado_em: '2026-05-22' },
-      { id: 3, nome: 'Carla Eco',       email: 'carla@email.com', senha: 'senha123', telefone: '21999990003', cidade: 'Rio de Janeiro', criado_em: '2026-05-25' },
-    ],
-
-    pontos: [
-      { id: 1, nome: 'EcoPonto Centro',        endereco: 'Praça da Sé, 100',        cidade: 'São Paulo',      latitude: -23.5505, longitude: -46.6333, materiais: ['papel', 'plástico', 'vidro'],               horario: 'Seg-Sex 8h-18h',       ativo: true },
-      { id: 2, nome: 'Coleta Vila Madalena',   endereco: 'Rua Harmonia, 250',       cidade: 'São Paulo',      latitude: -23.5546, longitude: -46.6896, materiais: ['eletrônicos', 'pilhas'],                     horario: 'Seg-Sáb 9h-17h',       ativo: true },
-      { id: 3, nome: 'ReciclaRio Copacabana',  endereco: 'Av. Atlântica, 1500',     cidade: 'Rio de Janeiro', latitude: -22.9711, longitude: -43.1822, materiais: ['metal', 'plástico'],                         horario: 'Todos os dias 7h-19h', ativo: true },
-      { id: 4, nome: 'Recicla Pinheiros',      endereco: 'Rua dos Pinheiros, 1000', cidade: 'São Paulo',      latitude: -23.5645, longitude: -46.6996, materiais: ['papel', 'vidro', 'metal', 'papelão'],        horario: 'Seg-Sex 8h-20h',       ativo: true },
-      { id: 5, nome: 'EcoStation Tijuca',      endereco: 'Rua Conde de Bonfim, 500',cidade: 'Rio de Janeiro', latitude: -22.9249, longitude: -43.2336, materiais: ['papel', 'plástico', 'eletrônicos', 'óleo'],  horario: 'Seg-Sáb 8h-18h',       ativo: true },
-      { id: 6, nome: 'Verde Vale Campinas',    endereco: 'Av. Norte-Sul, 800',      cidade: 'Campinas',       latitude: -22.9056, longitude: -47.0608, materiais: ['vidro', 'metal', 'pilhas'],                  horario: 'Seg-Sex 9h-17h',       ativo: false },
-    ],
-
-    coletas: [
-      { id: 1,  usuario_id: 1, ponto_id: 1, material: 'papel',       quantidade_kg: 5.5, status: 'concluida', data_agendada: '2026-06-01' },
-      { id: 2,  usuario_id: 1, ponto_id: 2, material: 'eletrônicos', quantidade_kg: 2.0, status: 'agendada',  data_agendada: '2026-06-18' },
-      { id: 3,  usuario_id: 2, ponto_id: 1, material: 'vidro',       quantidade_kg: 8.0, status: 'agendada',  data_agendada: '2026-06-20' },
-      { id: 4,  usuario_id: 3, ponto_id: 3, material: 'plástico',    quantidade_kg: 3.2, status: 'concluida', data_agendada: '2026-06-03' },
-      { id: 5,  usuario_id: 1, ponto_id: 4, material: 'papelão',     quantidade_kg: 6.0, status: 'concluida', data_agendada: '2026-06-05' },
-      { id: 6,  usuario_id: 1, ponto_id: 1, material: 'vidro',       quantidade_kg: 4.0, status: 'concluida', data_agendada: '2026-05-28' },
-      { id: 7,  usuario_id: 2, ponto_id: 4, material: 'metal',       quantidade_kg: 3.5, status: 'concluida', data_agendada: '2026-06-02' },
-      { id: 8,  usuario_id: 2, ponto_id: 3, material: 'plástico',    quantidade_kg: 2.5, status: 'concluida', data_agendada: '2026-06-08' },
-      { id: 9,  usuario_id: 3, ponto_id: 5, material: 'óleo',        quantidade_kg: 1.5, status: 'concluida', data_agendada: '2026-06-06' },
-      { id: 10, usuario_id: 3, ponto_id: 5, material: 'papel',       quantidade_kg: 7.0, status: 'concluida', data_agendada: '2026-06-09' },
-      { id: 11, usuario_id: 1, ponto_id: 2, material: 'pilhas',      quantidade_kg: 0.8, status: 'concluida', data_agendada: '2026-06-11' },
-      { id: 12, usuario_id: 3, ponto_id: 3, material: 'metal',       quantidade_kg: 5.0, status: 'agendada',  data_agendada: '2026-06-22' },
-    ],
-
-    avaliacoes: [
-      { id: 1, ponto_id: 1, usuario_id: 2, usuario_nome: 'Bruno Verde',     nota: 5, comentario: 'Atendimento rápido e bem organizado!',          em: '2026-06-02' },
-      { id: 2, ponto_id: 1, usuario_id: 3, usuario_nome: 'Carla Eco',       nota: 4, comentario: 'Ótimo ponto, só estava com fila no sábado.',     em: '2026-06-05' },
-      { id: 3, ponto_id: 3, usuario_id: 1, usuario_nome: 'Ana Recicladora', nota: 5, comentario: 'Aceitam vários materiais, super recomendo.',     em: '2026-06-04' },
-      { id: 4, ponto_id: 4, usuario_id: 2, usuario_nome: 'Bruno Verde',     nota: 4, comentario: 'Bem localizado e horário amplo.',               em: '2026-06-06' },
-      { id: 5, ponto_id: 2, usuario_id: 1, usuario_nome: 'Ana Recicladora', nota: 5, comentario: 'Perfeito para eletrônicos e pilhas.',           em: '2026-06-07' },
-    ],
-
-    resgates: [],
-    chats: {},
-
-    notificacoes: [
-      { id: 1, usuario_id: 1, tipo: 'coleta',     icone: '♻️', texto: 'Coleta de papel concluída no EcoPonto Centro. +44 EcoPontos!', em: '2026-06-01T10:00:00', lida: true },
-      { id: 2, usuario_id: 1, tipo: 'lembrete',   icone: '📅', texto: 'Lembrete: coleta de eletrônicos agendada na Vila Madalena.', em: '2026-06-12T09:00:00', lida: false },
-      { id: 3, usuario_id: 1, tipo: 'recompensa', icone: '🎁', texto: 'Você já tem EcoPontos para resgatar recompensas na loja!', em: '2026-06-13T18:30:00', lida: false },
-    ],
+    meta: { schema_version: VERSAO_ATUAL, semeado_em: agora.toISOString() },
+    seq: {
+      usuario: usuarios.length,
+      ponto: pontos.length,
+      coleta: coletas.length,
+      avaliacao: avaliacoes.length,
+      resgate: resgates.length,
+      notif: notificacoes.length,
+      msg: 2,
+    },
+    usuarios,
+    pontos,
+    coletas,
+    avaliacoes,
+    resgates,
+    chats,
+    notificacoes,
   };
 }

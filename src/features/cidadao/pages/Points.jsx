@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, LocateFixed, Map as MapIcon, List, MapPin, AlertCircle, Loader2 } from 'lucide-react';
-import { pontos } from '../store/db';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { PointCard, MaterialTag, EmptyState } from '../components/ui.jsx';
-import MapView from '../components/MapView.jsx';
-import { haversineKm, geocode, getCurrentLocation } from '../utils/geo';
+import { pontos } from '@/data/repos';
+import { useQuery } from '@/hooks/useQuery';
+import { filtrarPontos, cidadesDe, materiaisDe } from '@/domain/pontos';
+import { PointCard, MaterialTag, EmptyState, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import MapView from '@/components/MapView.jsx';
+import { haversineKm, geocode, getCurrentLocation } from '@/utils/geo';
 
 export default function Points() {
-  useDbVersion();
   const nav = useNavigate();
   const [cidade, setCidade] = useState('');
   const [material, setMaterial] = useState('');
@@ -22,11 +22,14 @@ export default function Points() {
   const [busy, setBusy] = useState(false);
   const [geoError, setGeoError] = useState('');
 
-  const todos = pontos.list();
-  const cidades = pontos.cidades();
-  const materiais = [...new Set(todos.flatMap((p) => p.materiais))];
+  // Busca todos os pontos uma vez e filtra aqui: os filtros respondem na hora,
+  // sem nova "ida ao servidor" a cada clique. A regra de filtro é a mesma do repositório.
+  const q = useQuery(() => pontos.listar(), []);
+  const todos = useMemo(() => q.data || [], [q.data]);
+  const cidades = useMemo(() => cidadesDe(todos), [todos]);
+  const materiais = useMemo(() => materiaisDe(todos), [todos]);
 
-  let lista = pontos.list({
+  let lista = filtrarPontos(todos, {
     cidade: cidade || undefined,
     material: material || undefined,
     ativo: apenasAtivos ? true : undefined,
@@ -143,14 +146,18 @@ export default function Points() {
       </div>
 
       <div className="row between mb-2 wrap" style={{ gap: 10 }}>
-        <span className="small muted">{lista.length} ponto(s) encontrado(s)</span>
+        <span className="small muted" aria-live="polite">{q.loading ? 'Buscando pontos…' : `${lista.length} ponto(s) encontrado(s)`}</span>
         <div className="seg" style={{ width: 200 }}>
           <button className={view === 'mapa' ? 'active' : ''} onClick={() => setView('mapa')}><MapIcon size={17} /> Mapa</button>
           <button className={view === 'lista' ? 'active' : ''} onClick={() => setView('lista')}><List size={17} /> Lista</button>
         </div>
       </div>
 
-      {view === 'mapa' ? (
+      {q.loading ? (
+        <Carregando linhas={view === 'mapa' ? 1 : 3} altura={view === 'mapa' ? 440 : 180} rotulo="Carregando pontos…" />
+      ) : !q.data ? (
+        <ErroCarregar erro={q.error} onTentar={q.refetch} />
+      ) : view === 'mapa' ? (
         <MapView
           pontos={lista}
           userLocation={userLocation}

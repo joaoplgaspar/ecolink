@@ -1,25 +1,30 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Recycle, AlertCircle, UserPlus } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
+import { Recycle, UserPlus, Loader2 } from 'lucide-react';
+import { MensagemErro } from '@/components/ui.jsx';
+import { useAuth } from '@/app/AuthContext.jsx';
 
 export default function Register() {
   const { register } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ nome: '', email: '', senha: '', telefone: '', cidade: '' });
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   function set(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }));
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (form.senha.length < 6) {
       setErro('A senha deve ter ao menos 6 caracteres.');
       return;
     }
-    const r = register({ ...form, email: form.email.trim() });
+    setErro('');
+    setEnviando(true);
+    const r = await register({ ...form, email: form.email.trim() });
+    setEnviando(false);
     if (r.ok) nav('/');
     else setErro(r.erro);
   }
@@ -62,12 +67,10 @@ export default function Register() {
                 <input className="input" value={form.cidade} onChange={(e) => set('cidade', e.target.value)} placeholder="São Paulo" />
               </div>
             </div>
-            {erro && (
-              <p className="small row" style={{ color: 'var(--danger)', marginBottom: 10, gap: 6 }}>
-                <AlertCircle size={16} /> {erro}
-              </p>
-            )}
-            <button className="btn btn-primary btn-block" type="submit"><UserPlus size={18} /> Criar conta e entrar</button>
+            <MensagemErro erro={erro} style={{ marginBottom: 10 }} />
+            <button className="btn btn-primary btn-block" type="submit" disabled={enviando}>
+              {enviando ? <Loader2 size={18} className="spin" /> : <UserPlus size={18} />} Criar conta e entrar
+            </button>
           </form>
         </div>
       </div>

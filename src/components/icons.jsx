@@ -8,7 +8,7 @@ import {
   Sprout, TreePine, Palette, Dumbbell, Star,
   Calendar, Gift, MessageCircle, Bell,
 } from 'lucide-react';
-import { getMaterial } from '../utils/materials';
+import { getMaterial } from '@/domain/materiais';
 
 const MATERIAL_ICONS = {
   Newspaper, Package, CupSoda, Wine, CookingPot, Cpu, BatteryCharging, Droplet, Box, Leaf, Recycle,

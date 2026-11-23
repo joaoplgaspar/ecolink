@@ -1,39 +1,45 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Recycle, Scale, Globe, Pencil, LogOut, RotateCcw, Award, Mail, Calendar } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useDbVersion } from '../hooks/useDbVersion';
-import { getStats } from '../store/gamification';
-import { resetarDados } from '../store/db';
-import { formatDate, nf } from '../utils/format';
-import { Avatar, LevelChip, ProgressBar, Metric, CountUp } from '../components/ui.jsx';
-import { AchievementIcon, LevelIcon } from '../components/icons.jsx';
+import { Leaf, Recycle, Scale, Globe, Pencil, LogOut, RotateCcw, Award, Mail, Calendar, Loader2 } from 'lucide-react';
+import { useAuth } from '@/app/AuthContext.jsx';
+import { useQuery } from '@/hooks/useQuery';
+import { useMutation } from '@/hooks/useMutation';
+import { estatisticas, demo } from '@/data/repos';
+import { formatDate, nf } from '@/utils/format';
+import { Avatar, LevelChip, ProgressBar, Metric, CountUp, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import { AchievementIcon, LevelIcon } from '@/components/icons.jsx';
 
 export default function Profile() {
   const { user, updateUser, logout } = useAuth();
-  useDbVersion();
   const nav = useNavigate();
-  const stats = getStats(user.id);
+  const q = useQuery(() => estatisticas.doUsuario(user.id), [user.id]);
 
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState({ nome: user.nome, telefone: user.telefone || '', cidade: user.cidade || '' });
+  const salvarPerfil = useMutation((dados) => updateUser(dados));
+  const restaurar = useMutation(() => demo.restaurar());
 
-  function salvar(e) {
+  async function salvar(e) {
     e.preventDefault();
-    updateUser(form);
-    setEditando(false);
+    const r = await salvarPerfil.mutate(form);
+    if (r.ok) setEditando(false);
   }
   function sair() {
     logout();
     nav('/login');
   }
-  function resetar() {
-    if (window.confirm('Restaurar todos os dados de demonstração? Isso apaga coletas, conversas e contas criadas.')) {
-      resetarDados();
+  async function resetar() {
+    if (!window.confirm('Restaurar todos os dados de demonstração? Isso apaga coletas, conversas e contas criadas.')) return;
+    const r = await restaurar.mutate();
+    if (r.ok) {
       logout();
       nav('/login');
     }
   }
+
+  if (q.loading) return <><div className="page-head"><h1>Meu perfil</h1></div><Carregando linhas={3} altura={130} /></>;
+  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+  const stats = q.data;
 
   return (
     <div>
@@ -109,8 +115,11 @@ export default function Profile() {
                 <input className="input" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
               </div>
             </div>
+            <MensagemErro erro={salvarPerfil.error} style={{ marginBottom: 10 }} />
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-primary" type="submit">Salvar</button>
+              <button className="btn btn-primary" type="submit" disabled={salvarPerfil.pending}>
+                {salvarPerfil.pending && <Loader2 size={16} className="spin" />} Salvar
+              </button>
               <button className="btn btn-ghost" type="button" onClick={() => setEditando(false)}>Cancelar</button>
             </div>
           </form>
@@ -124,7 +133,9 @@ export default function Profile() {
 
       <div className="row wrap" style={{ gap: 10 }}>
         <button className="btn btn-danger" onClick={sair}><LogOut size={17} /> Sair da conta</button>
-        <button className="btn btn-ghost" onClick={resetar}><RotateCcw size={17} /> Restaurar dados de demonstração</button>
+        <button className="btn btn-ghost" onClick={resetar} disabled={restaurar.pending}>
+          {restaurar.pending ? <Loader2 size={17} className="spin" /> : <RotateCcw size={17} />} Restaurar dados de demonstração
+        </button>
       </div>
     </div>
   );

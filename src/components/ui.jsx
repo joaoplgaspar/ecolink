@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowRight, CalendarPlus, Check, X, Trash2, Calendar, Recycle, Inbox, Star } from 'lucide-react';
-import { getMaterial, materialLabel } from '../utils/materials';
-import { formatDate, nf, initials } from '../utils/format';
-import { formatDistance } from '../utils/geo';
-import { pontosDaColeta } from '../store/gamification';
-import { avaliacoes } from '../store/db';
+import { MapPin, Clock, ArrowRight, CalendarPlus, Check, X, Trash2, Calendar, Recycle, Inbox, Star, AlertCircle, RotateCcw, CloudOff } from 'lucide-react';
+import { getMaterial, materialLabel } from '@/domain/materiais';
+import { formatDate, nf, initials } from '@/utils/format';
+import { formatDistance } from '@/utils/geo';
+import { pontosDaColeta } from '@/domain/gamificacao';
+import { mensagemDeErro } from '@/data/erros';
 import { MaterialIcon, StatusIcon, LevelIcon } from './icons.jsx';
 
 export function Avatar({ nome, size = 40 }) {
@@ -100,7 +100,7 @@ export function CountUp({ value, decimals = 0, duration = 850, suffix = '' }) {
 }
 
 export function PointCard({ ponto, distanceKm }) {
-  const rating = avaliacoes.resumo(ponto.id);
+  const rating = ponto.avaliacao || { media: 0, total: 0 };
   return (
     <div className="card card-pad card-hover col" style={{ gap: 10 }}>
       <div className="row between" style={{ alignItems: 'flex-start' }}>
@@ -133,7 +133,7 @@ export function PointCard({ ponto, distanceKm }) {
   );
 }
 
-export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover }) {
+export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover, ocupado = false }) {
   const pts = pontosDaColeta(coleta);
   return (
     <div className="card card-pad card-hover">
@@ -165,15 +165,54 @@ export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover }) {
         <div className="row" style={{ gap: 8 }}>
           {coleta.status === 'agendada' && (
             <>
-              <button className="btn btn-sm btn-primary" onClick={() => onConcluir?.(coleta)}><Check size={16} /> Concluir</button>
-              <button className="btn btn-sm btn-danger" onClick={() => onCancelar?.(coleta)} aria-label="Cancelar"><X size={16} /></button>
+              <button className="btn btn-sm btn-primary" disabled={ocupado} onClick={() => onConcluir?.(coleta)}><Check size={16} /> Concluir</button>
+              <button className="btn btn-sm btn-danger" disabled={ocupado} onClick={() => onCancelar?.(coleta)} aria-label="Cancelar coleta"><X size={16} /></button>
             </>
           )}
-          {onRemover && (
-            <button className="btn btn-sm btn-ghost" onClick={() => onRemover(coleta)} aria-label="Excluir"><Trash2 size={16} /></button>
+          {/* Coletas concluídas são o lastro dos EcoPontos: não podem ser apagadas. */}
+          {onRemover && coleta.status !== 'concluida' && (
+            <button className="btn btn-sm btn-ghost" disabled={ocupado} onClick={() => onRemover(coleta)} aria-label="Excluir do histórico"><Trash2 size={16} /></button>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+/* ------------------------- estados de carregamento ------------------------ */
+
+/** Esqueleto exibido enquanto os dados chegam (primeira carga). */
+export function Carregando({ linhas = 3, altura = 86, rotulo = 'Carregando…' }) {
+  return (
+    <div className="col" style={{ gap: 12 }} role="status" aria-live="polite" aria-busy="true">
+      <span className="sr-only">{rotulo}</span>
+      {Array.from({ length: linhas }, (_, i) => (
+        <div key={i} className="skeleton" style={{ height: altura }} />
+      ))}
+    </div>
+  );
+}
+
+/** Falha ao carregar, com botão de tentar de novo. */
+export function ErroCarregar({ erro, onTentar, titulo = 'Não foi possível carregar' }) {
+  return (
+    <div className="empty" role="alert">
+      <div className="big"><CloudOff /></div>
+      <h3>{titulo}</h3>
+      <p className="muted mt-1">{mensagemDeErro(erro)}</p>
+      {onTentar && (
+        <button className="btn btn-sm btn-primary mt-2" onClick={onTentar}><RotateCcw size={15} /> Tentar de novo</button>
+      )}
+    </div>
+  );
+}
+
+/** Mensagem de erro curta, para formulários e ações. */
+export function MensagemErro({ erro, style }) {
+  if (!erro) return null;
+  return (
+    <p className="small row" role="alert" style={{ color: 'var(--danger)', gap: 6, ...style }}>
+      <AlertCircle size={16} style={{ flex: 'none' }} /> {typeof erro === 'string' ? erro : mensagemDeErro(erro)}
+    </p>
   );
 }
