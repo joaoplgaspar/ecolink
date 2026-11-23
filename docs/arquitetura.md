@@ -19,12 +19,16 @@ flowchart TB
     D1[permissoes · coletaMaquina · agenda]
     D2[reputacao · denuncias · estoque · chat · extrato]
   end
-  Banco[(localStorage<br/>transação atômica + migrações)]
+  Banco[(modo local: localStorage<br/>transação atômica + migrações)]
+  Supa[(modo supabase: Postgres<br/>RLS + funções security definer)]
 
   C & P & A -->|Promise + ErroApi com status HTTP| Repos
   Repos -->|pode&#40;ator, ação, recurso&#41;| Dominio
-  Repos --> Banco
+  Repos -->|VITE_FONTE_DADOS=local| Banco
+  Repos -->|VITE_FONTE_DADOS=supabase<br/>supabase-js + JWT| Supa
 ```
+
+Os **dois modos usam as mesmas telas e o mesmo domínio**. No modo Supabase, as regras que protegem os dados (permissões, transições da coleta, créditos de EcoPontos) rodam **no banco**, porque a chave pública fica no navegador ([ADR 0008](./adr/0008-supabase-com-seguranca-no-banco.md), [guia](./supabase.md)).
 
 - **As telas nunca tocam no "banco".** Só chamam repositórios, que devolvem `Promise`s, simulam latência/falha de rede e lançam erros com status HTTP (401, 403, 404, 409, 422, 429…). Trocar o armazenamento local pelo Supabase é reimplementar `src/data/repos/` (ver [ADR 0001](./adr/0001-dados-no-dispositivo-com-repositorios.md) e o §17 do roadmap).
 - **Quem é o usuário vem da sessão**, nunca de um id enviado pela tela (`chamarAutenticado` → `ator`), como o `auth.uid()` do Supabase.
@@ -105,4 +109,6 @@ flowchart LR
 | Regras (`src/domain`)           | Vitest, casos de borda; testes de mutação nas regras críticas                    |
 | Repositórios (`src/data/repos`) | Vitest com "banco" em memória e relógio fixo, um arquivo por fase                |
 | Jornada no navegador            | Playwright (`e2e/`): jornada completa, axe (WCAG 2.1 AA), teclado, LGPD, celular |
-| CI (GitHub Actions)             | lint → formatação → testes → build → E2E, em todo PR                             |
+| Banco Supabase (`supabase/`)    | pgTAP: entra como cada pessoa e tenta o que não pode (RLS, privilégios, funções) |
+| Jornada no Supabase             | Playwright contra o Supabase local (`e2e/supabase/`)                             |
+| CI (GitHub Actions)             | lint → formatação → testes → build → E2E → banco → jornada no Supabase           |

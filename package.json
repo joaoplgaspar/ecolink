@@ -19,6 +19,7 @@
     "e2e:video": "E2E_VIDEO=1 playwright test --project=desktop video-demo",
     "test:banco": "bash scripts/testar-banco.sh",
     "dev:supabase": "vite --mode supabase",
+    "build:supabase": "vite build --mode supabase --outDir dist-supabase",
     "e2e:supabase": "playwright test --config playwright.supabase.config.js",
     "seed:supabase": "vite-node scripts/gerar-seed-supabase.mjs"
   },

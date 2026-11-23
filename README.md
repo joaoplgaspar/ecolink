@@ -107,9 +107,11 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 
 ---
 
-## 🗃️ Dados (no dispositivo, com cara de API)
+## 🗃️ Dados: no dispositivo ou no Supabase
 
-Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStorage`). Mas o app já é construído **como se falasse com um servidor**:
+O app tem **dois modos, com as mesmas telas**: `local` (padrão — tudo no navegador, ótimo para demonstrar offline) e **`supabase`** (Postgres de verdade, com a segurança dentro do banco). Veja [🐘 Modo Supabase](#-modo-supabase-banco-on-line) logo abaixo.
+
+No modo local, tudo fica salvo **no navegador** (`localStorage`), mas o app é construído **como se falasse com um servidor**:
 
 - **Repositórios assíncronos** (`src/data/repos/`): toda leitura/escrita é uma `Promise`, com **latência simulada** e erros com **status HTTP** (401, 404, 409, 422, 503…). As telas tratam carregando, erro e "tentar de novo". Para plugar um back end (ex.: Supabase), reimplementa-se só essa pasta.
 - **Regras na camada de dados**, não só na tela: saldo da loja, data no passado, material aceito pelo ponto, campos editáveis do perfil, etc.
@@ -161,6 +163,27 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 
 ---
 
+## 🐘 Modo Supabase (banco on-line)
+
+O mesmo app, falando com um **Postgres no Supabase**. A chave pública fica no navegador, então **quem protege os dados é o banco**:
+
+- **RLS em todas as tabelas** e nenhuma escrita direta: agendar, aceitar, check-in, pesagem e resgate são **funções no servidor** que conferem quem está pedindo;
+- **EcoPontos só pela balança do ponto** (crédito dentro de `registrar_pesagem`) e resgate sem gasto duplo (conta travada no `resgatar`);
+- a equipe do ponto vê "Ana R.", nunca o id nem o contato; o **código de entrega** só o dono lê; ninguém se cadastra como admin;
+- **61 testes pgTAP** provam isso entrando como cada pessoa (`supabase test db`), e a jornada inteira roda no navegador contra o Supabase (`npm run e2e:supabase`), também no CI.
+
+```bash
+supabase start          # Postgres + Auth + API locais, com migrações e o mesmo seed
+```
+
+```bash
+npm run dev:supabase    # o app no modo Supabase (chave pública em .env.supabase.local)
+```
+
+Passo a passo (local e nuvem), o que já migrou e o que vem depois: **[docs/supabase.md](./docs/supabase.md)**. A chave `service_role` **nunca** vai para o front end nem para o repositório.
+
+---
+
 ## 🚀 Como rodar
 
 > Pré-requisito: **Node.js 18+**.
@@ -170,19 +193,22 @@ npm install     # instala as dependências
 npm run dev     # sobe em http://localhost:5173
 ```
 
-| Comando             | O que faz                                                               |
-| ------------------- | ----------------------------------------------------------------------- |
-| `npm run dev`       | servidor de desenvolvimento                                             |
-| `npm run build`     | build de produção (depois `npm run preview`)                            |
-| `npm test`          | testes automatizados (Vitest)                                           |
-| `npm run coverage`  | testes + relatório de cobertura                                         |
-| `npm run lint`      | análise estática (ESLint)                                               |
-| `npm run format`    | formata o código (Prettier)                                             |
-| `npm run check`     | tudo acima, como no CI                                                  |
-| `npm run e2e`       | testes de ponta a ponta no navegador (Playwright + axe), contra o build |
-| `npm run e2e:video` | grava o vídeo de backup da demonstração em `test-results/`              |
+| Comando                | O que faz                                                                 |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `npm run dev`          | servidor de desenvolvimento                                               |
+| `npm run build`        | build de produção (depois `npm run preview`)                              |
+| `npm test`             | testes automatizados (Vitest)                                             |
+| `npm run coverage`     | testes + relatório de cobertura                                           |
+| `npm run lint`         | análise estática (ESLint)                                                 |
+| `npm run format`       | formata o código (Prettier)                                               |
+| `npm run check`        | tudo acima, como no CI                                                    |
+| `npm run e2e`          | testes de ponta a ponta no navegador (Playwright + axe), contra o build   |
+| `npm run e2e:video`    | grava o vídeo de backup da demonstração em `test-results/`                |
+| `npm run test:banco`   | testes do banco (RLS e funções, pgTAP) num Postgres do Supabase em Docker |
+| `npm run dev:supabase` | o app no modo Supabase ([docs/supabase.md](./docs/supabase.md))           |
+| `npm run e2e:supabase` | a jornada no navegador contra o Supabase                                  |
 
-O **GitHub Actions** (`.github/workflows/ci.yml`) roda lint, formatação, testes e build a cada push e pull request e, em seguida, os testes de ponta a ponta. Para rodar os E2E na primeira vez: `npx playwright install chromium`.
+O **GitHub Actions** (`.github/workflows/ci.yml`) roda lint, formatação, testes e build a cada push e pull request e, em seguida, os testes de ponta a ponta, os testes do banco e a jornada no modo Supabase (com o Supabase CLI). Para rodar os E2E na primeira vez: `npx playwright install chromium`.
 
 ---
 

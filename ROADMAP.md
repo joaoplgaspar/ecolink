@@ -671,6 +671,8 @@ gantt
 
 ## 17. Caminho para o Supabase
 
+> **Situação (etapa 1 concluída):** esquema, RLS em todas as tabelas, funções da jornada (agendar → aceitar → check-in → pesagem → extrato → loja), relógio no `pg_cron`, seed igual ao local e 61 testes pgTAP. O front escolhe a fonte com `VITE_FONTE_DADOS=local|supabase`, e a jornada passa no navegador contra o Supabase. O que ainda não migrou responde 501 sem quebrar as telas. Detalhes e próximas etapas em [docs/supabase.md](./docs/supabase.md) e no [ADR 0008](./docs/adr/0008-supabase-com-seguranca-no-banco.md).
+
 O Supabase cobre quase tudo o que este roadmap pede para o lado do servidor. A Fase 0 já deixou a "porta" pronta: as telas só falam com `src/data/repos/`, que devolvem `Promise`s e lançam `ErroApi` com status HTTP. Trocar o armazenamento local pelo Supabase é **reimplementar essa pasta, repositório por repositório**, sem mexer nas telas.
 
 | Necessidade do roadmap                                                                        | No Supabase                                                                                                                  |
