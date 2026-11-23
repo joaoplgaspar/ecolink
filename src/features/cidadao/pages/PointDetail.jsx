@@ -121,9 +121,9 @@ export default function PointDetail() {
         }
         mapa={
           <div className="card card-pad">
-            <h3 className="row mb-2" style={{ gap: 8 }}>
+            <h2 className="h3 row mb-2" style={{ gap: 8 }}>
               <MapPin size={18} color="var(--green-600)" /> Localização
-            </h3>
+            </h2>
             <MapView
               pontos={[ponto]}
               selectedId={ponto.id}
@@ -138,9 +138,9 @@ export default function PointDetail() {
 
       <div className="grid-detalhe-rep">
         <div className="card card-pad">
-          <h3 className="row mb-3" style={{ gap: 8 }}>
+          <h2 className="h3 row mb-3" style={{ gap: 8 }}>
             <ShieldCheck size={18} color="var(--green-600)" /> Reputação do ponto
-          </h3>
+          </h2>
           <div className="rep-topo mb-3">
             <MedidorReputacao score={rep.score} faixa={rep.faixa} tamanho={112} />
             <div className="col" style={{ gap: 4 }}>
@@ -162,9 +162,9 @@ export default function PointDetail() {
         </div>
 
         <div className="card card-pad">
-          <h3 className="row mb-2" style={{ gap: 8 }}>
+          <h2 className="h3 row mb-2" style={{ gap: 8 }}>
             <Star size={18} color="#f5a623" /> Avaliações
-          </h3>
+          </h2>
           <p className="small muted mb-3">
             Só avalia quem teve a entrega conferida aqui — uma avaliação por entrega. Avalie pela tela da sua entrega
             concluída, em <Link to="/coletas">Minhas entregas</Link>.

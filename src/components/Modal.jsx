@@ -12,7 +12,25 @@ export default function Modal({ titulo, icone: Icone, aoFechar, children, largur
     const anterior = document.activeElement;
     const foco = caixa.current?.querySelector('input, textarea, select, button:not([data-fechar])');
     (foco || caixa.current)?.focus();
-    const tecla = (e) => e.key === 'Escape' && aoFechar();
+    const tecla = (e) => {
+      if (e.key === 'Escape') return aoFechar();
+      if (e.key !== 'Tab' || !caixa.current) return;
+      // Foco preso na janela: Tab no último controle volta ao primeiro (e vice-versa).
+      const focaveis = [
+        ...caixa.current.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex="0"]',
+        ),
+      ].filter((el) => el.offsetParent !== null);
+      if (!focaveis.length) return;
+      const [primeiro, ultimo] = [focaveis[0], focaveis.at(-1)];
+      if (e.shiftKey && document.activeElement === primeiro) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primeiro.focus();
+      }
+    };
     document.addEventListener('keydown', tecla);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

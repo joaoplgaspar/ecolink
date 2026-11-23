@@ -54,7 +54,13 @@ export default function ConferenciaColeta() {
       </>
     );
   if (q.error?.status === 404 || q.error?.status === 403)
-    return <EmptyState icon={CircleHelp} title="Entrega não encontrada" />;
+    return (
+      <EmptyState icon={CircleHelp} title="Entrega não encontrada">
+        <Link to="/parceiro" className="btn btn-sm btn-primary mt-2">
+          Voltar aos recebimentos
+        </Link>
+      </EmptyState>
+    );
   if (!q.data)
     return (
       <>

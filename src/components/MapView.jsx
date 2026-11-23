@@ -62,7 +62,12 @@ export default function MapView({
         <FlyTo target={flyTarget} zoom={focus ? 15 : zoom} />
 
         {userLocation && (
-          <Marker position={[userLocation.lat, userLocation.lon]} icon={USER_PIN}>
+          <Marker
+            position={[userLocation.lat, userLocation.lon]}
+            icon={USER_PIN}
+            title="Você está aqui"
+            alt="Você está aqui"
+          >
             <Popup>Você está aqui</Popup>
           </Marker>
         )}
@@ -72,6 +77,8 @@ export default function MapView({
             key={p.id}
             position={[p.latitude, p.longitude]}
             icon={selectedId === p.id ? SELECTED_PIN : POINT_PIN}
+            title={p.nome}
+            alt={`Ponto de coleta ${p.nome}`}
             eventHandlers={{ click: () => onSelect?.(p) }}
           >
             <Popup>

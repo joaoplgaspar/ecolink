@@ -410,6 +410,8 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     cidade: u.cidade,
     criado_em: dia(-u.desde),
     aceite_termos: { versao: TERMOS.versao, em: instante(-u.desde, 9, 0) },
+    // Contas da demo já viram as boas-vindas (contas novas, criadas no cadastro, veem).
+    boas_vindas: { cidadao: dia(-u.desde), parceiro: dia(-u.desde), admin: dia(-u.desde) },
   }));
   const cidadaos = usuarios.slice(0, USUARIOS.length);
 

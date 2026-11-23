@@ -55,7 +55,9 @@ function ListaContestacoes() {
       ) : !q.data ? (
         <ErroCarregar erro={q.error} onTentar={q.refetch} />
       ) : q.data.length === 0 ? (
-        <EmptyState icon={Inbox} title="Nenhuma contestação em aberto" />
+        <EmptyState icon={Inbox} title="Nenhuma contestação em aberto">
+          Quando um cidadão contestar uma pesagem, ela aparece aqui.
+        </EmptyState>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           {q.data.map((c) => (

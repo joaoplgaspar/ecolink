@@ -138,7 +138,7 @@ export default function Points() {
         <div className="grid grid-2 mb-2" style={{ gap: 14 }}>
           <div className="field" style={{ margin: 0 }}>
             <label>Cidade</label>
-            <select className="select" value={cidade} onChange={(e) => setCidade(e.target.value)}>
+            <select className="select" aria-label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)}>
               <option value="">Todas as cidades</option>
               {cidades.map((c) => (
                 <option key={c} value={c}>

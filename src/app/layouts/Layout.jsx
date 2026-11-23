@@ -4,7 +4,7 @@
 // Cada PERFIL tem seu menu e sua cor (verde = cidadão, azul-petróleo = parceiro,
 // grafite = plataforma), para nunca haver dúvida de "em que modo estou".
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { NavLink, Link, useOutlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   Scale,
+  CircleHelp,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
@@ -36,11 +37,13 @@ import { estatisticas } from '@/data/repos';
 import NotificationBell from '@/components/NotificationBell.jsx';
 import InstallPrompt from '@/components/InstallPrompt.jsx';
 import FaixaSancao from '@/components/FaixaSancao.jsx';
-import { Avatar, MensagemErro } from '@/components/ui.jsx';
+import BoasVindas from '@/components/BoasVindas.jsx';
+import { Avatar, MensagemErro, Carregando } from '@/components/ui.jsx';
 import { pageVariants } from '@/utils/anim';
 import { PERFIS } from '@/domain/permissoes';
 
 const PERFIL_ITEM = { to: '/perfil', icon: User, label: 'Perfil' };
+const AJUDA_ITEM = { to: '/ajuda', icon: CircleHelp, label: 'Ajuda' };
 
 /** Menu de cada perfil. `inferior`: quantos itens vão na barra de baixo (mobile). */
 const MENUS = {
@@ -57,6 +60,7 @@ const MENUS = {
       { to: '/reputacao', icon: ShieldCheck, label: 'Reputação' },
       { to: '/denuncias', icon: Flag, label: 'Denúncias' },
       PERFIL_ITEM,
+      AJUDA_ITEM,
     ],
   },
   parceiro: {
@@ -65,6 +69,7 @@ const MENUS = {
       { to: '/parceiro', icon: Store, label: 'Meus pontos', end: true },
       { to: '/denuncias', icon: Flag, label: 'Denúncias' },
       PERFIL_ITEM,
+      AJUDA_ITEM,
     ],
   },
   admin: {
@@ -77,6 +82,7 @@ const MENUS = {
       { to: '/admin/usuarios', icon: Users, label: 'Usuários' },
       { to: '/admin/auditoria', icon: ScrollText, label: 'Auditoria' },
       PERFIL_ITEM,
+      AJUDA_ITEM,
     ],
   },
 };
@@ -155,6 +161,10 @@ export default function Layout() {
 
   return (
     <div className="app-shell" data-perfil={perfil}>
+      {/* Teclado e leitor de tela: pula o menu e vai direto ao conteúdo. */}
+      <a href="#conteudo" className="pular-conteudo">
+        Pular para o conteúdo
+      </a>
       <header className="topbar">
         <Link to="/" className="brand">
           <span className="leaf">
@@ -208,11 +218,14 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="content">
+      <main className="content" id="conteudo" tabIndex={-1}>
         <FaixaSancao perfil={perfil} usuarioId={user.id} />
+        {perfil && !user.boas_vindas?.[perfil] && <BoasVindas key={perfil} perfil={perfil} />}
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo({ top: 0, left: 0 })}>
           <motion.div key={location.pathname} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-            <FrozenOutlet />
+            <Suspense fallback={<Carregando linhas={3} altura={110} rotulo="Abrindo a página…" />}>
+              <FrozenOutlet />
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

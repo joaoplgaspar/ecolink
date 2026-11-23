@@ -1,0 +1,8 @@
+# Áreas logadas não devem ser indexadas por buscadores.
+User-agent: *
+Allow: /login
+Allow: /cadastro
+Allow: /seja-parceiro
+Allow: /termos
+Allow: /privacidade
+Disallow: /

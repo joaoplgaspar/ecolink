@@ -380,7 +380,7 @@ export function VerDocumento({ orgId, doc }) {
   }
   return (
     <>
-      <button type="button" className="btn btn-sm btn-ghost" onClick={abrir} aria-label={`Abrir ${doc.nome}`}>
+      <button type="button" className="btn btn-sm btn-ghost" onClick={abrir} aria-label={`Ver ${doc.nome}`}>
         <Eye size={14} /> Ver
       </button>
       {erro && <MensagemErro erro={erro} />}

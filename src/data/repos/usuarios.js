@@ -3,7 +3,7 @@
 // (Cadastro e login ficam em auth.js.)
 
 import { ler, transacao } from '../storage';
-import { naoEncontrado } from '../erros';
+import { naoEncontrado, invalido } from '../erros';
 import { chamarAutenticado, texto } from './_rede';
 import { exigir, auditar } from './_sessao';
 
@@ -53,6 +53,18 @@ export function atualizar(dados) {
           recurso_id: u.id,
           detalhes: { campos: alterados },
         });
+      return publico(u);
+    }),
+  );
+}
+
+/** Marca as boas-vindas do perfil como vistas (vale em todos os aparelhos da pessoa). */
+export function concluirBoasVindas(perfil) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      if (!['cidadao', 'parceiro', 'admin'].includes(perfil)) throw invalido('Perfil inválido.');
+      const u = s.usuarios.find((x) => x.id === ator.id);
+      u.boas_vindas = { ...(u.boas_vindas || {}), [perfil]: new Date().toISOString() };
       return publico(u);
     }),
   );

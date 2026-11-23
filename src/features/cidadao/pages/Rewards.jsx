@@ -249,7 +249,9 @@ function Extrato() {
         <span className="small faint">Lançamentos nunca são editados: correções viram novos lançamentos.</span>
       </div>
       {lancamentos.length === 0 ? (
-        <EmptyState icon={ReceiptText} title="Nenhum lançamento ainda" />
+        <EmptyState icon={ReceiptText} title="Nenhum lançamento ainda">
+          Seus EcoPontos aparecem aqui depois que um ponto pesar sua primeira entrega.
+        </EmptyState>
       ) : (
         <div className="tabela-wrap">
           <table className="tabela">

@@ -46,7 +46,14 @@ export default function CasoDenuncia() {
         <Carregando linhas={3} altura={140} rotulo="Abrindo caso…" />
       </>
     );
-  if (q.error?.status === 404) return <EmptyState icon={CircleHelp} title="Caso não encontrado" />;
+  if (q.error?.status === 404)
+    return (
+      <EmptyState icon={CircleHelp} title="Caso não encontrado">
+        <Link to="/admin/denuncias" className="btn btn-sm btn-primary mt-2">
+          Voltar para a fila
+        </Link>
+      </EmptyState>
+    );
   if (!q.data)
     return (
       <>

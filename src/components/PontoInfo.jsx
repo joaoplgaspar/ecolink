@@ -193,11 +193,11 @@ export default function PontoInfo({ ponto, acoes, mapa }) {
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card card-pad">
-          <h3 className="mb-2">O que recebemos</h3>
+          <h2 className="h3 mb-2">O que recebemos</h2>
           <RegrasMateriais ponto={ponto} />
         </div>
         <div className="card card-pad">
-          <h3 className="mb-2">Horário de funcionamento</h3>
+          <h2 className="h3 mb-2">Horário de funcionamento</h2>
           <TabelaHorarios ponto={ponto} />
         </div>
       </div>

@@ -9,7 +9,58 @@
   "background_color": "#f5f8f6",
   "theme_color": "#1d9e75",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "lang": "pt-BR",
+  "shortcuts": [
+    {
+      "name": "Agendar entrega",
+      "short_name": "Agendar",
+      "description": "Encontrar um ponto e agendar",
+      "url": "/pontos",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Minhas entregas",
+      "short_name": "Entregas",
+      "url": "/coletas",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Painel do parceiro",
+      "short_name": "Painel",
+      "description": "Recebimentos do ponto de coleta",
+      "url": "/parceiro",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
   ]
 }

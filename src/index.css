@@ -12,6 +12,7 @@
   --green-200: #9fe1cb;
   --green-100: #e1f5ee;
   --green-50: #f0faf6;
+  --acao: #168060; /* fundo de botões/selos com texto branco: 4,9:1 */
 
   --amber-700: #854f0b;
   --amber-500: #ef9f27;
@@ -19,7 +20,7 @@
 
   --ink: #15231e;
   --muted: #5f6b66;
-  --faint: #8a948f;
+  --faint: #636d68; /* ≥ 4.5:1 em todas as superfícies (WCAG AA) */
   --bg: #f5f8f6;
   --surface: #ffffff;
   --border: #e5ebe8;
@@ -373,8 +374,8 @@ svg {
   height: 18px;
 }
 .btn-primary {
-  background: var(--green-600);
-  border-color: var(--green-600);
+  background: var(--acao);
+  border-color: var(--acao);
   color: #fff;
 }
 .btn-primary:hover {
@@ -483,7 +484,7 @@ svg {
   transform: translateY(-1px);
 }
 .tag.active {
-  background: var(--green-600);
+  background: var(--acao);
   color: #fff;
   border-color: var(--green-600);
 }
@@ -923,7 +924,7 @@ svg {
 }
 .bubble.me {
   align-self: flex-end;
-  background: var(--green-600);
+  background: var(--acao);
   color: #fff;
   border-bottom-right-radius: 5px;
 }
@@ -1000,8 +1001,17 @@ svg {
   box-shadow: var(--shadow-sm);
 }
 .achv.locked {
-  opacity: 0.5;
-  filter: grayscale(0.6);
+  /* bloqueada: o ícone esmaece, o texto continua legível (contraste AA) */
+  border-style: dashed;
+  background: #fafbfa;
+}
+.achv.locked .em {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+.achv.locked .nm,
+.achv.locked .ds {
+  color: var(--muted);
 }
 .achv .em {
   width: 42px;
@@ -1432,6 +1442,7 @@ button.thread-item.active {
   --green-200: #9fd3e6;
   --green-100: #e0f1f8;
   --green-50: #f0f8fb;
+  --acao: #12708f;
 }
 .app-shell[data-perfil='admin'] {
   --green-900: #1e2430;
@@ -1441,6 +1452,7 @@ button.thread-item.active {
   --green-200: #cbd5e1;
   --green-100: #e8edf3;
   --green-50: #f4f6f9;
+  --acao: #475569;
 }
 .perfil-seletor {
   margin-bottom: 12px;
@@ -1588,7 +1600,7 @@ button.thread-item.active {
   font-size: 0.78rem;
 }
 .etapa.atual .etapa-num {
-  background: var(--green-600);
+  background: var(--acao);
   color: #fff;
 }
 .etapa-rotulo {
@@ -2273,7 +2285,7 @@ a.aviso:hover {
   min-height: 0;
   height: auto;
   font-size: 0.72rem;
-  color: var(--faint);
+  color: var(--muted);
   gap: 3px;
 }
 .bubble .denunciar-msg:hover {
@@ -2317,7 +2329,7 @@ a.aviso:hover {
   justify-content: flex-end;
 }
 .bubble .visto {
-  color: #c9f5e4;
+  color: #fff;
   display: inline-flex;
 }
 .bubble.automatica {
@@ -2377,7 +2389,7 @@ a.aviso:hover {
   height: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: var(--green-600);
+  background: var(--acao);
   color: #fff;
   font-size: 0.72rem;
   font-weight: 800;
@@ -2572,4 +2584,141 @@ a.aviso:hover {
 }
 .passos-rastreio li.aguardando svg {
   color: var(--muted);
+}
+.bubble.me .when {
+  opacity: 1;
+}
+
+/* Acessibilidade: quem pede menos movimento no sistema não vê animações. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Contraste: a hora da bolha não usa transparência (texto pequeno precisa de 4,5:1). */
+.bubble .when {
+  opacity: 1;
+}
+.bubble.them .when {
+  color: var(--muted);
+}
+.bubble.me .when {
+  color: #fff;
+}
+
+/* --------------------- Fase 7: teclado, foco e toque --------------------- */
+.pular-conteudo {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 3000;
+  padding: 10px 16px;
+  background: var(--acao);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+.pular-conteudo:focus {
+  top: 12px;
+}
+#conteudo:focus {
+  outline: none;
+}
+/* Foco sempre visível para quem navega pelo teclado (e só para ele). */
+:where(
+    a,
+    button,
+    [role='button'],
+    [role='tab'],
+    [tabindex='0'],
+    summary,
+    input[type='checkbox'],
+    input[type='radio']
+  ):focus-visible {
+  outline: 3px solid var(--green-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Telas de toque: alvos de pelo menos 44 px (botões e botões de ícone). */
+@media (pointer: coarse) {
+  .btn,
+  .btn-sm {
+    min-height: 44px;
+  }
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .tag.clickable {
+    min-height: 40px;
+  }
+}
+/* Títulos de seção: nível semântico h2 (ordem correta para leitores de tela), visual de h3. */
+h2.h3 {
+  font-size: 1.02rem;
+}
+.boas-vindas {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+}
+.boas-vindas-icone {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--green-50);
+  color: var(--green-700);
+}
+.pontinhos {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pontinhos span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-100);
+}
+.pontinhos span.ativo {
+  background: var(--acao);
+  width: 20px;
+  border-radius: 4px;
+}
+.faq {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.faq summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.faq p {
+  margin-top: 6px;
+}
+.glossario {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.glossario dt {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.glossario dd {
+  margin: 2px 0 0;
 }

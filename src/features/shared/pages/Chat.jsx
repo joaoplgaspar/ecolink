@@ -133,7 +133,10 @@ function Conversa({ pontoId, onVoltar }) {
         <Carregando linhas={3} altura={56} rotulo="Carregando conversa…" />
       </div>
     );
-  if (q.error?.status === 404) return <EmptyState title="Ponto não encontrado" />;
+  if (q.error?.status === 404)
+    return (
+      <EmptyState title="Ponto não encontrado">Ele pode ter saído do mapa. Escolha outro ponto na lista.</EmptyState>
+    );
   if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
   const { ponto, mensagens } = q.data;
 

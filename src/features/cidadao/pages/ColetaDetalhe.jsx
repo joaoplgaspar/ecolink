@@ -58,7 +58,13 @@ export default function ColetaDetalhe() {
       </>
     );
   if (q.error?.status === 404 || q.error?.status === 403) {
-    return <EmptyState icon={CircleHelp} title="Entrega não encontrada" />;
+    return (
+      <EmptyState icon={CircleHelp} title="Entrega não encontrada">
+        <Link to="/coletas" className="btn btn-sm btn-primary mt-2">
+          Ver minhas entregas
+        </Link>
+      </EmptyState>
+    );
   }
   if (!q.data)
     return (

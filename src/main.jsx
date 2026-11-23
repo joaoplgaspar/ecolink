@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app/App.jsx';
 import { AuthProvider } from './app/AuthContext.jsx';
@@ -21,11 +22,14 @@ setInterval(processarPrazos, 60_000);
 // StrictMode propositalmente omitido: o react-leaflet não lida bem com o
 // duplo-mount do StrictMode em dev (erro "Map container already initialized").
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </BrowserRouter>,
+  // reducedMotion="user": quem ativou "reduzir movimento" no sistema não vê animações.
+  <MotionConfig reducedMotion="user">
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </MotionConfig>,
 );
 
 // PWA: registra o service worker apenas na build de produção

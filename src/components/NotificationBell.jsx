@@ -37,11 +37,15 @@ export default function NotificationBell() {
       <button
         className="btn icon-btn"
         onClick={toggle}
-        aria-label={naoLidas ? `Notificações (${naoLidas} não lidas)` : 'Notificações'}
+        aria-label={naoLidas ? `${naoLidas} notificações não lidas` : 'Notificações'}
         aria-expanded={open}
       >
         <Bell size={20} />
-        {naoLidas > 0 && <span className="bell-dot">{naoLidas}</span>}
+        {naoLidas > 0 && (
+          <span className="bell-dot" aria-hidden="true">
+            {naoLidas}
+          </span>
+        )}
       </button>
 
       {open && (

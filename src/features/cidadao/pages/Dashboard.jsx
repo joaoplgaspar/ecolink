@@ -175,9 +175,9 @@ export default function Dashboard() {
 
       <div className="grid grid-2 mb-3" style={{ alignItems: 'start' }}>
         <div className="card card-pad">
-          <h3 className="row mb-2" style={{ gap: 8 }}>
+          <h2 className="h3 row mb-2" style={{ gap: 8 }}>
             <Sparkles size={18} color="var(--green-600)" /> Seu impacto ambiental
-          </h3>
+          </h2>
           <div className="col" style={{ gap: 13 }}>
             <ImpactLine icon={Globe} color="#2563eb" label="CO₂ evitado" value={`${nf(stats.impacto.co2, 1)} kg`} />
             <ImpactLine
@@ -194,7 +194,7 @@ export default function Dashboard() {
 
         <div className="card card-pad">
           <div className="row between mb-2">
-            <h3>Próximas entregas</h3>
+            <h2 className="h3">Próximas entregas</h2>
             <Link to="/coletas" className="btn btn-sm btn-ghost">
               Ver todas <ArrowRight size={15} />
             </Link>

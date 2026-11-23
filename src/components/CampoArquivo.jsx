@@ -44,6 +44,8 @@ export default function CampoArquivo({
         ref={input}
         id={id}
         type="file"
+        aria-label={rotulo}
+        tabIndex={-1}
         accept={aceitos.join(',')}
         onChange={escolher}
         className="sr-only"

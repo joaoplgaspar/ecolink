@@ -273,11 +273,16 @@ function ColunasEmpilhadas({ meses, materiais, cores }) {
 
   return (
     <div ref={caixa} className="grafico" onMouseLeave={() => setAtivo(null)}>
-      <svg width={largura} height={altura} role="img" aria-label="Quilos recebidos por mês, por material">
+      <svg
+        width={largura}
+        height={altura}
+        role="group"
+        aria-label="Quilos recebidos por mês, por material (use Tab para ouvir cada mês)"
+      >
         {ys.map((v) => (
           <g key={v}>
             <line x1={margem.esq} x2={largura - margem.dir} y1={y(v)} y2={y(v)} className="grade" />
-            <text x={margem.esq - 6} y={y(v) + 4} textAnchor="end" className="eixo">
+            <text x={margem.esq - 6} y={y(v) + 4} textAnchor="end" className="eixo" aria-hidden="true">
               {nf(v)}
             </text>
           </g>
@@ -290,7 +295,10 @@ function ColunasEmpilhadas({ meses, materiais, cores }) {
               key={mes.chave}
               tabIndex={0}
               role="button"
-              aria-label={`${mes.rotulo}: ${nf(mes.kg, 1)} kg`}
+              aria-label={`${mes.rotulo}: ${nf(mes.kg, 1)} kg${materiais
+                .filter((m) => mes.kg_por_material[m])
+                .map((m) => `, ${getMaterial(m).label} ${nf(mes.kg_por_material[m], 1)} kg`)
+                .join('')}`}
               onMouseEnter={() => setAtivo(k)}
               onFocus={() => setAtivo(k)}
               onBlur={() => setAtivo(null)}
@@ -309,17 +317,27 @@ function ColunasEmpilhadas({ meses, materiais, cores }) {
                   <rect key={s.m} x={cx - barra / 2} y={s.y} width={barra} height={s.h} fill={cores[s.m] || OUTROS} />
                 ),
               )}
-              {mes.kg > 0 && (
-                <text x={cx} y={y(mes.kg) - 5} textAnchor="middle" className="valor-topo">
-                  {nf(mes.kg, mes.kg < 10 ? 1 : 0)}
-                </text>
-              )}
-              <text x={cx} y={altura - 8} textAnchor="middle" className="eixo">
-                {mes.rotulo}
-              </text>
             </g>
           );
         })}
+        {/* Rótulos (valor no topo e mês) numa camada à parte: as colunas focáveis só têm formas. */}
+        <g aria-hidden="true">
+          {meses.map((mes, k) => {
+            const cx = margem.esq + banda * k + banda / 2;
+            return (
+              <g key={mes.chave}>
+                {mes.kg > 0 && (
+                  <text x={cx} y={y(mes.kg) - 5} textAnchor="middle" className="valor-topo">
+                    {nf(mes.kg, mes.kg < 10 ? 1 : 0)}
+                  </text>
+                )}
+                <text x={cx} y={altura - 8} textAnchor="middle" className="eixo">
+                  {mes.rotulo}
+                </text>
+              </g>
+            );
+          })}
+        </g>
       </svg>
       {tip && (
         <div
