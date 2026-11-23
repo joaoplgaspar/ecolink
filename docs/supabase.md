@@ -32,7 +32,78 @@ Tudo isso é provado por **61 testes pgTAP** (`supabase/tests/`), que entram com
 
 ---
 
-## Rodar com o Supabase local (recomendado para desenvolver)
+## Passo a passo SEM Docker (projeto na nuvem) — o caminho para a banca
+
+Só precisa de navegador, Node.js e uma conta gratuita no [supabase.com](https://supabase.com). Nada de Docker nem de Supabase CLI.
+
+### 1. Criar o banco (uma vez, uns 10 minutos)
+
+1. Em [supabase.com](https://supabase.com) → **New project**. Região **South America (São Paulo)**. Guarde a senha do banco (não vai para o app).
+2. No projeto, abra **SQL Editor → New query**, cole **todo** o conteúdo de [`supabase/painel/1-instalar.sql`](../supabase/painel/1-instalar.sql) e clique em **Run**. Isso cria as tabelas, a segurança (RLS) e as funções. Rode **uma vez só**.
+3. Nova query com **todo** o [`supabase/painel/2-dados-demo.sql`](../supabase/painel/2-dados-demo.sql) → **Run**. Cria as contas de demonstração (senha `senha123`), os pontos e as entregas.
+4. **Authentication → Sign In / Providers → Email**: desligue **Confirm email** (senão quem se cadastrar na hora da apresentação precisa confirmar pelo e-mail).
+5. **Integrations → Cron**: confira se existe o job `ecolink-prazos` (o relógio das entregas). Se não existir, ative o Cron ali e rode de novo só o último bloco `do $$ … $$` de `1-instalar.sql`.
+6. **Project Settings → API Keys**: copie a **Project URL** e a chave **publishable** (ou **anon**). **Não** copie a `secret`/`service_role`.
+
+> **Restaurar dados**: rode `2-dados-demo.sql` de novo quando quiser. Ele apaga tudo e recria a demonstração com as datas relativas ao dia — rode **na manhã da apresentação** para a entrega do Diego ser "hoje".
+>
+> Projetos gratuitos **pausam depois de 7 dias sem uso**: abra o painel um dia antes da banca e, se estiver pausado, clique em **Restore**.
+
+### 2a. Rodar o app no seu computador (só Node)
+
+Na pasta do projeto, crie o arquivo `.env.supabase.local` (copie de `.env.supabase.local.example`):
+
+```
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
+```
+
+```bash
+npm install
+```
+
+```bash
+npm run dev:supabase
+```
+
+Abra http://localhost:5173. Para mostrar os dois lados, use duas janelas (ou uma anônima): a cidadã numa, o ponto na outra — agora cada uma pode estar até num aparelho diferente.
+
+### 2b. Ou publicar o site com link (Vercel, grátis)
+
+1. Em [vercel.com](https://vercel.com), **Add New → Project** e importe o repositório do GitHub (escolha a branch com o código).
+2. Em **Environment Variables**, adicione:
+   - `VITE_FONTE_DADOS` = `supabase`
+   - `VITE_SUPABASE_URL` = a Project URL
+   - `VITE_SUPABASE_ANON_KEY` = a chave publishable/anon
+3. **Deploy**. O `vercel.json` já cuida das rotas do app. (Na Netlify também funciona: o `public/_redirects` faz o mesmo papel.)
+4. No Supabase, **Authentication → URL Configuration → Site URL**: coloque o endereço que a Vercel gerou.
+
+Sem as variáveis, o mesmo projeto publica o **modo local** (dados no navegador) — útil como plano B.
+
+### 3. Provar a segurança sem Docker
+
+Os testes do banco rodam no **GitHub Actions** (que tem Docker): os jobs `banco` (61 testes pgTAP) e `e2e-supabase` (a jornada no navegador contra o Supabase) aparecem verdes num pull request. Na banca, dá para mostrar a aba **Checks** do PR e abrir `supabase/tests/01_seguranca_e_jornada.test.sql` para ler os casos ("Ana NÃO lança EcoPontos no próprio extrato", "ninguém opera a PRÓPRIA entrega"…).
+
+Ao vivo, no **SQL Editor**, dá para mostrar a RLS funcionando, entrando como a Ana. Primeiro, o que ela consegue ver (com os dados de demonstração: **12** das 63 entregas e os 10 lançamentos do extrato dela). O bloco roda inteiro numa transação só; a troca de papel não fica valendo depois:
+
+```sql
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select count(*) as entregas_que_a_ana_ve, (select count(*) from public.extrato) as lancamentos_dela
+from public.coletas;
+```
+
+Depois, a Ana tentando se dar 9.999 EcoPontos direto no banco: **`permission denied for table extrato`**.
+
+```sql
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+insert into public.extrato (usuario_id, tipo, valor) values ('00000000-0000-4000-8000-000000000001', 'bonus', 9999);
+```
+
+---
+
+## Rodar com o Supabase local (opcional, precisa de Docker)
 
 Pré-requisitos: **Docker** e o **Supabase CLI** (`npm i -g supabase` ou `brew install supabase/tap/supabase`).
 
@@ -50,51 +121,16 @@ Crie `.env.supabase.local` a partir de `.env.supabase.local.example` e cole a ch
 npm run dev:supabase    # http://localhost:5173, falando com o Supabase local
 ```
 
-As contas de demonstração são as mesmas do modo local (senha `senha123`), geradas do mesmo seed.
-
 | Comando                  | O que faz                                                                     |
 | ------------------------ | ----------------------------------------------------------------------------- |
 | `supabase db reset`      | recria o banco do zero (migrações + `supabase/seed.sql`) — "restaurar dados"  |
 | `supabase test db`       | roda os testes pgTAP de `supabase/tests`                                      |
 | `npm run test:banco`     | os mesmos testes, sem o CLI (só Docker): sobe um Postgres do Supabase e testa |
 | `npm run e2e:supabase`   | a jornada no navegador contra o Supabase (precisa das variáveis acima)        |
-| `npm run seed:supabase`  | gera de novo `supabase/seed.sql` a partir de `src/data/seed.js`               |
+| `npm run seed:supabase`  | gera de novo `supabase/seed.sql` e `supabase/painel/*.sql`                    |
 | `npm run build:supabase` | build de produção do modo Supabase em `dist-supabase/`                        |
 
-> O seed tem datas **relativas ao dia em que roda**: depois de alguns dias, `supabase db reset` deixa a demonstração "fresca" de novo (a entrega do Diego volta a ser hoje).
-
-## Publicar num projeto Supabase (nuvem)
-
-1. Crie um projeto em [supabase.com](https://supabase.com) (região São Paulo).
-2. Ligue o repositório ao projeto e envie as migrações:
-
-   ```bash
-   supabase login
-   ```
-
-   ```bash
-   supabase link --project-ref <id-do-projeto>
-   ```
-
-   ```bash
-   supabase db push
-   ```
-
-3. **Dados de demonstração** (opcional — só num projeto de demonstração, nunca em produção, porque as contas têm senha conhecida):
-
-   ```bash
-   supabase db push --include-seed
-   ```
-
-4. No painel do projeto:
-   - **Integrations → Cron**: confira o job `ecolink-prazos` (a migração ativa o `pg_cron` e agenda o relógio das entregas sozinha);
-   - **Authentication → URL Configuration**: coloque a URL onde o app vai ficar;
-   - **Authentication → Email Templates → Reset password**: use `{{ .Token }}` no corpo, porque o app pede o **código** de 6 dígitos (como no modo local).
-5. Na hospedagem do front end (Vercel, Netlify…), defina `VITE_FONTE_DADOS=supabase`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (a chave **pública**) e rode `npm run build`.
-
-**Nunca** coloque a `service_role` (ou "secret key") no front end, num `.env` versionado ou no CI do app: ela ignora a RLS.
-
----
+Com o CLI também dá para enviar as migrações a um projeto na nuvem (`supabase link` + `supabase db push`), no lugar de colar os arquivos no SQL Editor.
 
 ## O que já está no Supabase (e o que vem depois)
 

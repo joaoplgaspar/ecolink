@@ -5,7 +5,7 @@
 //
 // As datas saem RELATIVAS ao dia em que o seed roda (hoje_local() + N dias,
 // now() + N minutos): o banco nunca fica com a demo "velha".
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { makeSeed } from '../src/data/seed.js';
 import { isoDia } from '../src/utils/datas.js';
 import { RECOMPENSAS } from '../src/data/recompensas.js';
@@ -116,4 +116,43 @@ sql('end $$;');
 sql('commit;');
 
 writeFileSync(new URL('../supabase/seed.sql', import.meta.url), `${out.join('\n')}\n`);
-console.log(`supabase/seed.sql: ${s.usuarios.length} contas, ${s.pontos.length} pontos, ${s.coletas.length} entregas.`);
+
+// ---------------------------------------------------------------------------
+// Versão "sem Docker": dois arquivos para colar no SQL Editor do painel do Supabase.
+const PAINEL = new URL('../supabase/painel/', import.meta.url);
+mkdirSync(PAINEL, { recursive: true });
+const pastaMigracoes = new URL('../supabase/migrations/', import.meta.url);
+const migracoes = readdirSync(pastaMigracoes)
+  .filter((f) => f.endsWith('.sql'))
+  .sort()
+  .map((f) => `-- =================== ${f} ===================\n${readFileSync(new URL(f, pastaMigracoes), 'utf8')}`);
+writeFileSync(
+  new URL('1-instalar.sql', PAINEL),
+  [
+    '-- GERADO por scripts/gerar-seed-supabase.mjs: todas as migrações de supabase/migrations, em ordem.',
+    '-- Cole no SQL Editor de um projeto Supabase NOVO e clique em Run (uma vez só).',
+    '',
+    ...migracoes,
+  ].join('\n'),
+);
+writeFileSync(
+  new URL('2-dados-demo.sql', PAINEL),
+  [
+    '-- GERADO por scripts/gerar-seed-supabase.mjs: APAGA todos os dados e contas do projeto e recria a',
+    '-- demonstração (mesmo seed do modo local). Use SÓ num projeto de demonstração.',
+    '-- Pode rodar de novo quando quiser "restaurar dados" (ex.: na manhã da apresentação: as datas',
+    '-- são relativas ao dia em que roda, então a entrega do Diego volta a ser HOJE).',
+    'begin;',
+    'truncate public.auditoria, public.notificacoes, public.avaliacoes, public.resgates, public.extrato,',
+    '  public.coleta_eventos, public.coleta_codigos, public.coletas, public.membros, public.pontos,',
+    '  public.organizacoes, public.recompensas restart identity cascade;',
+    'delete from auth.users; -- leva junto perfis e identidades',
+    'commit;',
+    '',
+    out.join('\n'),
+    '',
+  ].join('\n'),
+);
+console.log(
+  `supabase/seed.sql e supabase/painel/: ${s.usuarios.length} contas, ${s.pontos.length} pontos, ${s.coletas.length} entregas.`,
+);

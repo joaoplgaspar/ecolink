@@ -15,10 +15,14 @@ insert into public.materiais (slug, rotulo, fator) values
 on conflict (slug) do update set rotulo = excluded.rotulo, fator = excluded.fator;
 
 -- Relógio: expira solicitações e registra faltas a cada minuto (pg_cron).
+-- Sem pg_cron (ou sem permissão para ativá-lo), a instalação segue: os prazos só
+-- deixam de correr sozinhos até ele ser ativado (Integrations → Cron no painel).
 do $$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
     create extension if not exists pg_cron;
     perform cron.schedule('ecolink-prazos', '* * * * *', 'select public.processar_prazos()');
   end if;
+exception when others then
+  raise notice 'pg_cron não foi ativado (%). Ative em Integrations → Cron e rode este bloco de novo.', sqlerrm;
 end $$;
