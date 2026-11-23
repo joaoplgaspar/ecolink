@@ -92,6 +92,7 @@ export function reputacaoCidadao({
   avaliacoesRecebidas = [],
   agora = new Date(),
   penalidades = 0,
+  detalhePenalidades = '',
 }) {
   // Comparecimento: cada FALTA pesa o dobro de uma entrega (ocupou a vaga de
   // outra pessoa e o tempo da equipe); cancelamento em cima da hora pesa meia.
@@ -112,7 +113,9 @@ export function reputacaoCidadao({
   const precisao = bayes(somaPrecisao, pesados.length, 0.8, 3);
 
   // Conformidade: itens aprovados na conferência.
-  const conferidos = coletas.filter((c) => ['concluida', 'rejeitada'].includes(c.status)).flatMap((c) => c.itens || []);
+  const conferidos = coletas
+    .filter((c) => ['concluida', 'rejeitada', 'contestada', 'ajustada'].includes(c.status))
+    .flatMap((c) => c.itens || []);
   const aprovados = conferidos.filter((i) => i.status === 'aprovado').length;
   const conformidade = bayes(aprovados, conferidos.length, 0.9, 3);
 
@@ -122,7 +125,7 @@ export function reputacaoCidadao({
   );
 
   const perfil = (usuario.telefone ? 0.5 : 0) + (usuario.cidade ? 0.5 : 0);
-  const concluidas = coletas.filter((c) => c.status === 'concluida').length;
+  const concluidas = coletas.filter((c) => ['concluida', 'contestada', 'ajustada'].includes(c.status)).length;
   const diasDeConta = Math.max(0, (agora.getTime() - Date.parse(usuario.criado_em)) / DIA);
   const historico = 0.5 * Math.min(1, concluidas / 10) + 0.5 * Math.min(1, diasDeConta / 90);
 
@@ -216,7 +219,20 @@ export function reputacaoCidadao({
   if (faixa.chave === 'exemplar') selos.push('Reciclador exemplar');
   if (relevantes.length >= 5 && faltas === 0) selos.push('Sempre comparece');
 
-  return { score, faixa, novo, componentes, restricoes, dicas, selos, limitado_por_faltas: limitadoPorFaltas };
+  if (penalidades > 0)
+    dicas.push('Denúncias procedentes pesam por 6 meses. Siga as regras dos pontos para não perder mais pontos.');
+
+  return {
+    score,
+    faixa,
+    novo,
+    componentes,
+    restricoes,
+    dicas,
+    selos,
+    limitado_por_faltas: limitadoPorFaltas,
+    penalidade: penalidades > 0 ? { pontos: penalidades, detalhe: detalhePenalidades } : null,
+  };
 }
 
 /* ================================= PONTO ================================= */
@@ -244,7 +260,9 @@ export function reputacaoPonto({ organizacao, coletas = [], avaliacoes = [], eve
   const confirmadas = coletas.filter(
     (c) =>
       c.confirmada_em ||
-      ['confirmada', 'em_conferencia', 'concluida', 'rejeitada', 'nao_compareceu'].includes(c.status),
+      ['confirmada', 'em_conferencia', 'concluida', 'rejeitada', 'nao_compareceu', 'contestada', 'ajustada'].includes(
+        c.status,
+      ),
   );
   const canceladasPeloPonto = coletas.filter((c) => c.status === 'cancelada' && c.cancelada_por === 'ponto').length;
   const cumprimento = bayes(confirmadas.length - canceladasPeloPonto, confirmadas.length, 0.95, 5);

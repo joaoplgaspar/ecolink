@@ -94,7 +94,7 @@ export function impactoDe(totalKg) {
  * kg e impacto vêm só do que o ponto PESOU e APROVOU.
  */
 export function calcularEstatisticas({ coletas = [], extrato = [] }) {
-  const concluidas = coletas.filter((c) => c.status === 'concluida' || c.status === 'ajustada');
+  const concluidas = coletas.filter((c) => ['concluida', 'contestada', 'ajustada'].includes(c.status));
   const ativas = coletas.filter((c) => STATUS_ATIVOS.includes(c.status));
   const totalKg = arred(concluidas.reduce((t, c) => t + kgRecebidos(c), 0));
   const materiaisDistintos = new Set(concluidas.flatMap((c) => itensAprovados(c).map((i) => i.material))).size;

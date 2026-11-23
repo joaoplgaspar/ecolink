@@ -106,6 +106,15 @@ const REGRAS = {
   'usuario.alterar_status': (a, r) => comoAdmin(a) && r.id !== a.id, // ninguém suspende a própria conta
   'auditoria.ver': (a) => comoPlataforma(a),
 
+  // Denúncias e moderação (Fase 5)
+  'denuncia.criar': (a) => comoCidadao(a) || comoParceiro(a),
+  'denuncia.moderar': (a) => comoPlataforma(a),
+  'sancao.banir': (a) => comoAdmin(a), // a sanção máxima é decisão da administração
+  'sancao.revogar': (a) => comoAdmin(a),
+  'contestacao.decidir': (a) => comoPlataforma(a),
+  'bloqueio.gerenciar': (a) => comoCidadao(a) || comoParceiro(a),
+  'admin.visao_geral': (a) => comoPlataforma(a),
+
   // Qualquer pessoa logada
   'ranking.ver': () => true,
   'conta.gerenciar_propria': () => true,

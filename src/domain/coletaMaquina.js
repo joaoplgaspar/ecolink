@@ -33,7 +33,13 @@ export const TRANSICOES = {
   aceitar: { de: ['solicitada'], para: 'confirmada', atores: ['ponto', 'sistema'], rotulo: 'aceitou a solicitação' },
   recusar: { de: ['solicitada'], para: 'recusada', atores: ['ponto'], motivo: true, rotulo: 'recusou a solicitação' },
   expirar: { de: ['solicitada'], para: 'expirada', atores: ['sistema'], rotulo: 'a solicitação expirou sem resposta' },
-  cancelar: { de: ['solicitada', 'confirmada'], para: 'cancelada', atores: ['cidadao', 'ponto'], rotulo: 'cancelou' },
+  // A moderação cancela as entregas em aberto quando suspende um ponto (Fase 5).
+  cancelar: {
+    de: ['solicitada', 'confirmada'],
+    para: 'cancelada',
+    atores: ['cidadao', 'ponto', 'moderacao'],
+    rotulo: 'cancelou',
+  },
   checkin: {
     de: ['confirmada'],
     para: 'em_conferencia',
