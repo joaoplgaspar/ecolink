@@ -25,12 +25,17 @@ import {
   Repeat,
   ClipboardCheck,
   ShieldCheck,
+  Flag,
+  LayoutDashboard,
+  ShieldAlert,
+  Scale,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { estatisticas } from '@/data/repos';
 import NotificationBell from '@/components/NotificationBell.jsx';
 import InstallPrompt from '@/components/InstallPrompt.jsx';
+import FaixaSancao from '@/components/FaixaSancao.jsx';
 import { Avatar, MensagemErro } from '@/components/ui.jsx';
 import { pageVariants } from '@/utils/anim';
 import { PERFIS } from '@/domain/permissoes';
@@ -50,18 +55,26 @@ const MENUS = {
       { to: '/educacao', icon: GraduationCap, label: 'Educação' },
       { to: '/ranking', icon: Trophy, label: 'Ranking' },
       { to: '/reputacao', icon: ShieldCheck, label: 'Reputação' },
+      { to: '/denuncias', icon: Flag, label: 'Denúncias' },
       PERFIL_ITEM,
     ],
   },
   parceiro: {
-    inferior: 2,
-    itens: [{ to: '/parceiro', icon: Store, label: 'Meus pontos', end: true }, PERFIL_ITEM],
+    inferior: 3,
+    itens: [
+      { to: '/parceiro', icon: Store, label: 'Meus pontos', end: true },
+      { to: '/denuncias', icon: Flag, label: 'Denúncias' },
+      PERFIL_ITEM,
+    ],
   },
   admin: {
     inferior: 4,
     itens: [
-      { to: '/admin', icon: Users, label: 'Usuários', end: true },
+      { to: '/admin', icon: LayoutDashboard, label: 'Visão geral', end: true },
+      { to: '/admin/denuncias', icon: ShieldAlert, label: 'Denúncias' },
+      { to: '/admin/contestacoes', icon: Scale, label: 'Contestações' },
       { to: '/admin/aprovacoes', icon: ClipboardCheck, label: 'Aprovações' },
+      { to: '/admin/usuarios', icon: Users, label: 'Usuários' },
       { to: '/admin/auditoria', icon: ScrollText, label: 'Auditoria' },
       PERFIL_ITEM,
     ],
@@ -196,6 +209,7 @@ export default function Layout() {
       </aside>
 
       <main className="content">
+        <FaixaSancao perfil={perfil} usuarioId={user.id} />
         <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo({ top: 0, left: 0 })}>
           <motion.div key={location.pathname} variants={pageVariants} initial="initial" animate="animate" exit="exit">
             <FrozenOutlet />

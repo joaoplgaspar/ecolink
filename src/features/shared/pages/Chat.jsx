@@ -7,6 +7,7 @@ import { useMutation } from '@/hooks/useMutation';
 import { pontos, chat } from '@/data/repos';
 import { relativeTime } from '@/utils/format';
 import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import { BotaoDenunciar } from '@/components/Denunciar.jsx';
 
 export default function Chat() {
   const { pontoId } = useParams();
@@ -148,9 +149,23 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
         ) : (
           <>
             {mensagens.map((m) => (
-              <div key={m.id} className={`bubble ${m.de === 'eu' ? 'me' : 'them'}`}>
+              <div key={m.id} className={`bubble ${m.de === 'eu' ? 'me' : 'them'} ${m.removida ? 'removida' : ''}`}>
                 {m.texto}
-                <span className="when">{relativeTime(m.em)}</span>
+                <span className="when">
+                  {relativeTime(m.em)}
+                  {m.de !== 'eu' && !m.removida && (
+                    <BotaoDenunciar
+                      compacto
+                      rotulo="Denunciar"
+                      className="denunciar-msg"
+                      alvo={{
+                        tipo: 'mensagem',
+                        id: m.id,
+                        rotulo: `“${m.texto.slice(0, 60)}${m.texto.length > 60 ? '…' : ''}”`,
+                      }}
+                    />
+                  )}
+                </span>
               </div>
             ))}
             {pendente && (

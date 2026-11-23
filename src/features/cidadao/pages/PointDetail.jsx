@@ -11,10 +11,14 @@ import {
   Star,
   ShieldCheck,
   Timer,
+  Ban,
+  Loader2,
 } from 'lucide-react';
-import { pontos, avaliacoes, reputacao } from '@/data/repos';
+import { pontos, avaliacoes, reputacao, bloqueios } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
-import { EmptyState, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import { useMutation } from '@/hooks/useMutation';
+import { BotaoDenunciar } from '@/components/Denunciar.jsx';
+import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
 import PontoInfo from '@/components/PontoInfo.jsx';
 import StarRating from '@/components/StarRating.jsx';
 import MapView from '@/components/MapView.jsx';
@@ -30,7 +34,10 @@ import { stagger, item } from '@/utils/anim';
 
 export default function PointDetail() {
   const { id } = useParams();
-  const q = useQuery(() => Promise.all([pontos.obter(id), avaliacoes.listar(id), reputacao.doPonto(id)]), [id]);
+  const q = useQuery(
+    () => Promise.all([pontos.obter(id), avaliacoes.listar(id), reputacao.doPonto(id), bloqueios.listar()]),
+    [id],
+  );
 
   const voltar = (
     <Link to="/pontos" className="btn btn-sm btn-ghost mb-2">
@@ -62,7 +69,8 @@ export default function PointDetail() {
       </>
     );
 
-  const [ponto, lista, rep] = q.data;
+  const [ponto, lista, rep, meusBloqueios] = q.data;
+  const bloqueio = meusBloqueios.find((b) => b.alvo_tipo === 'ponto' && b.alvo_id === ponto.id);
   const resumo = ponto.avaliacao;
 
   return (
@@ -87,7 +95,7 @@ export default function PointDetail() {
               </div>
             )}
             <div className="row wrap mt-3" style={{ gap: 10 }}>
-              {ponto.ativo && (
+              {ponto.ativo && !bloqueio && (
                 <Link to={`/agendar/${ponto.id}`} className="btn btn-primary">
                   <CalendarPlus size={18} /> Agendar entrega
                 </Link>
@@ -98,6 +106,16 @@ export default function PointDetail() {
               <a className="btn btn-ghost" href={mapaExternoUrl(ponto)} target="_blank" rel="noreferrer">
                 <ExternalLink size={18} /> Abrir no mapa
               </a>
+            </div>
+            <div className="row wrap mt-2" style={{ gap: 4 }}>
+              <BotaoDenunciar
+                compacto
+                rotulo="Denunciar ponto"
+                className="perigo"
+                alvo={{ tipo: 'ponto', id: ponto.id, rotulo: ponto.nome }}
+                oferecerBloqueio={!bloqueio}
+              />
+              <Bloqueio pontoId={ponto.id} bloqueio={bloqueio} />
             </div>
           </>
         }
@@ -160,7 +178,17 @@ export default function PointDetail() {
             <motion.div className="col" style={{ gap: 16 }} variants={stagger} initial="initial" animate="animate">
               {lista.map((a) => (
                 <motion.div key={a.id} variants={item}>
-                  <CartaoAvaliacao avaliacao={a} nomePonto={ponto.nome} />
+                  <CartaoAvaliacao
+                    avaliacao={a}
+                    nomePonto={ponto.nome}
+                    rodape={
+                      <BotaoDenunciar
+                        compacto
+                        rotulo="Denunciar"
+                        alvo={{ tipo: 'avaliacao', id: a.id, rotulo: `Avaliação de ${a.usuario_nome}` }}
+                      />
+                    }
+                  />
                 </motion.div>
               ))}
             </motion.div>
@@ -168,5 +196,30 @@ export default function PointDetail() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Bloquear: o ponto some das buscas da pessoa e ela não agenda ali (até desbloquear). */
+function Bloqueio({ pontoId, bloqueio }) {
+  const acao = useMutation(() =>
+    bloqueio ? bloqueios.desbloquear(bloqueio.id) : bloqueios.bloquear({ alvo_tipo: 'ponto', alvo_id: pontoId }),
+  );
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        disabled={acao.pending}
+        onClick={() => {
+          if (bloqueio || window.confirm('Bloquear este ponto? Ele some das suas buscas até você desbloquear.'))
+            acao.mutate();
+        }}
+      >
+        {acao.pending ? <Loader2 size={14} className="spin" /> : <Ban size={14} />}{' '}
+        {bloqueio ? 'Desbloquear ponto' : 'Bloquear ponto'}
+      </button>
+      {bloqueio && <span className="small muted">Você bloqueou este ponto: ele não aparece nas suas buscas.</span>}
+      <MensagemErro erro={acao.error} />
+    </>
   );
 }

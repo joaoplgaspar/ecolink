@@ -18,6 +18,8 @@ import {
   CircleHelp,
   Recycle,
   Star,
+  Ban,
+  ShieldAlert,
 } from 'lucide-react';
 import { parceiro } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
@@ -32,6 +34,8 @@ import { MaterialIcon } from '@/components/icons.jsx';
 import { StatusColeta, LinhaDoTempo, Comprovante, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
 import { ChipReputacao, FormAvaliacao } from '@/components/Reputacao.jsx';
 import { TAGS_CIDADAO } from '@/domain/avaliacoes';
+import { BotaoDenunciar } from '@/components/Denunciar.jsx';
+import { bloqueios } from '@/data/repos';
 
 export default function ConferenciaColeta() {
   const { id } = useParams();
@@ -90,6 +94,7 @@ export default function ConferenciaColeta() {
         </div>
         <div className="col" style={{ gap: 16 }}>
           {(c.pode_avaliar_cidadao || c.avaliado_pelo_ponto) && <AvaliarCidadao coleta={c} />}
+          <ProblemasComEntrega coleta={c} />
           <div className="card card-pad">
             <h3 className="mb-2">Linha do tempo</h3>
             <LinhaDoTempo eventos={c.eventos} />
@@ -377,6 +382,59 @@ function AvaliarCidadao({ coleta }) {
           erro={avaliar.error}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Problemas com o cidadão: denunciar (vai para a moderação, sem que ele saiba
+ * quem denunciou) ou bloquear neste ponto (efeito imediato, só aqui).
+ */
+function ProblemasComEntrega({ coleta }) {
+  const [feito, setFeito] = useState(false);
+  const bloquear = useMutation(() => bloqueios.bloquear({ alvo_tipo: 'usuario', coleta_id: coleta.id }));
+  return (
+    <div className="card card-pad col" style={{ gap: 8 }}>
+      <h3 className="row" style={{ gap: 8 }}>
+        <ShieldAlert size={18} /> Problemas com esta entrega?
+      </h3>
+      <p className="small muted">
+        Material perigoso, ofensas ou tentativa de fraude? Denuncie para a moderação. Bloquear impede novos agendamentos
+        de {coleta.cidadao} neste ponto, sem avisar o motivo.
+      </p>
+      <div className="row wrap" style={{ gap: 6 }}>
+        <BotaoDenunciar
+          compacto
+          rotulo={`Denunciar ${coleta.cidadao}`}
+          className="perigo"
+          alvo={{
+            tipo: 'cidadao',
+            id: null,
+            coleta_id: coleta.id,
+            rotulo: `${coleta.cidadao} (entrega ${coleta.codigo})`,
+          }}
+        />
+        {feito ? (
+          <span className="small row" style={{ gap: 6, color: 'var(--green-700)', fontWeight: 600 }}>
+            <CheckCircle2 size={15} /> Bloqueado neste ponto
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={bloquear.pending}
+            onClick={async () => {
+              if (!window.confirm(`Bloquear ${coleta.cidadao} neste ponto? A pessoa não poderá mais agendar aqui.`))
+                return;
+              const r = await bloquear.mutate();
+              if (r.ok) setFeito(true);
+            }}
+          >
+            <Ban size={14} /> Bloquear neste ponto
+          </button>
+        )}
+      </div>
+      <MensagemErro erro={bloquear.error} />
     </div>
   );
 }

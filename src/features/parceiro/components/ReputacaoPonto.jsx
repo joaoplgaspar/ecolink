@@ -15,6 +15,7 @@ import {
   CartaoAvaliacao,
   ComoFunciona,
 } from '@/components/Reputacao.jsx';
+import { BotaoDenunciar } from '@/components/Denunciar.jsx';
 
 export default function ReputacaoPonto({ ponto }) {
   const q = useQuery(
@@ -98,7 +99,21 @@ export default function ReputacaoPonto({ ponto }) {
         ) : (
           <div className="col" style={{ gap: 18 }}>
             {visiveis.map((a) => (
-              <CartaoAvaliacao key={a.id} avaliacao={a} nomePonto={ponto.nome} rodape={<Responder avaliacao={a} />} />
+              <CartaoAvaliacao
+                key={a.id}
+                avaliacao={a}
+                nomePonto={ponto.nome}
+                rodape={
+                  <div className="row wrap" style={{ gap: 4 }}>
+                    <Responder avaliacao={a} />
+                    <BotaoDenunciar
+                      compacto
+                      rotulo="Denunciar"
+                      alvo={{ tipo: 'avaliacao', id: a.id, rotulo: `Avaliação de ${a.usuario_nome}` }}
+                    />
+                  </div>
+                }
+              />
             ))}
           </div>
         )}

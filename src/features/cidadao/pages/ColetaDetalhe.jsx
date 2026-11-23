@@ -17,6 +17,7 @@ import {
   Star,
   ShieldCheck,
   Pencil,
+  Scale,
 } from 'lucide-react';
 import { coletas, avaliacoes } from '@/data/repos';
 import { TAGS_PONTO, PRAZO_AVALIAR_DIAS } from '@/domain/avaliacoes';
@@ -32,6 +33,8 @@ import { StatusColeta, LinhaDoTempo, Comprovante, quandoTexto } from '@/componen
 import StarRating from '@/components/StarRating.jsx';
 import { FormAvaliacao, CartaoAvaliacao, Destaques } from '@/components/Reputacao.jsx';
 import { formatDate } from '@/utils/format';
+import { BotaoDenunciar } from '@/components/Denunciar.jsx';
+import { MOTIVOS_CONTESTACAO, PRAZO_CONTESTAR_DIAS } from '@/domain/denuncias';
 
 export default function ColetaDetalhe() {
   const { id } = useParams();
@@ -176,12 +179,24 @@ export default function ColetaDetalhe() {
                 <Link to={`/chat/${c.ponto.id}`} className="btn btn-sm btn-ghost">
                   <MessageCircle size={14} /> Falar com o ponto
                 </Link>
+                <BotaoDenunciar
+                  compacto
+                  rotulo="Denunciar"
+                  className="perigo"
+                  alvo={{
+                    tipo: 'ponto',
+                    id: c.ponto.id,
+                    coleta_id: c.id,
+                    rotulo: `${c.ponto.nome} (entrega ${c.codigo})`,
+                  }}
+                />
               </div>
             </div>
           )}
         </div>
 
         <div className="col" style={{ gap: 16 }}>
+          {(c.pode_contestar || c.contestacao) && <Contestacao coleta={c} />}
           {['concluida', 'rejeitada'].includes(c.status) && <AvaliacoesDaEntrega coleta={c} />}
 
           <div className="card card-pad">
@@ -303,6 +318,110 @@ function AvaliacoesDaEntrega({ coleta }) {
           Ver minha reputação →
         </Link>
       </div>
+    </div>
+  );
+}
+
+/** "A pesagem não bateu?": contestar uma vez, em até 7 dias; a moderação mantém ou ajusta. */
+function Contestacao({ coleta }) {
+  const [aberto, setAberto] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [detalhe, setDetalhe] = useState('');
+  const contestar = useMutation(() => coletas.contestar(coleta.id, { motivo, detalhe }));
+  const ct = coleta.contestacao;
+
+  if (ct) {
+    return (
+      <div className="card card-pad col" style={{ gap: 8 }}>
+        <h3 className="row" style={{ gap: 8 }}>
+          <Scale size={18} /> Contestação da pesagem
+        </h3>
+        <p className="small">
+          <strong>{ct.motivo}.</strong> {ct.detalhe}
+        </p>
+        {!ct.resultado && (
+          <div className="aviso info">
+            <Clock3 size={16} style={{ flex: 'none' }} /> Em análise pela moderação desde {formatDate(ct.em)}. Você será
+            avisado da decisão.
+          </div>
+        )}
+        {ct.resultado === 'ajustada' && (
+          <div className="aviso info" role="status">
+            <Scale size={16} style={{ flex: 'none' }} /> A moderação ajustou a pesagem
+            {ct.diferenca ? `: ${ct.diferenca > 0 ? '+' : ''}${ct.diferenca} EcoPontos no seu extrato.` : '.'}
+          </div>
+        )}
+        {ct.resultado === 'mantida' && (
+          <p className="small muted">A moderação conferiu e manteve o resultado da pesagem.</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="card card-pad col" style={{ gap: 10 }}>
+      <h3 className="row" style={{ gap: 8 }}>
+        <Scale size={18} /> A pesagem não bateu?
+      </h3>
+      {!aberto ? (
+        <>
+          <p className="small muted">
+            Você pode contestar uma vez, em até {PRAZO_CONTESTAR_DIAS} dias. Uma pessoa da moderação compara o
+            declarado, o pesado e o histórico de quem pesou.
+          </p>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setAberto(true)}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Contestar pesagem
+          </button>
+        </>
+      ) : (
+        <form
+          className="col"
+          style={{ gap: 10 }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await contestar.mutate();
+          }}
+        >
+          <fieldset className="campo-opcoes">
+            <legend className="small" style={{ fontWeight: 700 }}>
+              O que aconteceu?
+            </legend>
+            {MOTIVOS_CONTESTACAO.map((m) => (
+              <label key={m} className={`opcao ${motivo === m ? 'ativa' : ''}`}>
+                <input type="radio" name="motivo-contestacao" checked={motivo === m} onChange={() => setMotivo(m)} />
+                <span>{m}</span>
+              </label>
+            ))}
+          </fieldset>
+          <textarea
+            className="textarea"
+            rows={3}
+            maxLength={1000}
+            value={detalhe}
+            onChange={(e) => setDetalhe(e.target.value)}
+            placeholder="Conte os detalhes (ex.: quanto pesou em casa, o que viu no balcão)."
+            aria-label="Detalhes da contestação"
+          />
+          <MensagemErro erro={contestar.error} />
+          <div className="row" style={{ gap: 8 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              type="submit"
+              disabled={!motivo || detalhe.trim().length < 10 || contestar.pending}
+            >
+              {contestar.pending && <Loader2 size={14} className="spin" />} Enviar contestação
+            </button>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setAberto(false)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

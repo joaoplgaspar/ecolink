@@ -23,7 +23,7 @@ import {
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, auth, usuarios, coletas, reputacao } from '@/data/repos';
+import { estatisticas, auth, usuarios, coletas, reputacao, bloqueios } from '@/data/repos';
 import { ChipReputacao } from '@/components/Reputacao.jsx';
 import QrCode from '@/components/QrCode.jsx';
 import { PAPEIS, PERFIS } from '@/domain/permissoes';
@@ -103,6 +103,7 @@ export default function Profile() {
         </div>
       )}
       <DadosConta />
+      {(perfil === 'cidadao' || perfil === 'parceiro') && <Bloqueios perfil={perfil} />}
       <Seguranca />
 
       <div className="row wrap" style={{ gap: 10 }}>
@@ -473,6 +474,43 @@ function CodigoPessoal() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Bloqueios feitos (cidadão: pontos; parceiro: cidadãos bloqueados nos seus pontos), com "desbloquear". */
+function Bloqueios({ perfil }) {
+  const q = useQuery(() => bloqueios.listar(), [perfil]);
+  const desfazer = useMutation((id) => bloqueios.desbloquear(id));
+  if (!q.data || q.data.length === 0) return null;
+  return (
+    <div className="card card-pad mb-3">
+      <h3 className="mb-1">Bloqueios</h3>
+      <p className="small muted mb-2">
+        {perfil === 'cidadao'
+          ? 'Pontos que você bloqueou não aparecem nas suas buscas.'
+          : 'Cidadãos bloqueados não conseguem agendar no ponto indicado.'}
+      </p>
+      <ul className="col" style={{ gap: 8, listStyle: 'none', padding: 0, margin: 0 }}>
+        {q.data.map((b) => (
+          <li key={b.id} className="row between wrap" style={{ gap: 8 }}>
+            <span className="small">
+              <strong>{b.rotulo}</strong>
+              {b.ponto_nome && <span className="muted"> · em {b.ponto_nome}</span>}
+              <span className="faint"> · desde {formatDate(b.em)}</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={desfazer.pending}
+              onClick={() => desfazer.mutate(b.id)}
+            >
+              Desbloquear
+            </button>
+          </li>
+        ))}
+      </ul>
+      <MensagemErro erro={desfazer.error} style={{ marginTop: 6 }} />
     </div>
   );
 }

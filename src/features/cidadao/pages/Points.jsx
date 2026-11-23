@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, LocateFixed, Map as MapIcon, List, MapPin, AlertCircle, Loader2 } from 'lucide-react';
-import { pontos } from '@/data/repos';
+import { pontos, bloqueios } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
 import { filtrarPontos, cidadesDe, materiaisDe } from '@/domain/pontos';
 import { statusFuncionamento } from '@/domain/horarios';
@@ -26,7 +26,15 @@ export default function Points() {
 
   // Busca todos os pontos uma vez e filtra aqui: os filtros respondem na hora,
   // sem nova "ida ao servidor" a cada clique. A regra de filtro é a mesma do repositório.
-  const q = useQuery(() => pontos.listar(), []);
+  // Pontos que a pessoa bloqueou não aparecem para ela (desbloqueio na página do ponto ou no perfil).
+  const q = useQuery(
+    () =>
+      Promise.all([pontos.listar(), bloqueios.listar().catch(() => [])]).then(([lista, bl]) => {
+        const ocultos = new Set(bl.filter((b) => b.alvo_tipo === 'ponto').map((b) => b.alvo_id));
+        return lista.filter((p) => !ocultos.has(p.id));
+      }),
+    [],
+  );
   const todos = useMemo(() => q.data || [], [q.data]);
   const cidades = useMemo(() => cidadesDe(todos), [todos]);
   const materiais = useMemo(() => materiaisDe(todos), [todos]);

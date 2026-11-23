@@ -97,10 +97,13 @@ function AceiteTermos() {
  * Só renderiza `children` no perfil indicado. Se a pessoa TEM o perfil mas está
  * em outro, explica e oferece a troca; se não tem, mostra "acesso negado" (403).
  */
+/** `perfil`: um perfil ou uma lista de perfis aceitos (o primeiro é o sugerido na troca). */
 export function RequirePerfil({ perfil, children }) {
   const { perfil: atual, perfis } = useAuth();
-  if (atual === perfil) return children;
-  return <AcessoNegado perfilNecessario={perfil} podeTrocar={perfis.includes(perfil)} />;
+  const aceitos = [].concat(perfil);
+  if (aceitos.includes(atual)) return children;
+  const sugerido = aceitos.find((p) => perfis.includes(p)) || aceitos[0];
+  return <AcessoNegado perfilNecessario={sugerido} podeTrocar={perfis.includes(sugerido)} />;
 }
 
 export function AcessoNegado({ perfilNecessario, podeTrocar }) {

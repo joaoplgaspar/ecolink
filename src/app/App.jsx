@@ -31,6 +31,11 @@ import MinhaReputacao from '@/features/cidadao/pages/MinhaReputacao.jsx';
 import Aprovacoes from '@/features/admin/pages/Aprovacoes.jsx';
 import Usuarios from '@/features/admin/pages/Usuarios.jsx';
 import Auditoria from '@/features/admin/pages/Auditoria.jsx';
+import VisaoGeral from '@/features/admin/pages/VisaoGeral.jsx';
+import FilaDenuncias from '@/features/admin/pages/FilaDenuncias.jsx';
+import CasoDenuncia from '@/features/admin/pages/CasoDenuncia.jsx';
+import Contestacoes from '@/features/admin/pages/Contestacoes.jsx';
+import MinhasDenuncias from '@/features/shared/pages/MinhasDenuncias.jsx';
 
 /** "/" leva cada perfil à sua página inicial. */
 function Inicio() {
@@ -65,6 +70,14 @@ export default function App() {
       >
         <Route path="/" element={<Inicio />} />
         <Route path="/perfil" element={<Profile />} />
+        <Route
+          path="/denuncias"
+          element={
+            <RequirePerfil perfil={['cidadao', 'parceiro']}>
+              <MinhasDenuncias />
+            </RequirePerfil>
+          }
+        />
 
         {/* Cidadão */}
         <Route path="/pontos" element={cidadao(<Points />)} />
@@ -86,7 +99,12 @@ export default function App() {
         <Route path="/parceiro/coletas/:id" element={parceiro(<ConferenciaColeta />)} />
 
         {/* Plataforma */}
-        <Route path="/admin" element={plataforma(<Usuarios />)} />
+        <Route path="/admin" element={plataforma(<VisaoGeral />)} />
+        <Route path="/admin/usuarios" element={plataforma(<Usuarios />)} />
+        <Route path="/admin/denuncias" element={plataforma(<FilaDenuncias />)} />
+        <Route path="/admin/denuncias/:id" element={plataforma(<CasoDenuncia />)} />
+        <Route path="/admin/contestacoes" element={plataforma(<Contestacoes />)} />
+        <Route path="/admin/contestacoes/:id" element={plataforma(<Contestacoes />)} />
         <Route path="/admin/aprovacoes" element={plataforma(<Aprovacoes />)} />
         <Route path="/admin/auditoria" element={plataforma(<Auditoria />)} />
       </Route>
