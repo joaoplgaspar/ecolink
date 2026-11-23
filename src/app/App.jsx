@@ -25,6 +25,8 @@ import PainelParceiro from '@/features/parceiro/pages/PainelParceiro.jsx';
 import SejaParceiro from '@/features/parceiro/pages/SejaParceiro.jsx';
 import CadastroOrganizacao from '@/features/parceiro/pages/CadastroOrganizacao.jsx';
 import AssistentePonto from '@/features/parceiro/pages/AssistentePonto.jsx';
+import ConferenciaColeta from '@/features/parceiro/pages/ConferenciaColeta.jsx';
+import ColetaDetalhe from '@/features/cidadao/pages/ColetaDetalhe.jsx';
 import Aprovacoes from '@/features/admin/pages/Aprovacoes.jsx';
 import Usuarios from '@/features/admin/pages/Usuarios.jsx';
 import Auditoria from '@/features/admin/pages/Auditoria.jsx';
@@ -68,6 +70,7 @@ export default function App() {
         <Route path="/pontos/:id" element={cidadao(<PointDetail />)} />
         <Route path="/agendar/:pontoId" element={cidadao(<ScheduleCollection />)} />
         <Route path="/coletas" element={cidadao(<MyCollections />)} />
+        <Route path="/coletas/:id" element={cidadao(<ColetaDetalhe />)} />
         <Route path="/chat" element={cidadao(<Chat />)} />
         <Route path="/chat/:pontoId" element={cidadao(<Chat />)} />
         <Route path="/loja" element={cidadao(<Rewards />)} />
@@ -78,6 +81,7 @@ export default function App() {
         <Route path="/parceiro" element={parceiro(<PainelParceiro />)} />
         <Route path="/parceiro/cadastro" element={parceiro(<CadastroOrganizacao />)} />
         <Route path="/parceiro/pontos/:id" element={parceiro(<AssistentePonto />)} />
+        <Route path="/parceiro/coletas/:id" element={parceiro(<ConferenciaColeta />)} />
 
         {/* Plataforma */}
         <Route path="/admin" element={plataforma(<Usuarios />)} />

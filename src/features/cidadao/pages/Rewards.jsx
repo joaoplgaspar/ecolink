@@ -16,11 +16,12 @@ import {
   Sprout,
   Coffee,
   Trash2,
+  ReceiptText,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, resgates } from '@/data/repos';
+import { estatisticas, resgates, extrato } from '@/data/repos';
 import { RECOMPENSAS, CATEGORIAS } from '@/data/recompensas';
 import { nf, formatDate } from '@/utils/format';
 import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
@@ -110,16 +111,21 @@ export default function Rewards() {
 
       <MensagemErro erro={resgate.error} style={{ marginBottom: 12 }} />
 
-      <div className="seg mb-3" style={{ maxWidth: 320 }}>
+      <div className="seg mb-3" style={{ maxWidth: 460 }}>
         <button className={view === 'loja' ? 'active' : ''} onClick={() => setView('loja')}>
           <Gift size={16} /> Catálogo
         </button>
         <button className={view === 'meus' ? 'active' : ''} onClick={() => setView('meus')}>
-          <Ticket size={16} /> Meus resgates ({meus.length})
+          <Ticket size={16} /> Resgates ({meus.length})
+        </button>
+        <button className={view === 'extrato' ? 'active' : ''} onClick={() => setView('extrato')}>
+          <ReceiptText size={16} /> Extrato
         </button>
       </div>
 
-      {view === 'loja' ? (
+      {view === 'extrato' ? (
+        <Extrato />
+      ) : view === 'loja' ? (
         <>
           <div className="row wrap mb-3" style={{ gap: 6 }}>
             <span className={`tag clickable ${categoria === '' ? 'active' : ''}`} onClick={() => setCategoria('')}>
@@ -223,6 +229,61 @@ export default function Rewards() {
         </Link>{' '}
         e ganhe mais EcoPontos.
       </p>
+    </div>
+  );
+}
+
+/** Extrato de EcoPontos: cada crédito e débito, com o saldo ao lado (livro-caixa). */
+function Extrato() {
+  const q = useQuery(() => extrato.meu(), []);
+  if (q.loading) return <Carregando linhas={4} altura={48} rotulo="Carregando extrato…" />;
+  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+  const { saldo, acumulado, lancamentos } = q.data;
+  return (
+    <div className="card card-pad">
+      <div className="row between wrap mb-2" style={{ gap: 10 }}>
+        <span className="small muted">
+          Saldo <strong style={{ color: 'var(--ink)' }}>{nf(saldo)}</strong> · Acumulado (nível){' '}
+          <strong style={{ color: 'var(--ink)' }}>{nf(acumulado)}</strong>
+        </span>
+        <span className="small faint">Lançamentos nunca são editados: correções viram novos lançamentos.</span>
+      </div>
+      {lancamentos.length === 0 ? (
+        <EmptyState icon={ReceiptText} title="Nenhum lançamento ainda" />
+      ) : (
+        <div className="tabela-wrap">
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th style={{ textAlign: 'right' }}>EcoPontos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lancamentos.map((l) => (
+                <tr key={l.id}>
+                  <td className="small">{formatDate(l.em)}</td>
+                  <td className="small">
+                    <strong>{l.tipo_rotulo}</strong>
+                    <div className="faint">{l.descricao}</div>
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      color: l.valor > 0 ? 'var(--green-700)' : 'var(--danger)',
+                    }}
+                  >
+                    {l.valor > 0 ? '+' : ''}
+                    {nf(l.valor)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

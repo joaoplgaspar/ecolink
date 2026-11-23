@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './app/App.jsx';
 import { AuthProvider } from './app/AuthContext.jsx';
 import { limparSessaoAntiga } from './data/sessaoCliente';
-import { auth } from './data/repos';
+import { auth, manutencao } from './data/repos';
 import './index.css';
 
 // Segurança ao abrir o app:
@@ -11,6 +11,12 @@ import './index.css';
 // 2. calcula o hash de senhas que ainda estejam em texto (dados de versões antigas).
 limparSessaoAntiga();
 auth.protegerSenhasLegadas().catch(() => {});
+
+// 3. "Relógio" das entregas: expira solicitações sem resposta, marca não
+//    comparecimento e envia lembretes (no Supabase, seria um pg_cron).
+const processarPrazos = () => manutencao.processarPrazos().catch(() => {});
+processarPrazos();
+setInterval(processarPrazos, 60_000);
 
 // StrictMode propositalmente omitido: o react-leaflet não lida bem com o
 // duplo-mount do StrictMode em dev (erro "Map container already initialized").

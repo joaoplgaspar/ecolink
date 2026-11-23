@@ -15,13 +15,15 @@ import {
   Gift,
   GraduationCap,
   Trophy,
+  CalendarClock,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { estatisticas, coletas } from '@/data/repos';
-import { nf, formatDate } from '@/utils/format';
-import { materialLabel } from '@/domain/materiais';
-import { Metric, ProgressBar, LevelChip, StatusBadge, CountUp, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import { nf } from '@/utils/format';
+import { isoDia } from '@/utils/datas';
+import { StatusColeta, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
+import { Metric, ProgressBar, LevelChip, CountUp, Carregando, ErroCarregar } from '@/components/ui.jsx';
 import { MaterialIcon, LevelIcon } from '@/components/icons.jsx';
 import { stagger, item } from '@/utils/anim';
 
@@ -36,7 +38,7 @@ const DICAS = [
 export default function Dashboard() {
   const { user } = useAuth();
   const q = useQuery(
-    () => Promise.all([estatisticas.minhas(), coletas.minhas({ status: 'agendada', ordem: 'asc' })]),
+    () => Promise.all([estatisticas.minhas(), coletas.minhas({ grupo: 'abertas', ordem: 'asc' })]),
     [user.id],
   );
 
@@ -69,10 +71,34 @@ export default function Dashboard() {
   const [stats, agendadas] = q.data;
   const { nivel } = stats;
   const proximas = agendadas.slice(0, 3);
+  const deHoje = agendadas.find((c) => c.status === 'confirmada' && c.data === isoDia(new Date()));
 
   return (
     <div>
       {cabecalho(nivel.atual)}
+
+      {deHoje && (
+        <Link
+          to={`/coletas/${deHoje.id}`}
+          className="card card-pad card-hover mb-3 row between wrap"
+          style={{ gap: 12, background: 'var(--green-50)', borderColor: 'var(--green-200)' }}
+        >
+          <div>
+            <strong className="row" style={{ gap: 6 }}>
+              <CalendarClock size={18} color="var(--green-700)" /> Sua entrega é {quandoTexto(deHoje)}
+            </strong>
+            <div className="small muted">
+              {deHoje.ponto_nome} · {resumoItens(deHoje.itens)}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="small muted">Código de entrega</div>
+            <div className="codigo-entrega" style={{ fontSize: '1.6rem' }}>
+              {deHoje.codigo_entrega}
+            </div>
+          </div>
+        </Link>
+      )}
 
       <motion.div className="grid grid-auto mb-3" variants={stagger} initial="initial" animate="animate">
         <motion.div variants={item}>
@@ -86,9 +112,9 @@ export default function Dashboard() {
         <motion.div variants={item}>
           <Metric
             icon={Recycle}
-            label="Coletas concluídas"
+            label="Entregas concluídas"
             value={<CountUp value={stats.concluidas} />}
-            sub={`${stats.agendadas} agendada(s)`}
+            sub={`${stats.agendadas} em aberto`}
           />
         </motion.div>
         <motion.div variants={item}>
@@ -142,14 +168,14 @@ export default function Dashboard() {
 
         <div className="card card-pad">
           <div className="row between mb-2">
-            <h3>Próximas coletas</h3>
+            <h3>Próximas entregas</h3>
             <Link to="/coletas" className="btn btn-sm btn-ghost">
               Ver todas <ArrowRight size={15} />
             </Link>
           </div>
           {proximas.length === 0 ? (
             <div className="col center" style={{ gap: 10, padding: '14px 0' }}>
-              <p className="muted small">Nenhuma coleta agendada.</p>
+              <p className="muted small">Nenhuma entrega em aberto.</p>
               <Link to="/pontos" className="btn btn-sm btn-primary">
                 <MapPin size={16} /> Encontrar um ponto
               </Link>
@@ -157,18 +183,16 @@ export default function Dashboard() {
           ) : (
             <div className="col" style={{ gap: 12 }}>
               {proximas.map((c) => (
-                <div key={c.id} className="row between" style={{ gap: 10 }}>
-                  <div className="row" style={{ gap: 11 }}>
-                    <MaterialIcon slug={c.material} chip chipSize={38} size={18} />
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{materialLabel(c.material)}</div>
-                      <div className="small muted">
-                        {c.ponto_nome} · {formatDate(c.data_agendada)}
-                      </div>
+                <Link key={c.id} to={`/coletas/${c.id}`} className="row between" style={{ gap: 10 }}>
+                  <div className="row" style={{ gap: 11, minWidth: 0 }}>
+                    <MaterialIcon slug={c.itens[0]?.material} chip chipSize={38} size={18} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{c.ponto_nome}</div>
+                      <div className="small muted">{quandoTexto(c)}</div>
                     </div>
                   </div>
-                  <StatusBadge status={c.status} />
-                </div>
+                  <StatusColeta status={c.status} />
+                </Link>
               ))}
             </div>
           )}

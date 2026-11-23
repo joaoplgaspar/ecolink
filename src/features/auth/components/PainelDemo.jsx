@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FlaskConical, RotateCcw, Inbox, ChevronDown, Wifi, Loader2 } from 'lucide-react';
+import { FlaskConical, RotateCcw, Inbox, ChevronDown, Wifi, Loader2, Hourglass } from 'lucide-react';
 import { demo } from '@/data/repos';
 import { getConfig, setConfig } from '@/data/config';
 import { useQuery } from '@/hooks/useQuery';
@@ -30,6 +30,18 @@ export default function PainelDemo({ aoEntrar, ocupado }) {
   const q = useQuery(() => demo.contas(), []);
   const restaurar = useMutation(() => demo.restaurar());
   const [restaurado, setRestaurado] = useState(false);
+  const tempo = useMutation((horas) => demo.simularTempo(horas));
+  const [resultadoTempo, setResultadoTempo] = useState('');
+
+  async function simular(horas) {
+    const r = await tempo.mutate(horas);
+    if (r.ok) {
+      const { expiradas, nao_compareceu, lembretes } = r.data;
+      setResultadoTempo(
+        `Daqui a ${horas} h: ${expiradas} solicitação(ões) expirada(s), ${nao_compareceu} não comparecimento(s), ${lembretes} lembrete(s).`,
+      );
+    }
+  }
 
   const grupos = (q.data || []).reduce((acc, c) => ({ ...acc, [c.grupo]: [...(acc[c.grupo] || []), c] }), {});
 
@@ -112,6 +124,26 @@ export default function PainelDemo({ aoEntrar, ocupado }) {
               </button>
             ))}
           </div>
+
+          <div className="small muted row mb-1" style={{ gap: 6, fontWeight: 700 }}>
+            <Hourglass size={15} /> Simular passagem do tempo (prazos das entregas)
+          </div>
+          <div className="row wrap mb-2" style={{ gap: 6 }}>
+            {[
+              [2, '+2 horas'],
+              [24, '+1 dia'],
+              [72, '+3 dias'],
+            ].map(([h, rotulo]) => (
+              <button key={h} type="button" className="btn btn-sm" disabled={tempo.pending} onClick={() => simular(h)}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          {resultadoTempo && (
+            <p className="small mb-2" role="status" style={{ color: 'var(--green-700)' }}>
+              {resultadoTempo}
+            </p>
+          )}
 
           <div className="row wrap" style={{ gap: 8 }}>
             <Link to="/demo/emails" target="_blank" className="btn btn-sm btn-ghost">

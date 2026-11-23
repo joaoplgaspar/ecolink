@@ -4,7 +4,7 @@
 //   • o andamento do cadastro da organização (incompleto / em análise / ajustes / aprovada);
 //   • os cadastros de pontos (rascunho, em análise, reprovado) com o próximo passo;
 //   • os pontos aprovados: interruptor Recebendo/Pausado e as entregas agendadas.
-// Aceitar, recusar, check-in com código e pesagem chegam na Fase 3.
+//   • os recebimentos: aceitar/recusar, check-in com código ou QR e pesagem.
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,9 +13,7 @@ import {
   CalendarClock,
   Scale,
   Inbox,
-  Sparkles,
   MapPin,
-  ShieldCheck,
   Building2,
   Clock3,
   AlertTriangle,
@@ -24,6 +22,7 @@ import {
   Pencil,
   BadgeCheck,
   Loader2,
+  BellRing,
 } from 'lucide-react';
 import { parceiro, organizacoes } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
@@ -31,17 +30,11 @@ import { useMutation } from '@/hooks/useMutation';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { STATUS_PONTO } from '@/domain/pontos';
 import { ETAPAS_ORGANIZACAO } from '@/domain/organizacoes';
-import { Carregando, ErroCarregar, EmptyState, StatusBadge, Metric, MensagemErro } from '@/components/ui.jsx';
-import { MaterialIcon } from '@/components/icons.jsx';
+import { Carregando, ErroCarregar, EmptyState, Metric, MensagemErro } from '@/components/ui.jsx';
 import { SeloFuncionamento } from '@/components/PontoInfo.jsx';
-import { materialLabel } from '@/domain/materiais';
+import Recebimentos from '@/features/parceiro/components/Recebimentos.jsx';
 import { formatDate, nf, relativeTime } from '@/utils/format';
-import { isoDia } from '@/utils/datas';
 
-const ABAS = [
-  { chave: 'proximas', rotulo: 'Próximas' },
-  { chave: 'historico', rotulo: 'Histórico' },
-];
 const APROVADOS = ['ativo', 'pausado'];
 
 export default function PainelParceiro() {
@@ -139,18 +132,13 @@ export default function PainelParceiro() {
           )}
           <CabecalhoPonto ponto={ponto} />
           <div className="grid grid-auto mb-3">
+            <Metric icon={BellRing} label="Solicitações novas" value={ponto.resumo.novas} />
             <Metric icon={CalendarClock} label="Entregas hoje" value={ponto.resumo.hoje} />
             <Metric icon={Inbox} label="Próximas entregas" value={ponto.resumo.proximas} />
             <Metric icon={Scale} label="Já recebido" value={`${nf(ponto.resumo.recebidas_kg, 1)} kg`} />
           </div>
-          <div className="aviso info mb-3">
-            <Sparkles size={17} style={{ flex: 'none' }} />
-            <span>
-              Em breve neste painel: aceitar ou recusar solicitações, check-in com o código do cidadão e pesagem na hora
-              da entrega.
-            </span>
-          </div>
-          <ColetasDoPonto key={ponto.id} pontoId={ponto.id} />
+
+          <Recebimentos key={ponto.id} ponto={ponto} />
         </>
       )}
     </div>
@@ -303,68 +291,6 @@ function CabecalhoPonto({ ponto }) {
         </div>
       </div>
       <MensagemErro erro={alternar.error} style={{ marginTop: 8 }} />
-    </div>
-  );
-}
-
-function ColetasDoPonto({ pontoId }) {
-  const [aba, setAba] = useState('proximas');
-  const q = useQuery(() => parceiro.coletasDoPonto(pontoId), [pontoId]);
-  const hoje = isoDia(new Date());
-  const lista = (q.data || []).filter((c) =>
-    aba === 'proximas'
-      ? c.status === 'agendada' && c.data_agendada >= hoje
-      : c.status !== 'agendada' || c.data_agendada < hoje,
-  );
-  if (aba === 'historico') lista.reverse();
-
-  return (
-    <div className="card card-pad">
-      <div className="row between wrap mb-2" style={{ gap: 10 }}>
-        <h3>Entregas</h3>
-        <div className="seg" role="tablist" aria-label="Filtrar entregas" style={{ width: 240 }}>
-          {ABAS.map((a) => (
-            <button
-              key={a.chave}
-              role="tab"
-              aria-selected={aba === a.chave}
-              className={aba === a.chave ? 'active' : ''}
-              onClick={() => setAba(a.chave)}
-            >
-              {a.rotulo}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="small faint row mb-2" style={{ gap: 6 }}>
-        <ShieldCheck size={14} /> Por privacidade, você vê só o primeiro nome e a inicial de quem entrega.
-      </p>
-      {q.loading ? (
-        <Carregando linhas={3} altura={52} />
-      ) : !q.data ? (
-        <ErroCarregar erro={q.error} onTentar={q.refetch} />
-      ) : lista.length === 0 ? (
-        <EmptyState icon={Inbox} title={aba === 'proximas' ? 'Nenhuma entrega agendada' : 'Sem histórico ainda'} />
-      ) : (
-        <ul className="col" style={{ gap: 10, listStyle: 'none', padding: 0, margin: 0 }}>
-          {lista.map((c) => (
-            <li key={c.id} className="row between" style={{ gap: 10 }}>
-              <div className="row" style={{ gap: 11 }}>
-                <MaterialIcon slug={c.material} chip chipSize={38} size={18} />
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>
-                    {materialLabel(c.material)} · {nf(c.quantidade_kg, 1)} kg
-                  </div>
-                  <div className="small muted">
-                    {c.cidadao} · {c.data_agendada === hoje ? 'hoje' : formatDate(c.data_agendada)}
-                  </div>
-                </div>
-              </div>
-              <StatusBadge status={c.status} />
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

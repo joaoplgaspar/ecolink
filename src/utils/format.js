@@ -41,3 +41,10 @@ export function initials(nome = '') {
     .map((p) => p[0]?.toUpperCase() || '')
     .join('');
 }
+
+/** "Ana Recicladora" → "Ana R." (minimização: o ponto não precisa do nome completo). */
+export function nomeReduzido(nome = '') {
+  const [primeiro = '', ...resto] = String(nome).trim().split(/\s+/);
+  const ultimo = resto.at(-1);
+  return ultimo ? `${primeiro} ${ultimo[0]}.` : primeiro;
+}

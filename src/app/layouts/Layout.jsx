@@ -43,7 +43,7 @@ const MENUS = {
     itens: [
       { to: '/', icon: Home, label: 'Início', end: true },
       { to: '/pontos', icon: MapPin, label: 'Pontos' },
-      { to: '/coletas', icon: Recycle, label: 'Coletas' },
+      { to: '/coletas', icon: Recycle, label: 'Entregas' },
       { to: '/chat', icon: MessageCircle, label: 'Chat' },
       { to: '/loja', icon: Gift, label: 'Loja' },
       { to: '/educacao', icon: GraduationCap, label: 'Educação' },

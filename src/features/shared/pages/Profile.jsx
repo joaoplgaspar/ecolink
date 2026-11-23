@@ -17,11 +17,14 @@ import {
   CheckCircle2,
   BadgeCheck,
   Store,
+  QrCode as IconeQr,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, auth, usuarios } from '@/data/repos';
+import { estatisticas, auth, usuarios, coletas } from '@/data/repos';
+import QrCode from '@/components/QrCode.jsx';
 import { PAPEIS, PERFIS } from '@/domain/permissoes';
 import { formatDate, nf, relativeTime } from '@/utils/format';
 import {
@@ -82,6 +85,7 @@ export default function Profile() {
       </div>
 
       {perfil === 'cidadao' && <ResumoCidadao />}
+      {perfil === 'cidadao' && <CodigoPessoal />}
       {!user.papeis.includes('parceiro_gestor') && (
         <div className="card card-pad mb-3 row between wrap" style={{ gap: 10 }}>
           <div>
@@ -396,6 +400,49 @@ function Sessoes() {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+/** QR pessoal: para entregar SEM agendamento — o ponto lê e registra na hora. */
+function CodigoPessoal() {
+  const q = useQuery(() => coletas.meuCodigoPessoal(), []);
+  const renovar = useMutation(() => coletas.renovarCodigoPessoal());
+  const [visivel, setVisivel] = useState(false);
+  return (
+    <div className="card card-pad mb-3">
+      <div className="row between wrap" style={{ gap: 10 }}>
+        <div>
+          <strong className="row" style={{ gap: 6 }}>
+            <IconeQr size={17} /> Entregar sem agendamento
+          </strong>
+          <p className="small muted">
+            Passou num ponto parceiro? Mostre este QR no balcão: a equipe registra e pesa na hora.
+          </p>
+        </div>
+        <button className="btn btn-sm" onClick={() => setVisivel((v) => !v)} aria-expanded={visivel}>
+          {visivel ? 'Ocultar' : 'Mostrar meu QR'}
+        </button>
+      </div>
+      {visivel && q.data && (
+        <div className="row wrap mt-2" style={{ gap: 18, alignItems: 'center' }}>
+          <QrCode valor={q.data.qr} tamanho={150} rotulo="Meu QR pessoal do ECOLINK" />
+          <div>
+            <div className="small muted">Ou diga o código</div>
+            <div className="mono" style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '0.15em' }}>
+              {q.data.codigo}
+            </div>
+            <button
+              className="btn btn-sm btn-ghost mt-1"
+              disabled={renovar.pending}
+              onClick={() => window.confirm('Gerar um novo código? O atual deixa de valer.') && renovar.mutate()}
+            >
+              <RefreshCw size={14} /> Gerar novo código
+            </button>
+            <p className="hint">Gere outro se alguém fotografou seu QR.</p>
+          </div>
+        </div>
       )}
     </div>
   );

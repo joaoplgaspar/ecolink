@@ -2,28 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  MapPin,
-  Clock,
-  ArrowRight,
-  CalendarPlus,
-  Check,
-  X,
-  Trash2,
-  Calendar,
-  Recycle,
-  Inbox,
-  Star,
-  AlertCircle,
-  RotateCcw,
-  CloudOff,
-} from 'lucide-react';
-import { getMaterial, materialLabel } from '@/domain/materiais';
-import { formatDate, nf, initials } from '@/utils/format';
+import { MapPin, Clock, ArrowRight, CalendarPlus, Inbox, Star, AlertCircle, RotateCcw, CloudOff } from 'lucide-react';
+import { getMaterial } from '@/domain/materiais';
+import { initials } from '@/utils/format';
 import { formatDistance } from '@/utils/geo';
-import { pontosDaColeta } from '@/domain/gamificacao';
 import { mensagemDeErro } from '@/data/erros';
-import { MaterialIcon, StatusIcon, LevelIcon } from './icons.jsx';
+import { MaterialIcon, LevelIcon } from './icons.jsx';
 import { SeloFuncionamento } from './PontoInfo.jsx';
 
 export function Avatar({ nome, size = 40 }) {
@@ -31,15 +15,6 @@ export function Avatar({ nome, size = 40 }) {
     <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.4 }}>
       {initials(nome)}
     </div>
-  );
-}
-
-const STATUS_LABEL = { agendada: 'Agendada', concluida: 'Concluída', cancelada: 'Cancelada' };
-export function StatusBadge({ status }) {
-  return (
-    <span className={`badge badge-${status}`}>
-      <StatusIcon status={status} /> {STATUS_LABEL[status] || status}
-    </span>
   );
 }
 
@@ -162,78 +137,6 @@ export function PointCard({ ponto, distanceKm }) {
         <Link to={`/agendar/${ponto.id}`} className="btn btn-sm">
           <CalendarPlus size={16} /> Agendar
         </Link>
-      </div>
-    </div>
-  );
-}
-
-export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover, ocupado = false }) {
-  const pts = pontosDaColeta(coleta);
-  return (
-    <div className="card card-pad card-hover">
-      <div className="row between">
-        <div className="row" style={{ gap: 12 }}>
-          <MaterialIcon slug={coleta.material} chip chipSize={46} size={22} />
-          <div>
-            <div style={{ fontWeight: 700 }}>
-              {materialLabel(coleta.material)} · {nf(coleta.quantidade_kg, 1)} kg
-            </div>
-            <div className="small muted row" style={{ gap: 6 }}>
-              <Calendar size={14} /> {coleta.ponto_nome} · {formatDate(coleta.data_agendada)}
-            </div>
-          </div>
-        </div>
-        <StatusBadge status={coleta.status} />
-      </div>
-      <div className="divider" />
-      <div className="row between">
-        <div className="small">
-          {coleta.status === 'concluida' ? (
-            <span
-              style={{
-                color: 'var(--green-700)',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-            >
-              <Recycle size={15} /> +{pts} EcoPontos
-            </span>
-          ) : coleta.status === 'agendada' ? (
-            <span className="muted">Vale {pts} EcoPontos ao concluir</span>
-          ) : (
-            <span className="faint">Coleta cancelada</span>
-          )}
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          {coleta.status === 'agendada' && (
-            <>
-              <button className="btn btn-sm btn-primary" disabled={ocupado} onClick={() => onConcluir?.(coleta)}>
-                <Check size={16} /> Concluir
-              </button>
-              <button
-                className="btn btn-sm btn-danger"
-                disabled={ocupado}
-                onClick={() => onCancelar?.(coleta)}
-                aria-label="Cancelar coleta"
-              >
-                <X size={16} />
-              </button>
-            </>
-          )}
-          {/* Coletas concluídas são o lastro dos EcoPontos: não podem ser apagadas. */}
-          {onRemover && coleta.status !== 'concluida' && (
-            <button
-              className="btn btn-sm btn-ghost"
-              disabled={ocupado}
-              onClick={() => onRemover(coleta)}
-              aria-label="Excluir do histórico"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
