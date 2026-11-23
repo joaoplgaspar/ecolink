@@ -62,6 +62,53 @@ describe('matriz de permissões (ROADMAP §2.1)', () => {
     ['admin não usa a loja', ADMIN, 'resgate.criar', {}, false],
     ['cidadão vê a própria conta', ANA, 'usuario.ver', { id: 1 }, true],
     ['cidadão não vê conta alheia', ANA, 'usuario.ver', { id: 2 }, false],
+    [
+      'responsável gerencia a própria organização',
+      { ...MARCOS_PARCEIRO, organizacoes: [1] },
+      'organizacao.gerenciar',
+      { responsavel_id: 11 },
+      true,
+    ],
+    [
+      'ninguém gerencia organização alheia',
+      { ...MARCOS_PARCEIRO, organizacoes: [1] },
+      'organizacao.gerenciar',
+      { responsavel_id: 99 },
+      false,
+    ],
+    [
+      'gestor gerencia ponto da sua organização',
+      { ...MARCOS_PARCEIRO, organizacoes: [1] },
+      'ponto.gerenciar',
+      { id: 9, organizacao_id: 1 },
+      true,
+    ],
+    [
+      'gestor não gerencia ponto de outra organização',
+      { ...MARCOS_PARCEIRO, organizacoes: [1] },
+      'ponto.gerenciar',
+      { id: 2, organizacao_id: 2 },
+      false,
+    ],
+    [
+      'operador pausa o ponto em que trabalha',
+      ator(['parceiro_operador'], 'parceiro', { pontos: [2] }),
+      'ponto.pausar',
+      { id: 2 },
+      true,
+    ],
+    [
+      'operador não edita o cadastro do ponto',
+      ator(['parceiro_operador'], 'parceiro', { pontos: [2], organizacoes: [] }),
+      'ponto.gerenciar',
+      { id: 2, organizacao_id: 2 },
+      false,
+    ],
+    ['moderação vê a fila de aprovações', MODERACAO, 'aprovacao.ver', {}, true],
+    ['só a administração aprova', MODERACAO, 'aprovacao.decidir', {}, false],
+    ['admin aprova', ADMIN, 'aprovacao.decidir', {}, true],
+    ['documentos: o responsável vê', ANA, 'organizacao.ver_documentos', { responsavel_id: 1 }, true],
+    ['documentos: outra pessoa não vê', ANA, 'organizacao.ver_documentos', { responsavel_id: 2 }, false],
   ])('%s', (_, a, acao, recurso, esperado) => {
     expect(pode(a, acao, recurso)).toBe(esperado);
   });

@@ -56,8 +56,9 @@ export function papeisValidos(papeis) {
 
 /**
  * Ator = quem está fazendo a ação, montado a partir da sessão:
- * { id, papeis: string[], perfil: 'cidadao'|'parceiro'|'admin', pontos: number[] }
- * `pontos` são os pontos de coleta dos quais a pessoa é membro (gestor/operador).
+ * { id, papeis: string[], perfil: 'cidadao'|'parceiro'|'admin', pontos: number[], organizacoes: number[] }
+ * `pontos`: pontos de coleta dos quais a pessoa é membro (gestor/operador).
+ * `organizacoes`: organizações pelas quais a pessoa responde (responsável legal).
  */
 const tem = (ator, papel) => ator.papeis.includes(papel);
 const membroDo = (ator, pontoId) => ator.pontos.includes(Number(pontoId));
@@ -86,6 +87,15 @@ const REGRAS = {
 
   // Parceiro
   'parceiro.painel': (a) => comoParceiro(a),
+
+  // Organizações e pontos (Fase 2)
+  'organizacao.gerenciar': (a, r) => comoParceiro(a) && tem(a, 'parceiro_gestor') && r.responsavel_id === a.id,
+  'organizacao.ver_documentos': (a, r) => r.responsavel_id === a.id || comoPlataforma(a),
+  'ponto.gerenciar': (a, r) =>
+    comoParceiro(a) && tem(a, 'parceiro_gestor') && (a.organizacoes || []).includes(r.organizacao_id),
+  'ponto.pausar': (a, r) => comoParceiro(a) && membroDo(a, r.id),
+  'aprovacao.ver': (a) => comoPlataforma(a),
+  'aprovacao.decidir': (a) => comoAdmin(a),
 
   // Plataforma
   'usuario.listar': (a) => comoPlataforma(a),
