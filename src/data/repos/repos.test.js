@@ -18,7 +18,7 @@ import {
 } from './index';
 import { ler } from '../storage';
 import { limparToken } from '../sessaoCliente';
-import { prepararBanco, restaurarRelogio, entrarComo, erroDe, IDS } from '@/test/ambiente';
+import { prepararBanco, restaurarRelogio, entrarComo, erroDe, IDS, primeiraJanela } from '@/test/ambiente';
 
 beforeEach(() => prepararBanco());
 afterEach(restaurarRelogio);
@@ -86,101 +86,6 @@ describe('pontos', () => {
   it('obter traz total de coletas e dá 404 se não existir', async () => {
     expect((await pontos.obter(1)).total_coletas).toBeGreaterThan(0);
     expect(await erroDe(pontos.obter(999))).toMatchObject({ status: 404 });
-  });
-});
-
-describe('coletas', () => {
-  const valida = { ponto_id: 1, material: 'papel', quantidade_kg: 2, data_agendada: '2026-11-25' };
-  beforeEach(() => entrarComo(IDS.ana));
-
-  it('agenda para quem está logado e notifica na mesma transação', async () => {
-    const antes = (await notificacoes.listar()).length;
-    const c = await coletas.agendar({ ...valida, usuario_id: IDS.bruno }); // id da tela é ignorado
-    expect(c).toMatchObject({ status: 'agendada', ponto_nome: 'EcoPonto Centro', usuario_id: IDS.ana });
-    expect((await notificacoes.listar()).length).toBe(antes + 1);
-  });
-
-  it.each([
-    ['ponto inativo', { ponto_id: 6, material: 'vidro' }, 422],
-    ['material não aceito', { material: 'pilhas' }, 422],
-    ['quantidade zero', { quantidade_kg: 0 }, 422],
-    ['quantidade absurda', { quantidade_kg: 10_000 }, 422],
-    ['data no passado', { data_agendada: '2026-11-22' }, 422],
-    ['data inválida', { data_agendada: 'amanhã' }, 422],
-    ['ponto inexistente', { ponto_id: 999 }, 404],
-  ])('recusa %s', async (_, troca, status) => {
-    expect(await erroDe(coletas.agendar({ ...valida, ...troca }))).toMatchObject({ status });
-  });
-
-  it('aceita agendar para hoje', async () => {
-    expect(await coletas.agendar({ ...valida, data_agendada: '2026-11-23' })).toMatchObject({ status: 'agendada' });
-  });
-
-  it('concluir credita EcoPontos uma única vez', async () => {
-    const c = await coletas.agendar(valida);
-    const antes = (await estatisticas.minhas()).ecopontos;
-    const r = await coletas.concluir(c.id);
-    expect(r.pontos).toBe(16); // 2 kg × 8
-    expect((await estatisticas.minhas()).ecopontos).toBe(antes + 16);
-    expect(await erroDe(coletas.concluir(c.id))).toMatchObject({ status: 409 });
-  });
-
-  it('ninguém mexe na coleta de outra pessoa (403)', async () => {
-    const c = await coletas.agendar(valida);
-    await entrarComo(IDS.bruno);
-    for (const acao of [coletas.concluir, coletas.cancelar, coletas.remover, coletas.obter]) {
-      expect(await erroDe(acao(c.id))).toMatchObject({ status: 403 });
-    }
-  });
-
-  it('cancelar só vale para coletas agendadas', async () => {
-    const c = await coletas.agendar(valida);
-    expect((await coletas.cancelar(c.id)).status).toBe('cancelada');
-    expect(await erroDe(coletas.cancelar(c.id))).toMatchObject({ status: 409 });
-  });
-
-  it('coletas concluídas não podem ser apagadas (lastro dos EcoPontos)', async () => {
-    const concluida = (await coletas.minhas({ status: 'concluida' }))[0];
-    expect(await erroDe(coletas.remover(concluida.id))).toMatchObject({ status: 409 });
-    const c = await coletas.agendar(valida);
-    await coletas.remover(c.id);
-    expect(await erroDe(coletas.obter(c.id))).toMatchObject({ status: 404 });
-  });
-
-  it('lista em ordem decrescente por padrão e crescente com ordem: "asc"', async () => {
-    const desc = await coletas.minhas();
-    const asc = await coletas.minhas({ ordem: 'asc' });
-    expect(desc.every((c) => c.usuario_id === IDS.ana)).toBe(true);
-    expect(desc[0].data_agendada >= desc.at(-1).data_agendada).toBe(true);
-    expect(asc[0].data_agendada <= asc.at(-1).data_agendada).toBe(true);
-  });
-
-  it('conflito de interesse: quem trabalha no ponto não agenda nele', async () => {
-    await entrarComo(IDS.marcos, 'cidadao'); // Marcos é gestor do ponto 1 e também cidadão
-    expect(await erroDe(coletas.agendar(valida))).toMatchObject({
-      status: 403,
-      message: expect.stringMatching(/conflito de interesse/),
-    });
-    expect(await coletas.agendar({ ...valida, ponto_id: 7 })).toMatchObject({ status: 'agendada' }); // outro ponto: ok
-  });
-
-  it('tentativa negada (403) fica registrada na auditoria, mesmo com a transação desfeita', async () => {
-    await entrarComo(IDS.marcos, 'cidadao');
-    await erroDe(coletas.agendar(valida));
-    expect(ler().auditoria.at(-1)).toMatchObject({
-      acao: 'acesso.negado',
-      ator_id: IDS.marcos,
-      detalhes: { acao: 'coleta.agendar', perfil: 'cidadao' },
-    });
-    expect(ler().coletas.some((c) => c.usuario_id === IDS.marcos)).toBe(false);
-  });
-
-  it('no perfil parceiro não se agenda coleta (precisa trocar para cidadão)', async () => {
-    await entrarComo(IDS.marcos, 'parceiro');
-    expect(await erroDe(coletas.agendar({ ...valida, ponto_id: 7 }))).toMatchObject({
-      status: 403,
-      message: expect.stringMatching(/perfil Cidadão/),
-    });
   });
 });
 
@@ -266,7 +171,7 @@ describe('chat', () => {
 describe('notificacoes', () => {
   it('marca como lidas só as da própria conta', async () => {
     await entrarComo(IDS.bruno);
-    await coletas.agendar({ ponto_id: 1, material: 'papel', quantidade_kg: 1, data_agendada: '2026-11-30' });
+    await coletas.solicitar({ ponto_id: 1, ...(await primeiraJanela(1)), itens: [{ material: 'papel', kg: 1 }] });
     await entrarComo(IDS.ana);
     await notificacoes.marcarTodasLidas();
     expect((await notificacoes.listar()).every((n) => n.lida)).toBe(true);
@@ -301,20 +206,22 @@ describe('parceiro', () => {
     });
   });
 
-  it('vê coletas do próprio ponto com dados mínimos do cidadão', async () => {
+  it('vê os recebimentos do próprio ponto com dados mínimos do cidadão (nunca o código de entrega)', async () => {
     await entrarComo(IDS.marcos, 'parceiro');
-    const lista = await parceiro.coletasDoPonto(1);
-    expect(lista.length).toBeGreaterThan(0);
-    for (const c of lista) {
+    const r = await parceiro.recebimentos(1);
+    const todas = [...r.novas, ...r.hoje, ...r.proximas, ...r.finalizadas];
+    expect(todas.length).toBeGreaterThan(0);
+    for (const c of todas) {
       expect(c.cidadao).toMatch(/^\S+( \S\.)?$/); // "Ana R."
       expect(c).not.toHaveProperty('usuario_id');
+      expect(c).not.toHaveProperty('codigo_entrega');
       expect(JSON.stringify(c)).not.toMatch(/@|9999900/); // nada de e-mail ou telefone
     }
   });
 
-  it('não vê coletas de ponto em que não trabalha (403)', async () => {
+  it('não vê recebimentos de ponto em que não trabalha (403)', async () => {
     await entrarComo(IDS.paula, 'parceiro');
-    expect(await erroDe(parceiro.coletasDoPonto(1))).toMatchObject({ status: 403 });
+    expect(await erroDe(parceiro.recebimentos(1))).toMatchObject({ status: 403 });
   });
 
   it('cidadão comum não acessa o painel do parceiro (403)', async () => {

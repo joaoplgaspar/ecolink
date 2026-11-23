@@ -11,9 +11,11 @@ import { VERSAO_ATUAL } from './migrations';
 import { HASH_SENHA_DEMO } from './contasDemo';
 import { TERMOS } from '../domain/termos';
 import { RECOMPENSAS } from './recompensas';
-import { pontosDaColeta } from '../domain/gamificacao';
 import { isoDia, somarDias } from '../utils/datas';
 import { gradeCom, SEMANA, fechadoNoDia } from '../domain/horarios';
+import { janelasDoDia, dataHora, prazoDeResposta } from '../domain/agenda';
+import { montarComprovante } from '../domain/comprovante';
+import { nomeReduzido } from '../utils/format';
 import { REGRAS_PADRAO } from '../domain/pontos';
 import { documentosExigidos } from '../domain/organizacoes';
 
@@ -346,14 +348,17 @@ const FAIXA_PADRAO = [1, 9];
 // Próximas coletas agendadas: [email, dias a partir de hoje (0 = hoje), id do ponto].
 // Os pontos são escolhidos de propósito: as entregas caem nos pontos do Marcos
 // (1 e 4) e da Paula (2), para o painel do parceiro ter o que mostrar na demo.
+// O 4º campo é o status: "solicitada" aparece em "Novas" no painel do parceiro;
+// "confirmada" já tem código de entrega (a do Diego é HOJE, pronta para o check-in).
 const AGENDADAS = [
-  ['diego@email.com', 0, 1],
-  ['ana@email.com', 2, 2],
-  ['bruno@email.com', 3, 1],
-  ['ana@email.com', 6, 4],
-  ['gabriela@email.com', 1, 2],
-  ['carla@email.com', 1, 3],
-  ['joao@email.com', 5, 4],
+  ['diego@email.com', 0, 1, 'confirmada'],
+  ['ana@email.com', 2, 2, 'confirmada'],
+  ['bruno@email.com', 3, 1, 'solicitada'],
+  ['felipe@email.com', 1, 1, 'solicitada'],
+  ['ana@email.com', 6, 4, 'solicitada'],
+  ['gabriela@email.com', 1, 2, 'confirmada'],
+  ['carla@email.com', 1, 3, 'confirmada'],
+  ['joao@email.com', 5, 4, 'solicitada'],
 ];
 
 const COMENTARIOS = {
@@ -493,55 +498,191 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     return Math.round(entre(min, max) * 10) / 10;
   };
 
-  /* Coletas: histórico concluído + algumas canceladas + próximas agendadas. */
+  /* Coletas: histórico (com a linha do tempo completa), canceladas e próximas. */
+  const diaAbertoAntes = (ponto, offset) => {
+    let d = offset;
+    while (fechadoNoDia(ponto, dia(d)) && d > offset - 14) d--;
+    return dia(d);
+  };
+  const equipeDo = (pontoId) => membros.filter((m) => m.ponto_id === pontoId).map((m) => m.usuario_id);
+  const ALFA = [...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'];
+  const usados = new Set();
+  const codigoColeta = () => {
+    let c;
+    do c = `ECO-${Array.from({ length: 5 }, () => escolher(ALFA)).join('')}`;
+    while (usados.has(c));
+    usados.add(c);
+    return c;
+  };
+  const codigoEntrega = () => String(inteiro(0, 9999)).padStart(4, '0');
+  const maisMin = (ts, min) => new Date(Date.parse(ts) + min * 60_000).toISOString();
+
+  const itensPara = (ponto, { pesar }) => {
+    const qtd = rnd() < 0.35 && ponto.materiais.length > 1 ? 2 : 1;
+    const mats = [];
+    while (mats.length < qtd) {
+      const m = escolher(ponto.materiais);
+      if (!mats.includes(m)) mats.push(m);
+    }
+    return mats.map((material) => {
+      const limite = ponto.regras_materiais?.[material]?.limite_kg;
+      const kg = Math.min(kgPara(material), limite || Infinity);
+      const item = { material, kg_declarado: kg, kg_aferido: null, status: 'pendente', motivo: null };
+      if (pesar) {
+        item.kg_aferido = Math.max(0.1, Math.round(kg * entre(0.85, 1.08) * 10) / 10);
+        item.status = 'aprovado';
+      }
+      return item;
+    });
+  };
+
+  const novaColeta = (u, ponto, data, { pesar = false, ultimaJanela = false } = {}) => {
+    const janelas = janelasDoDia(ponto, data);
+    const j = janelas.length
+      ? janelas[ultimaJanela ? janelas.length - 1 : inteiro(0, janelas.length - 1)]
+      : { inicio: null, fim: null };
+    return {
+      usuario_id: u.id,
+      ponto_id: ponto.id,
+      tipo: 'agendada',
+      data,
+      janela_inicio: j.inicio,
+      janela_fim: j.fim,
+      itens: itensPara(ponto, { pesar }),
+      status: 'solicitada',
+      codigo: codigoColeta(),
+      codigo_entrega: null,
+      tentativas_codigo: 0,
+      alertas: [],
+      pontos_creditados: 0,
+      motivo: null,
+      historico: [],
+    };
+  };
+  const ev = (c, acao, de, para, ator, atorId, em, motivo = null) => {
+    c.historico.push({ acao, de, para, ator, ator_id: atorId, motivo, em });
+    c.status = para;
+  };
+
   const rascunhos = [];
+  const historicoConcluido = (u, ponto, data) => {
+    const c = novaColeta(u, ponto, data, { pesar: true });
+    if (c.itens.length === 2 && rnd() < 0.15) {
+      // aprovação parcial: um item recusado na conferência
+      Object.assign(c.itens[1], { status: 'rejeitado', kg_aferido: null, motivo: 'Material sujo ou contaminado' });
+    }
+    const op = equipeDo(ponto.id)[0] ?? null;
+    const base = dataHora(data, c.janela_inicio || '09:00').toISOString();
+    const criada = maisMin(base, -2 * 24 * 60);
+    const chegada = maisMin(base, inteiro(0, 20));
+    ev(c, 'solicitar', null, 'solicitada', 'cidadao', u.id, criada);
+    ev(c, 'aceitar', 'solicitada', 'confirmada', 'ponto', op, maisMin(criada, 95));
+    ev(c, 'checkin', 'confirmada', 'em_conferencia', 'ponto', op, chegada);
+    ev(c, 'concluir', 'em_conferencia', 'concluida', 'ponto', op, maisMin(chegada, 6));
+    const operador = usuarios.find((x) => x.id === op);
+    Object.assign(c, {
+      criada_em: criada,
+      confirmada_em: maisMin(criada, 95),
+      checkin_em: chegada,
+      concluida_em: maisMin(chegada, 6),
+      operador_checkin_id: op,
+      operador_pesagem_id: op,
+    });
+    c.comprovante = montarComprovante(c, {
+      pontoNome: ponto.nome,
+      operadorNome: nomeReduzido(operador?.nome || 'Equipe do ponto'),
+      emitidoEm: c.concluida_em,
+    });
+    c.pontos_creditados = c.comprovante.pontos;
+    return c;
+  };
+
   cidadaos.forEach((u, i) => {
     const perfil = USUARIOS[i];
     const opcoes = pontosDaCidade(u.cidade, { incluirInativos: true });
     const janela = u.cidade === 'Campinas' ? [-60, -35] : [-60, -1];
     for (let k = 0; k < perfil.coletas; k++) {
       const ponto = escolher(opcoes);
-      const material = escolher(ponto.materiais);
-      rascunhos.push({
-        usuario_id: u.id,
-        ponto_id: ponto.id,
-        material,
-        quantidade_kg: kgPara(material),
-        status: 'concluida',
-        data_agendada: dia(inteiro(...janela)),
-      });
+      rascunhos.push(historicoConcluido(u, ponto, diaAbertoAntes(ponto, inteiro(...janela))));
     }
     if (perfil.coletas >= 5) {
       const ponto = escolher(pontosDaCidade(u.cidade));
-      const material = escolher(ponto.materiais);
-      rascunhos.push({
-        usuario_id: u.id,
-        ponto_id: ponto.id,
-        material,
-        quantidade_kg: kgPara(material),
-        status: 'cancelada',
-        data_agendada: dia(inteiro(-40, -5)),
-      });
+      const c = novaColeta(u, ponto, diaAbertoAntes(ponto, inteiro(-40, -5)));
+      const criada = maisMin(dataHora(c.data, '08:00').toISOString(), -3 * 24 * 60);
+      ev(c, 'solicitar', null, 'solicitada', 'cidadao', u.id, criada);
+      ev(c, 'aceitar', 'solicitada', 'confirmada', 'ponto', equipeDo(ponto.id)[0] ?? null, maisMin(criada, 60));
+      ev(c, 'cancelar', 'confirmada', 'cancelada', 'cidadao', u.id, maisMin(criada, 26 * 60), 'Tive um imprevisto');
+      Object.assign(c, { criada_em: criada, motivo: 'Tive um imprevisto' });
+      rascunhos.push(c);
     }
   });
-  for (const [email, offset, pontoId] of AGENDADAS) {
+
+  // Histórico menos feliz, para a linha do tempo e (na Fase 4) a reputação.
+  const felipe = cidadaos.find((u) => u.email === 'felipe@email.com');
+  const pontoFelipe = pontoPorId(4);
+  const faltou = novaColeta(felipe, pontoFelipe, diaAbertoAntes(pontoFelipe, -9));
+  faltou.criada_em = maisMin(dataHora(faltou.data, '08:00').toISOString(), -2 * 24 * 60);
+  faltou.codigo_entrega = codigoEntrega();
+  ev(faltou, 'solicitar', null, 'solicitada', 'cidadao', felipe.id, faltou.criada_em);
+  ev(faltou, 'aceitar', 'solicitada', 'confirmada', 'ponto', equipeDo(4)[0], maisMin(faltou.criada_em, 120));
+  ev(
+    faltou,
+    'marcar_nao_compareceu',
+    'confirmada',
+    'nao_compareceu',
+    'sistema',
+    null,
+    dataHora(faltou.data, '23:59').toISOString(),
+  );
+  rascunhos.push(faltou);
+
+  const elisa = cidadaos.find((u) => u.email === 'elisa@email.com');
+  const pontoElisa = pontoPorId(5);
+  const recusada = novaColeta(elisa, pontoElisa, diaAbertoAntes(pontoElisa, -12));
+  recusada.criada_em = maisMin(dataHora(recusada.data, '08:00').toISOString(), -24 * 60);
+  ev(recusada, 'solicitar', null, 'solicitada', 'cidadao', elisa.id, recusada.criada_em);
+  ev(
+    recusada,
+    'recusar',
+    'solicitada',
+    'recusada',
+    'ponto',
+    equipeDo(5)[0],
+    maisMin(recusada.criada_em, 40),
+    'Agenda lotada nesse horário',
+  );
+  recusada.motivo = 'Agenda lotada nesse horário';
+  rascunhos.push(recusada);
+
+  for (const [email, offset, pontoId, status] of AGENDADAS) {
     const u = usuarios.find((x) => x.email === email);
     const ponto = pontoPorId(pontoId);
-    const material = escolher(ponto.materiais);
-    rascunhos.push({
-      usuario_id: u.id,
-      ponto_id: ponto.id,
-      material,
-      quantidade_kg: kgPara(material),
-      status: 'agendada',
-      data_agendada: diaAberto(ponto, offset),
-    });
+    const c = novaColeta(u, ponto, diaAberto(ponto, offset), { ultimaJanela: offset === 0 });
+    const criada = new Date(agora.getTime() - 3 * 3600_000).toISOString();
+    c.criada_em = criada;
+    c.responder_ate = prazoDeResposta(ponto, new Date(criada), c.data, c.janela_inicio).toISOString();
+    ev(c, 'solicitar', null, 'solicitada', 'cidadao', u.id, criada);
+    if (status === 'confirmada') {
+      ev(c, 'aceitar', 'solicitada', 'confirmada', 'ponto', equipeDo(ponto.id)[0] ?? null, maisMin(criada, 30));
+      c.confirmada_em = maisMin(criada, 30);
+      c.codigo_entrega = codigoEntrega();
+    }
+    rascunhos.push(c);
   }
+
   // Ids em ordem cronológica (como num banco real, por ordem de criação).
-  rascunhos.sort((a, b) =>
-    a.data_agendada < b.data_agendada ? -1 : a.data_agendada > b.data_agendada ? 1 : a.usuario_id - b.usuario_id,
-  );
-  const coletas = rascunhos.map((c, i) => ({ id: i + 1, ...c }));
+  rascunhos.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : a.usuario_id - b.usuario_id));
+  const coleta_eventos = [];
+  const coletas = rascunhos.map(({ historico, ...c }, i) => {
+    const id = i + 1;
+    for (const e of historico) coleta_eventos.push({ id: coleta_eventos.length + 1, coleta_id: id, ...e });
+    return { id, ...c };
+  });
+
+  // Código pessoal (QR para entregas sem agendamento) de quem é cidadão.
+  for (const u of usuarios) {
+    if (u.papeis.includes('cidadao')) u.codigo_pessoal = Array.from({ length: 8 }, () => escolher(ALFA)).join('');
+  }
 
   /* Avaliações: só de quem já concluiu coleta naquele ponto (avaliação "verificada"). */
   const avaliacoes = [];
@@ -549,7 +690,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
   for (const c of coletas) {
     if (c.status !== 'concluida') continue;
     const chave = `${c.usuario_id}:${c.ponto_id}`;
-    if (!pares.has(chave) || pares.get(chave) < c.data_agendada) pares.set(chave, c.data_agendada);
+    if (!pares.has(chave) || pares.get(chave) < c.data) pares.set(chave, c.data);
   }
   for (const [chave, ultima] of pares) {
     if (rnd() > 0.6) continue;
@@ -572,7 +713,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
   const ana = usuarios[0];
   const daAna = coletas.filter((c) => c.usuario_id === ana.id);
   const ultimaConcluida = daAna.filter((c) => c.status === 'concluida').at(-1);
-  const proxima = daAna.find((c) => c.status === 'agendada');
+  const proxima = daAna.find((c) => c.status === 'confirmada');
 
   const recompensa = RECOMPENSAS.reduce((a, b) => (a.custo <= b.custo ? a : b)); // a mais barata
   const resgates = [
@@ -593,7 +734,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       usuario_id: ana.id,
       tipo: 'coleta',
       icone: '♻️',
-      texto: `Coleta de ${ultimaConcluida.material} concluída no ${pontoPorId(ultimaConcluida.ponto_id).nome}. +${pontosDaColeta(ultimaConcluida)} EcoPontos!`,
+      texto: `Entrega de ${ultimaConcluida.itens[0].material} conferida no ${pontoPorId(ultimaConcluida.ponto_id).nome}. +${ultimaConcluida.pontos_creditados} EcoPontos!`,
       em: instante(-1, 17, 5),
       lida: true,
     },
@@ -601,7 +742,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       usuario_id: ana.id,
       tipo: 'lembrete',
       icone: '📅',
-      texto: `Lembrete: coleta de ${proxima.material} agendada no ${pontoPorId(proxima.ponto_id).nome}.`,
+      texto: `Entrega confirmada no ${pontoPorId(proxima.ponto_id).nome}. Mostre o código de entrega na chegada.`,
       em: instante(0, 8, 0),
       lida: false,
     },
@@ -614,6 +755,34 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       lida: false,
     },
   ].map((n, i) => ({ id: i + 1, ...n }));
+
+  /* Extrato: créditos das coletas concluídas e o resgate da Ana. */
+  const extrato = [
+    ...coletas
+      .filter((c) => c.status === 'concluida')
+      .map((c) => ({
+        usuario_id: c.usuario_id,
+        tipo: 'credito_coleta',
+        valor: c.pontos_creditados,
+        referencia_tipo: 'coleta',
+        referencia_id: c.id,
+        descricao: `Entrega ${c.codigo}`,
+        criado_por: c.operador_pesagem_id,
+        em: c.concluida_em,
+      })),
+    ...resgates.map((r) => ({
+      usuario_id: r.usuario_id,
+      tipo: 'resgate',
+      valor: -r.custo,
+      referencia_tipo: 'resgate',
+      referencia_id: r.id,
+      descricao: r.nome,
+      criado_por: r.usuario_id,
+      em: r.em,
+    })),
+  ]
+    .sort((a, b) => (a.em < b.em ? -1 : 1))
+    .map((l, i) => ({ id: i + 1, ...l }));
 
   const chats = {
     [`${ana.id}:1`]: [
@@ -639,6 +808,8 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       msg: 2,
       membro: membros.length,
       organizacao: organizacoes.length,
+      evento: coleta_eventos.length,
+      extrato: extrato.length,
       sessao: 0,
       auditoria: 0,
       recuperacao: 0,
@@ -647,6 +818,8 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     usuarios,
     pontos,
     coletas,
+    coleta_eventos,
+    extrato,
     avaliacoes,
     resgates,
     chats,

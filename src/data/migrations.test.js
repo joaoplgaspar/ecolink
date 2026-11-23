@@ -109,3 +109,27 @@ describe('migração v5 (organizações e horários)', () => {
     expect(s.organizacoes).toEqual([]);
   });
 });
+
+describe('migração v6 (coletas com itens e extrato)', () => {
+  it('coleta antiga vira itens; agendada vira confirmada com código; concluída vira crédito no extrato', () => {
+    const s = legadoV2();
+    s.resgates.push({ id: 1, usuario_id: 1, custo: 3, nome: 'Muda', em: '2026-06-05T10:00:00Z' });
+    migrar(s);
+    const [concluida, agendada] = s.coletas;
+    expect(concluida).toMatchObject({
+      status: 'concluida',
+      data: '2026-06-01',
+      itens: [{ material: 'papel', kg_declarado: 1, kg_aferido: 1, status: 'aprovado' }],
+      pontos_creditados: 8,
+    });
+    expect(agendada).toMatchObject({ status: 'confirmada', janela_inicio: null });
+    expect(agendada.codigo_entrega).toMatch(/^\d{4}$/);
+    expect(concluida.codigo).toMatch(/^ECO-[A-Z2-9]{5}$/);
+    expect(concluida).not.toHaveProperty('material');
+    expect(s.extrato.map((l) => [l.tipo, l.valor])).toEqual([
+      ['credito_coleta', 8],
+      ['resgate', -3],
+    ]);
+    expect(s.usuarios[0].codigo_pessoal).toMatch(/^[A-Z2-9]{8}$/);
+  });
+});

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { makeSeed } from './seed';
 import { VERSAO_ATUAL } from './migrations';
-import { calcularEstatisticas } from '../domain/gamificacao';
+import { calcularEstatisticas, pontosDaColeta } from '../domain/gamificacao';
+import { STATUS_ATIVOS } from '../domain/coletaMaquina';
+import { janelasDoDia } from '../domain/agenda';
 import { isoDia } from '../utils/datas';
 import { CONTAS_DEMO, HASH_SENHA_DEMO } from './contasDemo';
 import { validarCNPJ } from '../domain/documentos';
@@ -52,18 +54,18 @@ describe('makeSeed', () => {
     }
   });
 
-  it('datas são relativas a hoje: histórico no passado, agendadas no futuro', () => {
+  it('datas são relativas a hoje: histórico no passado, em aberto de hoje em diante', () => {
     for (const c of s.coletas) {
-      if (c.status === 'agendada') expect(c.data_agendada >= HOJE).toBe(true);
-      else expect(c.data_agendada < HOJE).toBe(true);
+      if (STATUS_ATIVOS.includes(c.status)) expect(c.data >= HOJE).toBe(true);
+      else expect(c.data < HOJE).toBe(true);
     }
-    const maisAntiga = s.coletas.map((c) => c.data_agendada).sort()[0];
+    const maisAntiga = s.coletas.map((c) => c.data).sort()[0];
     expect(maisAntiga >= isoDia(new Date('2026-09-24T12:00:00'))).toBe(true); // ≤ 60 dias atrás
   });
 
   it('acompanha a data: outro "hoje" desloca as datas', () => {
     const depois = makeSeed({ agora: new Date('2027-03-01T12:00:00') });
-    expect(depois.coletas.filter((c) => c.status === 'agendada').every((c) => c.data_agendada >= '2027-03-01')).toBe(
+    expect(depois.coletas.filter((c) => STATUS_ATIVOS.includes(c.status)).every((c) => c.data >= '2027-03-01')).toBe(
       true,
     );
   });
@@ -73,19 +75,25 @@ describe('makeSeed', () => {
     const pontos = new Map(s.pontos.map((p) => [p.id, p]));
     for (const c of s.coletas) {
       expect(usuarios.has(c.usuario_id)).toBe(true);
-      expect(pontos.get(c.ponto_id).materiais).toContain(c.material); // o ponto aceita o material
-      expect(c.quantidade_kg).toBeGreaterThan(0);
+      for (const i of c.itens) {
+        expect(pontos.get(c.ponto_id).materiais).toContain(i.material); // o ponto aceita o material
+        expect(i.kg_declarado).toBeGreaterThan(0);
+      }
     }
   });
 
   it('há entregas hoje e nos próximos dias nos pontos do Marcos e da Paula (demo do parceiro)', () => {
-    const futuras = s.coletas.filter((c) => c.status === 'agendada');
-    expect(futuras.some((c) => c.data_agendada === HOJE && [1, 4].includes(c.ponto_id))).toBe(true);
+    const futuras = s.coletas.filter((c) => STATUS_ATIVOS.includes(c.status));
+    expect(futuras.some((c) => c.data === HOJE && c.status === 'confirmada' && [1, 4].includes(c.ponto_id))).toBe(true);
     expect(futuras.some((c) => c.ponto_id === 2)).toBe(true);
+    // aba "Novas" do painel do Marcos
+    expect(
+      futuras.filter((c) => c.status === 'solicitada' && [1, 4].includes(c.ponto_id)).length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('agendamentos futuros só em pontos ativos', () => {
-    for (const c of s.coletas.filter((x) => x.status === 'agendada')) {
+    for (const c of s.coletas.filter((x) => STATUS_ATIVOS.includes(x.status))) {
       expect(s.pontos.find((p) => p.id === c.ponto_id).status).toBe('ativo');
     }
   });
@@ -119,7 +127,7 @@ describe('makeSeed', () => {
     for (const u of s.usuarios) {
       const { saldo } = calcularEstatisticas({
         coletas: s.coletas.filter((c) => c.usuario_id === u.id),
-        resgates: s.resgates.filter((r) => r.usuario_id === u.id),
+        extrato: s.extrato.filter((l) => l.usuario_id === u.id),
       });
       expect(saldo).toBeGreaterThanOrEqual(0);
     }
@@ -151,13 +159,36 @@ describe('makeSeed', () => {
   });
 
   it('nenhuma coleta agendada cai em dia em que o ponto está fechado', () => {
-    for (const c of s.coletas.filter((x) => x.status === 'agendada')) {
+    for (const c of s.coletas.filter((x) => STATUS_ATIVOS.includes(x.status))) {
       expect(
         fechadoNoDia(
           s.pontos.find((p) => p.id === c.ponto_id),
-          c.data_agendada,
+          c.data,
         ),
       ).toBe(false);
+    }
+  });
+
+  it('coletas coerentes com a máquina de estados, a linha do tempo e o extrato', () => {
+    for (const c of s.coletas) {
+      const eventos = s.coleta_eventos.filter((e) => e.coleta_id === c.id);
+      expect(eventos.at(-1).para).toBe(c.status); // a linha do tempo termina no status atual
+      expect(eventos[0].acao).toBe('solicitar');
+      if (c.status === 'confirmada') expect(c.codigo_entrega).toMatch(/^\d{4}$/);
+      if (c.status === 'concluida') {
+        expect(c.comprovante.pontos).toBe(pontosDaColeta(c));
+        const lancamentos = s.extrato.filter((l) => l.referencia_tipo === 'coleta' && l.referencia_id === c.id);
+        expect(lancamentos.map((l) => l.valor)).toEqual([c.pontos_creditados]);
+      }
+    }
+    expect(new Set(s.coletas.map((c) => c.codigo)).size).toBe(s.coletas.length);
+    expect(s.coletas.some((c) => c.itens.some((i) => i.status === 'rejeitado'))).toBe(true); // aprovação parcial
+  });
+
+  it('janelas das coletas existem na agenda do ponto', () => {
+    for (const c of s.coletas.filter((x) => x.janela_inicio)) {
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      expect(janelasDoDia(ponto, c.data).some((j) => j.inicio === c.janela_inicio)).toBe(true);
     }
   });
 });

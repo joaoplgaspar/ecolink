@@ -5,6 +5,7 @@ import { configurarBackend, backendMemoria, resetar, transacao, ler } from '@/da
 import { guardarToken, limparToken } from '@/data/sessaoCliente';
 import { hashDoToken, VALIDADE_MS } from '@/data/repos/_sessao';
 import { perfilPadrao } from '@/domain/permissoes';
+import { coletas } from '@/data/repos';
 
 /** Data fixa usada nos testes (segunda-feira, 23/11/2026, 12h). */
 export const AGORA = new Date('2026-11-23T12:00:00');
@@ -63,4 +64,12 @@ export async function erroDe(promessa) {
     return e;
   }
   throw new Error('Era esperado um erro, mas a chamada deu certo.');
+}
+
+/** Primeira janela livre de um ponto (a partir de `dataMin`, se informada). */
+export async function primeiraJanela(pontoId, { dataMin = '' } = {}) {
+  const { dias } = await coletas.agenda(pontoId);
+  const dia = dias.find((d) => d.data >= dataMin && d.janelas.some((j) => j.disponivel));
+  if (!dia) throw new Error(`Sem janela livre no ponto ${pontoId}`);
+  return { data: dia.data, janela_inicio: dia.janelas.find((j) => j.disponivel).inicio };
 }

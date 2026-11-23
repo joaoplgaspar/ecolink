@@ -16,6 +16,8 @@ export * as resgates from './resgates';
 export * as chat from './chat';
 export * as notificacoes from './notificacoes';
 export * as estatisticas from './estatisticas';
+export * as extrato from './extrato';
+export * as manutencao from './manutencao';
 export * as parceiro from './parceiro';
 export * as organizacoes from './organizacoes';
 export * as arquivos from './arquivos';

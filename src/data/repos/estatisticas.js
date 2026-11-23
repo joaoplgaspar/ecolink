@@ -1,5 +1,5 @@
 // Estatísticas derivadas (gamificação). As regras ficam em domain/gamificacao.js;
-// aqui só buscamos os dados e aplicamos as regras.
+// aqui só buscamos os dados (coletas e EXTRATO) e aplicamos as regras.
 
 import { ler } from '../storage';
 import { calcularEstatisticas, calcularRanking } from '../../domain/gamificacao';
@@ -13,7 +13,7 @@ export function minhas() {
     const s = ler();
     return calcularEstatisticas({
       coletas: s.coletas.filter((c) => c.usuario_id === ator.id),
-      resgates: s.resgates.filter((r) => r.usuario_id === ator.id),
+      extrato: s.extrato.filter((l) => l.usuario_id === ator.id),
     });
   });
 }
@@ -24,6 +24,6 @@ export function ranking() {
     exigir(ator, 'ranking.ver');
     const s = ler();
     const cidadaos = s.usuarios.filter((u) => u.papeis.includes('cidadao') && u.status === 'ativo');
-    return calcularRanking({ usuarios: cidadaos, coletas: s.coletas });
+    return calcularRanking({ usuarios: cidadaos, extrato: s.extrato });
   });
 }

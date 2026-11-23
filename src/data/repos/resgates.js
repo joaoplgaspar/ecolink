@@ -6,10 +6,11 @@
 import { ler, transacao } from '../storage';
 import { ErroApi, naoEncontrado } from '../erros';
 import { RECOMPENSAS } from '../recompensas';
-import { calcularEstatisticas } from '../../domain/gamificacao';
+import { saldoDe } from '../../domain/extrato';
 import { chamarAutenticado, agoraISO, proximoId } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
+import { lancar } from './_coleta';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O e 1/I, que confundem
 
@@ -35,10 +36,8 @@ export function resgatar(recompensaId) {
       const recompensa = RECOMPENSAS.find((r) => r.id === Number(recompensaId));
       if (!recompensa) throw naoEncontrado('Recompensa');
 
-      const { saldo } = calcularEstatisticas({
-        coletas: s.coletas.filter((c) => c.usuario_id === ator.id),
-        resgates: s.resgates.filter((r) => r.usuario_id === ator.id),
-      });
+      // Saldo recalculado AGORA, a partir do extrato (não do que a tela mostrou).
+      const saldo = saldoDe(s.extrato.filter((l) => l.usuario_id === ator.id));
       if (saldo < recompensa.custo) {
         throw new ErroApi(422, `Saldo insuficiente: faltam ${recompensa.custo - saldo} EcoPontos.`);
       }
@@ -54,6 +53,15 @@ export function resgatar(recompensaId) {
         em: agoraISO(),
       };
       s.resgates.push(novo);
+      lancar(s, {
+        usuario_id: ator.id,
+        tipo: 'resgate',
+        valor: -recompensa.custo,
+        referencia_tipo: 'resgate',
+        referencia_id: novo.id,
+        descricao: recompensa.nome,
+        criado_por: ator.id,
+      });
       registrarNotificacao(s, ator.id, {
         tipo: 'recompensa',
         icone: '🎁',

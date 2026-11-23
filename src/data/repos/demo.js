@@ -6,6 +6,7 @@ import { PAPEIS } from '../../domain/permissoes';
 import { limparToken } from '../sessaoCliente';
 import { limparTodos } from '../arquivos';
 import { chamar } from './_rede';
+import { processarPrazos } from './manutencao';
 
 /** Apaga todos os dados do dispositivo e recria o seed de demonstração. */
 export function restaurar() {
@@ -35,4 +36,12 @@ export const senhaDemo = SENHA_DEMO;
  */
 export function emails() {
   return chamar(() => [...ler().emails_demo].reverse());
+}
+
+/**
+ * Simula a passagem do tempo SÓ para os prazos das entregas (expiração,
+ * não comparecimento, lembretes) — para demonstrar sem esperar horas.
+ */
+export function simularTempo(horas) {
+  return processarPrazos({ agora: new Date(Date.now() + Number(horas) * 3600_000) });
 }

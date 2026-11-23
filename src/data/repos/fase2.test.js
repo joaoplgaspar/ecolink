@@ -5,7 +5,7 @@ import { organizacoes, parceiro, admin, pontos, coletas, arquivos, auth, notific
 import { ler, transacao } from '../storage';
 import { usarMemoria, lerBlob } from '../arquivos';
 import { gradeCom } from '../../domain/horarios';
-import { prepararBanco, restaurarRelogio, entrarComo, erroDe, IDS } from '@/test/ambiente';
+import { prepararBanco, restaurarRelogio, entrarComo, erroDe, IDS, primeiraJanela } from '@/test/ambiente';
 
 const ID = { ...IDS, sergio: 15, lucia: 16, rafael: 17 };
 const PDF = () => new Blob([new TextEncoder().encode('%PDF-1.7\n%conteudo de teste\n')], { type: 'application/pdf' });
@@ -194,13 +194,12 @@ describe('assistente de ponto', () => {
     });
     expect(publico).not.toHaveProperty('motivo_status');
     expect(
-      await coletas.agendar({
+      await coletas.solicitar({
         ponto_id: rascunho.id,
-        material: 'papel',
-        quantidade_kg: 2,
-        data_agendada: '2026-11-24',
+        ...(await primeiraJanela(rascunho.id)),
+        itens: [{ material: 'papel', kg: 2 }],
       }),
-    ).toMatchObject({ status: 'agendada' });
+    ).toMatchObject({ status: 'solicitada' });
   });
 
   it('depois de aprovado, nome e endereço ficam travados; o operacional pode mudar', async () => {
@@ -220,7 +219,14 @@ describe('assistente de ponto', () => {
     expect(await parceiro.alterarRecebimento(2, false)).toMatchObject({ status: 'pausado' });
     await entrarComo(ID.ana);
     expect(
-      await erroDe(coletas.agendar({ ponto_id: 2, material: 'pilhas', quantidade_kg: 1, data_agendada: '2026-11-24' })),
+      await erroDe(
+        coletas.solicitar({
+          ponto_id: 2,
+          data: '2026-11-24',
+          janela_inicio: '09:00',
+          itens: [{ material: 'pilhas', kg: 1 }],
+        }),
+      ),
     ).toMatchObject({ status: 422 });
     expect((await pontos.obter(2)).ativo).toBe(false); // continua visível, mas "não recebendo"
   });
@@ -273,20 +279,22 @@ describe('visibilidade pública e agendamento', () => {
 
   it('não agenda em dia fechado (domingo, feriado) e informa o motivo', async () => {
     await entrarComo(ID.ana);
-    const valida = { ponto_id: 1, material: 'papel', quantidade_kg: 2 };
-    expect(await erroDe(coletas.agendar({ ...valida, data_agendada: '2026-11-29' }))).toMatchObject({
+    const base = { ponto_id: 1, janela_inicio: '09:00', itens: [{ material: 'papel', kg: 2 }] };
+    expect(await erroDe(coletas.solicitar({ ...base, data: '2026-11-29' }))).toMatchObject({
       status: 422,
-      message: expect.stringMatching(/não abre em 29\/11\/2026/),
+      message: expect.stringMatching(/não abre/),
     });
-    expect(await erroDe(coletas.agendar({ ...valida, data_agendada: '2026-12-25' }))).toMatchObject({
-      message: expect.stringMatching(/\(Natal\)/),
+    expect(await erroDe(coletas.solicitar({ ...base, data: '2026-12-25' }))).toMatchObject({
+      status: 422,
+      message: expect.stringMatching(/não abre/),
     });
   });
 
   it('respeita o limite de kg por material definido pelo ponto', async () => {
     await entrarComo(ID.ana);
+    const janela = await primeiraJanela(1);
     expect(
-      await erroDe(coletas.agendar({ ponto_id: 1, material: 'vidro', quantidade_kg: 31, data_agendada: '2026-11-24' })),
+      await erroDe(coletas.solicitar({ ponto_id: 1, ...janela, itens: [{ material: 'vidro', kg: 31 }] })),
     ).toMatchObject({
       status: 422,
       message: expect.stringMatching(/até 30 kg de vidro/),

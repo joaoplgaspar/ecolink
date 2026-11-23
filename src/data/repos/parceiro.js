@@ -3,7 +3,8 @@
 // Escopo: cada membro só enxerga os pontos dos quais faz parte — e, dos
 // cidadãos, só o MÍNIMO necessário (primeiro nome + inicial). Telefone e
 // e-mail nunca saem daqui (minimização de dados, LGPD).
-// Aceitar, recusar, fazer check-in e pesar chegam na Fase 3 do ROADMAP.
+// Recebimentos (Fase 3): aceitar/recusar, check-in com código de entrega ou QR,
+// entrega sem agendamento e pesagem — quem credita EcoPontos é o PONTO.
 
 import { ler, transacao } from '../storage';
 import { ErroApi, naoEncontrado, invalido } from '../erros';
@@ -22,13 +23,17 @@ import {
   pontoCompleto,
 } from '../../domain/pontos';
 import { MATERIAIS } from '../../domain/materiais';
+import { recebendo } from '../../domain/pontos';
+import { STATUS_COLETA, acoesDisponiveis } from '../../domain/coletaMaquina';
+import { kgRecebidos, estimativaDaColeta } from '../../domain/gamificacao';
+import { chegadaAtrasada } from '../../domain/agenda';
+import { divergencias, problemasDaPesagem } from '../../domain/antifraude';
+import { novoCodigoEntrega, novoCodigoColeta, lerQr, codigosIguais } from '../../domain/codigos';
+import { montarComprovante } from '../../domain/comprovante';
+import { mudarStatus, registrarEvento, lancar, quando } from './_coleta';
 
-/** "Ana Recicladora" → "Ana R." */
-export function nomeReduzido(nome = '') {
-  const [primeiro, ...resto] = nome.trim().split(/\s+/);
-  const ultimo = resto.at(-1);
-  return ultimo ? `${primeiro} ${ultimo[0]}.` : primeiro;
-}
+import { nomeReduzido } from '../../utils/format';
+export { nomeReduzido };
 
 /** Pontos em que a pessoa trabalha (qualquer status), com o papel dela e um resumo do dia. */
 export function meusPontos() {
@@ -47,20 +52,94 @@ export function meusPontos() {
           pode_editar: (ator.organizacoes || []).includes(ponto.organizacao_id),
           papel: m.papel,
           resumo: {
-            hoje: doPonto.filter((c) => c.status === 'agendada' && c.data_agendada === hoje).length,
-            proximas: doPonto.filter((c) => c.status === 'agendada' && c.data_agendada >= hoje).length,
+            novas: doPonto.filter((c) => c.status === 'solicitada').length,
+            hoje: doPonto.filter((c) => ['confirmada', 'em_conferencia'].includes(c.status) && c.data === hoje).length,
+            proximas: doPonto.filter((c) => c.status === 'confirmada' && c.data > hoje).length,
             recebidas_kg:
-              Math.round(
-                doPonto.filter((c) => c.status === 'concluida').reduce((t, c) => t + c.quantidade_kg, 0) * 10,
-              ) / 10,
+              Math.round(doPonto.filter((c) => c.status === 'concluida').reduce((t, c) => t + kgRecebidos(c), 0) * 10) /
+              10,
           },
         };
       });
   });
 }
 
-/** Coletas de um ponto (só para membros dele ou para a plataforma). */
-export function coletasDoPonto(pontoId, { status } = {}) {
+/* ------------------------- recebimentos (Fase 3) ------------------------- */
+
+/**
+ * O que a equipe do ponto vê de uma coleta: itens, horário e o MÍNIMO do cidadão
+ * ("Ana R."). Nunca o código de entrega (quem tem é o cidadão), nem telefone/e-mail.
+ */
+function paraPonto(estado, c, { detalhe = false } = {}) {
+  const cidadao = estado.usuarios.find((u) => u.id === c.usuario_id);
+  const r = {
+    id: c.id,
+    codigo: c.codigo,
+    tipo: c.tipo,
+    status: c.status,
+    status_rotulo: STATUS_COLETA[c.status]?.rotulo,
+    data: c.data,
+    janela_inicio: c.janela_inicio,
+    janela_fim: c.janela_fim,
+    itens: c.itens,
+    cidadao: nomeReduzido(cidadao?.nome),
+    responder_ate: c.responder_ate || null,
+    motivo: c.motivo,
+    atrasado: Boolean(c.atrasado),
+    alertas: c.alertas || [],
+    pontos_creditados: c.pontos_creditados,
+    estimativa: estimativaDaColeta(c),
+    acoes: acoesDisponiveis(c, 'ponto'),
+    codigo_bloqueado: Boolean(c.codigo_bloqueado_ate && Date.parse(c.codigo_bloqueado_ate) > Date.now()),
+  };
+  if (detalhe) {
+    r.comprovante = c.comprovante || null;
+    r.materiais_aceitos = estado.pontos.find((p) => p.id === c.ponto_id)?.materiais || [];
+    r.ponto_id = c.ponto_id;
+    r.eventos = estado.coleta_eventos
+      .filter((e) => e.coleta_id === c.id)
+      .map((e) => {
+        const quem =
+          e.ator === 'cidadao'
+            ? r.cidadao
+            : e.ator === 'sistema'
+              ? 'ECOLINK'
+              : nomeReduzido(estado.usuarios.find((u) => u.id === e.ator_id)?.nome || 'Equipe');
+        return { id: e.id, acao: e.acao, para: e.para, quem, motivo: e.motivo, em: e.em };
+      });
+  }
+  return r;
+}
+
+function buscarColeta(estado, ator, id) {
+  const c = estado.coletas.find((x) => x.id === Number(id));
+  if (!c) throw naoEncontrado('Entrega');
+  exigir(
+    ator,
+    'coleta.listar_do_ponto',
+    { ponto_id: c.ponto_id },
+    'Você só vê as entregas dos pontos em que trabalha.',
+  );
+  return c;
+}
+
+function buscarParaOperar(estado, ator, id) {
+  const c = buscarColeta(estado, ator, id);
+  exigir(
+    ator,
+    'coleta.operar',
+    c,
+    c.usuario_id === ator.id
+      ? 'Você não pode operar a sua própria entrega (conflito de interesse).'
+      : 'Você não pode operar esta entrega.',
+  );
+  return c;
+}
+
+const ordemHorario = (a, b) => (`${a.data} ${a.janela_inicio || ''}` < `${b.data} ${b.janela_inicio || ''}` ? -1 : 1);
+
+/** Painel de recebimentos do ponto: novas, hoje, próximas e finalizadas. */
+export function recebimentos(pontoId) {
   return chamarAutenticado((ator) => {
     const s = ler();
     if (!s.pontos.some((p) => p.id === Number(pontoId))) throw naoEncontrado('Ponto de coleta');
@@ -68,24 +147,344 @@ export function coletasDoPonto(pontoId, { status } = {}) {
       ator,
       'coleta.listar_do_ponto',
       { ponto_id: Number(pontoId) },
-      'Você só pode ver as coletas dos pontos em que trabalha.',
+      'Você só vê as entregas dos pontos em que trabalha.',
     );
-    return s.coletas
-      .filter((c) => c.ponto_id === Number(pontoId) && (!status || c.status === status))
-      .map((c) => {
-        const cidadao = s.usuarios.find((u) => u.id === c.usuario_id);
-        // Sem usuario_id, telefone ou e-mail: o ponto não precisa disso.
-        return {
-          id: c.id,
-          material: c.material,
-          quantidade_kg: c.quantidade_kg,
-          status: c.status,
-          data_agendada: c.data_agendada,
-          cidadao: nomeReduzido(cidadao?.nome),
-        };
-      })
-      .sort((a, b) => (a.data_agendada < b.data_agendada ? -1 : 1));
+    const hoje = isoDia(new Date());
+    const doPonto = s.coletas.filter((c) => c.ponto_id === Number(pontoId));
+    const proj = (lista) => lista.map((c) => paraPonto(s, c));
+    return {
+      novas: proj(
+        doPonto.filter((c) => c.status === 'solicitada').sort((a, b) => (a.responder_ate < b.responder_ate ? -1 : 1)),
+      ),
+      hoje: proj(
+        doPonto
+          .filter((c) => (c.status === 'confirmada' && c.data === hoje) || c.status === 'em_conferencia')
+          .sort(ordemHorario),
+      ),
+      proximas: proj(doPonto.filter((c) => c.status === 'confirmada' && c.data > hoje).sort(ordemHorario)),
+      finalizadas: proj(
+        doPonto
+          .filter((c) => STATUS_COLETA[c.status]?.final || c.status === 'contestada')
+          .sort((a, b) => -ordemHorario(a, b))
+          .slice(0, 30),
+      ),
+    };
   });
+}
+
+/** Detalhe de uma entrega do ponto (linha do tempo e comprovante). */
+export function obterColeta(id) {
+  return chamarAutenticado((ator) => {
+    const s = ler();
+    return paraPonto(s, buscarColeta(s, ator, id), { detalhe: true });
+  });
+}
+
+/** Aceita a solicitação: gera o código de entrega para o cidadão. */
+export function aceitar(id) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = buscarParaOperar(s, ator, id);
+      mudarStatus(s, c, 'aceitar', { ator: 'ponto', ator_id: ator.id });
+      c.codigo_entrega = novoCodigoEntrega();
+      c.confirmada_em = agoraISO();
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      registrarNotificacao(s, c.usuario_id, {
+        tipo: 'lembrete',
+        icone: '✅',
+        texto: `${ponto.nome} confirmou sua entrega de ${quando(c)}. Veja o código de entrega no app.`,
+      });
+      auditar(s, { ator_id: ator.id, acao: 'coleta.aceita', recurso_tipo: 'coleta', recurso_id: c.id });
+      return paraPonto(s, c);
+    }),
+  );
+}
+
+/** Recusa a solicitação (motivo obrigatório; o cidadão é avisado). */
+export function recusar(id, motivo) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = buscarParaOperar(s, ator, id);
+      mudarStatus(s, c, 'recusar', { ator: 'ponto', ator_id: ator.id, motivo });
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      registrarNotificacao(s, c.usuario_id, {
+        tipo: 'lembrete',
+        icone: '✖️',
+        texto: `${ponto.nome} não pôde aceitar sua entrega de ${quando(c)}: ${c.motivo}. Que tal outro ponto próximo?`,
+      });
+      auditar(s, {
+        ator_id: ator.id,
+        acao: 'coleta.recusada',
+        recurso_tipo: 'coleta',
+        recurso_id: c.id,
+        detalhes: { motivo: c.motivo },
+      });
+      return paraPonto(s, c);
+    }),
+  );
+}
+
+/** O ponto cancela uma entrega já confirmada (imprevisto). Motivo obrigatório; pesa na reputação do ponto (Fase 4). */
+export function cancelarPeloPonto(id, motivo) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = buscarParaOperar(s, ator, id);
+      if (String(motivo || '').trim().length < 3) throw invalido('Informe o motivo do cancelamento.', 'motivo');
+      mudarStatus(s, c, 'cancelar', { ator: 'ponto', ator_id: ator.id, motivo });
+      c.cancelada_por = 'ponto';
+      c.codigo_entrega = null;
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      registrarNotificacao(s, c.usuario_id, {
+        tipo: 'lembrete',
+        icone: '⚠️',
+        texto: `${ponto.nome} cancelou sua entrega de ${quando(c)}: ${c.motivo}. Pedimos desculpas.`,
+      });
+      auditar(s, {
+        ator_id: ator.id,
+        acao: 'coleta.cancelada_pelo_ponto',
+        recurso_tipo: 'coleta',
+        recurso_id: c.id,
+        detalhes: { motivo: c.motivo },
+      });
+      return paraPonto(s, c);
+    }),
+  );
+}
+
+export const MAX_TENTATIVAS_CODIGO = 5;
+export const BLOQUEIO_CODIGO_MS = 10 * 60_000;
+
+/**
+ * Check-in: o cidadão chegou e informou o CÓDIGO DE ENTREGA (4 dígitos).
+ * Só no dia da entrega. 5 códigos errados bloqueiam o check-in por 10 minutos.
+ */
+export function checkin(id, codigo) {
+  return chamarAutenticado((ator) => {
+    let erro = null;
+    const resultado = transacao((s) => {
+      const c = buscarParaOperar(s, ator, id);
+      if (c.status !== 'confirmada') throw new ErroApi(409, 'Esta entrega não está aguardando chegada.');
+      const hoje = isoDia(new Date());
+      if (c.data !== hoje)
+        throw new ErroApi(409, `Esta entrega está marcada para ${c.data.split('-').reverse().join('/')}.`);
+      if (c.codigo_bloqueado_ate && Date.parse(c.codigo_bloqueado_ate) > Date.now()) {
+        throw new ErroApi(
+          429,
+          'Muitas tentativas com código errado. Aguarde alguns minutos ou peça ao cidadão para conferir o código no app.',
+        );
+      }
+      if (!codigosIguais(String(codigo ?? '').trim(), c.codigo_entrega)) {
+        // Grava a tentativa (por isso não lança dentro da transação).
+        c.tentativas_codigo = (c.tentativas_codigo || 0) + 1;
+        if (c.tentativas_codigo >= MAX_TENTATIVAS_CODIGO) {
+          c.codigo_bloqueado_ate = new Date(Date.now() + BLOQUEIO_CODIGO_MS).toISOString();
+          c.tentativas_codigo = 0;
+        }
+        auditar(s, { ator_id: ator.id, acao: 'coleta.codigo_incorreto', recurso_tipo: 'coleta', recurso_id: c.id });
+        erro = new ErroApi(422, 'Código de entrega incorreto. Peça ao cidadão para mostrar o código no app.', {
+          campo: 'codigo',
+        });
+        return null;
+      }
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      mudarStatus(s, c, 'checkin', { ator: 'ponto', ator_id: ator.id });
+      c.checkin_em = agoraISO();
+      c.operador_checkin_id = ator.id;
+      c.atrasado = chegadaAtrasada(ponto, c);
+      c.tentativas_codigo = 0;
+      auditar(s, { ator_id: ator.id, acao: 'coleta.checkin', recurso_tipo: 'coleta', recurso_id: c.id });
+      return paraPonto(s, c);
+    });
+    if (erro) throw erro;
+    return resultado;
+  });
+}
+
+/**
+ * Lê um QR (ou código digitado) no balcão:
+ *  • QR da coleta → faz o check-in na hora;
+ *  • QR/código PESSOAL do cidadão → identifica para uma entrega sem agendamento.
+ */
+export function lerCodigo(pontoId, texto) {
+  return chamarAutenticado(async (ator) => {
+    const lido = lerQr(texto);
+    if (!lido) throw invalido('Código não reconhecido. Use o QR do app ECOLINK.', 'codigo');
+    const s = ler();
+    exigir(ator, 'coleta.listar_do_ponto', { ponto_id: Number(pontoId) });
+    if (lido.tipo === 'coleta') {
+      const c = s.coletas.find((x) => x.codigo === lido.codigo && x.ponto_id === Number(pontoId));
+      if (!c) throw naoEncontrado('Entrega deste ponto');
+      return { tipo: 'coleta', coleta: await checkin(c.id, lido.entrega) };
+    }
+    const cidadao = s.usuarios.find(
+      (u) => u.codigo_pessoal === lido.codigo && u.status === 'ativo' && u.papeis.includes('cidadao'),
+    );
+    if (!cidadao) throw naoEncontrado('Cidadão com este código');
+    return { tipo: 'pessoal', codigo: lido.codigo, cidadao: nomeReduzido(cidadao.nome) };
+  });
+}
+
+/** Entrega SEM agendamento: identifica o cidadão pelo código pessoal e abre a conferência. */
+export function iniciarAvulsa(pontoId, codigoPessoal) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const ponto = s.pontos.find((p) => p.id === Number(pontoId));
+      if (!ponto) throw naoEncontrado('Ponto de coleta');
+      const lido = lerQr(codigoPessoal);
+      const cidadao =
+        lido?.tipo === 'pessoal' &&
+        s.usuarios.find(
+          (u) => u.codigo_pessoal === lido.codigo && u.status === 'ativo' && u.papeis.includes('cidadao'),
+        );
+      if (!cidadao) throw naoEncontrado('Cidadão com este código');
+      exigir(
+        ator,
+        'coleta.operar',
+        { ponto_id: ponto.id, usuario_id: cidadao.id },
+        cidadao.id === ator.id
+          ? 'Você não pode registrar a sua própria entrega (conflito de interesse).'
+          : 'Você não pode registrar entregas neste ponto.',
+      );
+      if (!recebendo(ponto)) throw invalido('O ponto está pausado. Retome o recebimento para registrar entregas.');
+      const aberta = s.coletas.find(
+        (c) => c.usuario_id === cidadao.id && c.ponto_id === ponto.id && c.status === 'em_conferencia',
+      );
+      if (aberta) return paraPonto(s, aberta); // já existe uma conferência em andamento: continua nela
+
+      const agora = agoraISO();
+      let codigo;
+      do codigo = novoCodigoColeta();
+      while (s.coletas.some((x) => x.codigo === codigo));
+      const c = {
+        id: proximoId(s, 'coleta'),
+        codigo,
+        tipo: 'avulsa',
+        usuario_id: cidadao.id,
+        ponto_id: ponto.id,
+        data: isoDia(new Date()),
+        janela_inicio: null,
+        janela_fim: null,
+        itens: [],
+        status: 'em_conferencia',
+        codigo_entrega: null,
+        tentativas_codigo: 0,
+        alertas: [],
+        pontos_creditados: 0,
+        motivo: null,
+        criada_em: agora,
+        checkin_em: agora,
+        operador_checkin_id: ator.id,
+      };
+      s.coletas.push(c);
+      registrarEvento(s, {
+        coleta_id: c.id,
+        acao: 'entrega_avulsa',
+        de: null,
+        para: 'em_conferencia',
+        ator: 'ponto',
+        ator_id: ator.id,
+        motivo: null,
+        em: agora,
+      });
+      registrarNotificacao(s, cidadao.id, {
+        tipo: 'coleta',
+        icone: '⚖️',
+        texto: `Você está entregando no ${ponto.nome}: o material está em conferência.`,
+      });
+      auditar(s, { ator_id: ator.id, acao: 'coleta.avulsa_iniciada', recurso_tipo: 'coleta', recurso_id: c.id });
+      return paraPonto(s, c);
+    }),
+  );
+}
+
+/**
+ * Registra a PESAGEM e encerra a conferência.
+ * itens: [{ material, kg_aferido, status: 'aprovado'|'rejeitado', motivo }]
+ * • Pelo menos um aprovado → concluída: EcoPontos do peso AFERIDO lançados no extrato.
+ * • Todos recusados → "material recusado", sem EcoPontos.
+ * • Peso muito acima do declarado → pede confirmação (confirmarDivergencia) e fica registrado.
+ */
+export function registrarPesagem(id, itens, { confirmarDivergencia = false } = {}) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = buscarParaOperar(s, ator, id);
+      if (c.status !== 'em_conferencia') throw new ErroApi(409, 'Faça o check-in antes de pesar.');
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      const declarado = Object.fromEntries((c.itens || []).map((i) => [i.material, i.kg_declarado]));
+      const pesados = (itens || []).slice(0, 10).map((i) => ({
+        material: i.material,
+        kg_declarado: declarado[i.material] ?? 0, // 0 = item a mais, trazido na hora
+        kg_aferido: i.status === 'aprovado' ? Math.round(Number(i.kg_aferido) * 10) / 10 : null,
+        status: i.status,
+        motivo:
+          i.status === 'rejeitado'
+            ? String(i.motivo || '')
+                .trim()
+                .slice(0, 200)
+            : null,
+      }));
+      const problemas = problemasDaPesagem(pesados, ponto.materiais);
+      if (problemas.length) throw invalido(problemas[0]);
+      if (new Set(pesados.map((i) => i.material)).size !== pesados.length)
+        throw invalido('Há material repetido na pesagem.');
+      const div = divergencias(pesados);
+      if (div.length && !confirmarDivergencia) {
+        throw new ErroApi(409, 'O peso aferido está bem acima do declarado. Confira a balança e confirme.', {
+          codigo: 'divergencia',
+          divergencias: div,
+        });
+      }
+
+      c.itens = pesados;
+      c.operador_pesagem_id = ator.id;
+      if (div.length) c.alertas = [...new Set([...(c.alertas || []), 'divergencia_peso'])];
+      const operador = s.usuarios.find((u) => u.id === ator.id);
+      const aprovados = pesados.filter((i) => i.status === 'aprovado');
+
+      if (!aprovados.length) {
+        mudarStatus(s, c, 'rejeitar', {
+          ator: 'ponto',
+          ator_id: ator.id,
+          motivo: pesados.map((i) => i.motivo).join('; '),
+        });
+      } else {
+        mudarStatus(s, c, 'concluir', { ator: 'ponto', ator_id: ator.id });
+      }
+      c.concluida_em = agoraISO();
+      c.comprovante = montarComprovante(c, {
+        pontoNome: ponto.nome,
+        operadorNome: nomeReduzido(operador.nome),
+        emitidoEm: c.concluida_em,
+      });
+      c.pontos_creditados = c.comprovante.pontos;
+      if (c.pontos_creditados > 0) {
+        lancar(s, {
+          usuario_id: c.usuario_id,
+          tipo: 'credito_coleta',
+          valor: c.pontos_creditados,
+          referencia_tipo: 'coleta',
+          referencia_id: c.id,
+          descricao: `Entrega ${c.codigo} no ${ponto.nome}`,
+          criado_por: ator.id,
+        });
+      }
+      registrarNotificacao(s, c.usuario_id, {
+        tipo: 'coleta',
+        icone: aprovados.length ? '♻️' : '✖️',
+        texto: aprovados.length
+          ? `${ponto.nome} conferiu sua entrega: ${c.comprovante.total_kg} kg aprovados. +${c.pontos_creditados} EcoPontos!`
+          : `${ponto.nome} não pôde aceitar o material: ${c.motivo}.`,
+      });
+      auditar(s, {
+        ator_id: ator.id,
+        acao: aprovados.length ? 'coleta.concluida' : 'coleta.rejeitada',
+        recurso_tipo: 'coleta',
+        recurso_id: c.id,
+        detalhes: { pontos: c.pontos_creditados, ...(div.length ? { divergencia: true } : {}) },
+      });
+      return paraPonto(s, c, { detalhe: true });
+    }),
+  );
 }
 
 /* ------------------------- assistente de ponto (Fase 2) ------------------------- */

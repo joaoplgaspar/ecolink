@@ -8,8 +8,10 @@
 import { SENHA_DEMO, HASH_SENHA_DEMO } from './contasDemo';
 import { parseHorarioLegado } from '../domain/horarios';
 import { REGRAS_PADRAO } from '../domain/pontos';
+import { pontosDaColeta } from '../domain/gamificacao';
+import { novoCodigoColeta, novoCodigoEntrega, novoCodigoPessoal } from '../domain/codigos';
 
-export const VERSAO_ATUAL = 5;
+export const VERSAO_ATUAL = 6;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -25,6 +27,8 @@ const SEQUENCIAS = {
   recuperacoes: 'recuperacao',
   emails_demo: 'email',
   organizacoes: 'organizacao',
+  extrato: 'extrato',
+  coleta_eventos: 'evento',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -109,6 +113,85 @@ export const MIGRACOES = [
         p.organizacao_id = p.organizacao_id ?? null; // pontos antigos: sem organização (não verificados)
       }
       s.seq.organizacao = Math.max(s.seq.organizacao || 0, maxId(s.organizacoes));
+    },
+  },
+  {
+    para: 6,
+    descricao: 'Coletas com itens, janelas e máquina de estados; extrato de EcoPontos; código pessoal',
+    aplicar(s) {
+      s.extrato = s.extrato || [];
+      s.coleta_eventos = s.coleta_eventos || [];
+      s.seq.extrato = s.seq.extrato || maxId(s.extrato);
+      const lancar = (l) => s.extrato.push({ id: ++s.seq.extrato, ...l });
+      const usados = new Set(s.coletas.map((c) => c.codigo).filter(Boolean));
+      const codigoUnico = () => {
+        let c;
+        do c = novoCodigoColeta();
+        while (usados.has(c));
+        usados.add(c);
+        return c;
+      };
+
+      for (const c of s.coletas) {
+        if (c.itens) continue; // já no formato novo
+        // Formato antigo: 1 material, kg declarado e status agendada/concluida/cancelada.
+        const status = c.status === 'agendada' ? 'confirmada' : c.status;
+        const concluida = status === 'concluida';
+        c.itens = [
+          {
+            material: c.material,
+            kg_declarado: c.quantidade_kg,
+            kg_aferido: concluida ? c.quantidade_kg : null,
+            status: concluida ? 'aprovado' : 'pendente',
+            motivo: null,
+          },
+        ];
+        c.data = c.data_agendada;
+        c.janela_inicio = null; // coletas antigas não tinham janela
+        c.janela_fim = null;
+        c.tipo = 'agendada';
+        c.status = status;
+        c.codigo = c.codigo || codigoUnico();
+        c.codigo_entrega = status === 'confirmada' ? novoCodigoEntrega() : null;
+        c.tentativas_codigo = 0;
+        c.alertas = [];
+        c.criada_em = c.criada_em || `${c.data}T12:00:00.000Z`;
+        c.pontos_creditados = concluida ? pontosDaColeta(c) : 0;
+        delete c.material;
+        delete c.quantidade_kg;
+        delete c.data_agendada;
+        // EcoPontos que antes eram "calculados" viram lançamentos no extrato.
+        if (concluida && c.pontos_creditados) {
+          lancar({
+            usuario_id: c.usuario_id,
+            tipo: 'credito_coleta',
+            valor: c.pontos_creditados,
+            referencia_tipo: 'coleta',
+            referencia_id: c.id,
+            descricao: 'Coleta concluída (migrada)',
+            criado_por: null,
+            em: c.criada_em,
+          });
+        }
+      }
+      for (const r of s.resgates) {
+        if (s.extrato.some((l) => l.referencia_tipo === 'resgate' && l.referencia_id === r.id)) continue;
+        lancar({
+          usuario_id: r.usuario_id,
+          tipo: 'resgate',
+          valor: -r.custo,
+          referencia_tipo: 'resgate',
+          referencia_id: r.id,
+          descricao: r.nome,
+          criado_por: r.usuario_id,
+          em: r.em,
+        });
+      }
+      for (const u of s.usuarios) {
+        if (u.papeis.includes('cidadao') && !u.codigo_pessoal) u.codigo_pessoal = novoCodigoPessoal();
+      }
+      s.seq.coleta = Math.max(s.seq.coleta || 0, maxId(s.coletas));
+      s.seq.evento = Math.max(s.seq.evento || 0, maxId(s.coleta_eventos));
     },
   },
 ];
