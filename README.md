@@ -9,6 +9,7 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 ## 🧩 Funcionalidades
 
 **MVP (núcleo, fiel à API)**
+
 - Login / cadastro de usuário (autenticação simbólica)
 - **Mapa interativo** (Leaflet + OpenStreetMap) com **busca por endereço**, **"usar minha localização"** e pontos ordenados por **distância**; filtro por cidade e material
 - Detalhe do ponto (materiais aceitos, horário, localização no mapa)
@@ -17,6 +18,7 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - Perfil do usuário
 
 **Diferenciais**
+
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
 - 🎁 **Loja de recompensas** — troque EcoPontos (saldo) por brindes e descontos de parceiros, com geração de **voucher**
 - ⭐ **Avaliações dos pontos** — nota por estrelas + comentários

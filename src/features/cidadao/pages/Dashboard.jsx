@@ -1,6 +1,21 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Leaf, Recycle, Scale, Globe, Droplets, Zap, TreePine, Lightbulb, ArrowRight, MapPin, Sparkles, Gift, GraduationCap, Trophy } from 'lucide-react';
+import {
+  Leaf,
+  Recycle,
+  Scale,
+  Globe,
+  Droplets,
+  Zap,
+  TreePine,
+  Lightbulb,
+  ArrowRight,
+  MapPin,
+  Sparkles,
+  Gift,
+  GraduationCap,
+  Trophy,
+} from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { estatisticas, coletas } from '@/data/repos';
@@ -40,8 +55,20 @@ export default function Dashboard() {
     </div>
   );
 
-  if (q.loading) return <>{cabecalho()}<Carregando linhas={3} altura={110} /></>;
-  if (!q.data) return <>{cabecalho()}<ErroCarregar erro={q.error} onTentar={q.refetch} /></>;
+  if (q.loading)
+    return (
+      <>
+        {cabecalho()}
+        <Carregando linhas={3} altura={110} />
+      </>
+    );
+  if (!q.data)
+    return (
+      <>
+        {cabecalho()}
+        <ErroCarregar erro={q.error} onTentar={q.refetch} />
+      </>
+    );
 
   const [stats, agendadas] = q.data;
   const { nivel } = stats;
@@ -52,10 +79,38 @@ export default function Dashboard() {
       {cabecalho(nivel.atual)}
 
       <motion.div className="grid grid-auto mb-3" variants={stagger} initial="initial" animate="animate">
-        <motion.div variants={item}><Metric icon={Leaf} label="EcoPontos" value={<CountUp value={stats.ecopontos} />} sub={`Nível ${nivel.atual.nome}`} /></motion.div>
-        <motion.div variants={item}><Metric icon={Recycle} label="Coletas concluídas" value={<CountUp value={stats.concluidas} />} sub={`${stats.agendadas} agendada(s)`} /></motion.div>
-        <motion.div variants={item}><Metric icon={Scale} label="Total reciclado" value={<CountUp value={stats.totalKg} decimals={1} suffix=" kg" />} sub={`${stats.materiaisDistintos} materiais`} /></motion.div>
-        <motion.div variants={item}><Metric icon={Globe} label="CO₂ evitado" value={<CountUp value={stats.impacto.co2} decimals={1} suffix=" kg" />} sub="estimativa" /></motion.div>
+        <motion.div variants={item}>
+          <Metric
+            icon={Leaf}
+            label="EcoPontos"
+            value={<CountUp value={stats.ecopontos} />}
+            sub={`Nível ${nivel.atual.nome}`}
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <Metric
+            icon={Recycle}
+            label="Coletas concluídas"
+            value={<CountUp value={stats.concluidas} />}
+            sub={`${stats.agendadas} agendada(s)`}
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <Metric
+            icon={Scale}
+            label="Total reciclado"
+            value={<CountUp value={stats.totalKg} decimals={1} suffix=" kg" />}
+            sub={`${stats.materiaisDistintos} materiais`}
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <Metric
+            icon={Globe}
+            label="CO₂ evitado"
+            value={<CountUp value={stats.impacto.co2} decimals={1} suffix=" kg" />}
+            sub="estimativa"
+          />
+        </motion.div>
       </motion.div>
 
       {nivel.proximo && (
@@ -72,10 +127,17 @@ export default function Dashboard() {
 
       <div className="grid grid-2 mb-3" style={{ alignItems: 'start' }}>
         <div className="card card-pad">
-          <h3 className="row mb-2" style={{ gap: 8 }}><Sparkles size={18} color="var(--green-600)" /> Seu impacto ambiental</h3>
+          <h3 className="row mb-2" style={{ gap: 8 }}>
+            <Sparkles size={18} color="var(--green-600)" /> Seu impacto ambiental
+          </h3>
           <div className="col" style={{ gap: 13 }}>
             <ImpactLine icon={Globe} color="#2563eb" label="CO₂ evitado" value={`${nf(stats.impacto.co2, 1)} kg`} />
-            <ImpactLine icon={Droplets} color="#0891b2" label="Água poupada" value={`${nf(stats.impacto.agua)} litros`} />
+            <ImpactLine
+              icon={Droplets}
+              color="#0891b2"
+              label="Água poupada"
+              value={`${nf(stats.impacto.agua)} litros`}
+            />
             <ImpactLine icon={Zap} color="#d97706" label="Energia poupada" value={`${nf(stats.impacto.energia)} kWh`} />
             <ImpactLine icon={TreePine} color="#16a34a" label="Árvores poupadas" value={nf(stats.impacto.arvores, 1)} />
           </div>
@@ -85,12 +147,16 @@ export default function Dashboard() {
         <div className="card card-pad">
           <div className="row between mb-2">
             <h3>Próximas coletas</h3>
-            <Link to="/coletas" className="btn btn-sm btn-ghost">Ver todas <ArrowRight size={15} /></Link>
+            <Link to="/coletas" className="btn btn-sm btn-ghost">
+              Ver todas <ArrowRight size={15} />
+            </Link>
           </div>
           {proximas.length === 0 ? (
             <div className="col center" style={{ gap: 10, padding: '14px 0' }}>
               <p className="muted small">Nenhuma coleta agendada.</p>
-              <Link to="/pontos" className="btn btn-sm btn-primary"><MapPin size={16} /> Encontrar um ponto</Link>
+              <Link to="/pontos" className="btn btn-sm btn-primary">
+                <MapPin size={16} /> Encontrar um ponto
+              </Link>
             </div>
           ) : (
             <div className="col" style={{ gap: 12 }}>
@@ -100,7 +166,9 @@ export default function Dashboard() {
                     <MaterialIcon slug={c.material} chip chipSize={38} size={18} />
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{materialLabel(c.material)}</div>
-                      <div className="small muted">{c.ponto_nome} · {formatDate(c.data_agendada)}</div>
+                      <div className="small muted">
+                        {c.ponto_nome} · {formatDate(c.data_agendada)}
+                      </div>
                     </div>
                   </div>
                   <StatusBadge status={c.status} />
@@ -119,12 +187,17 @@ export default function Dashboard() {
 
       <div className="card card-pad" style={{ background: 'var(--green-50)', borderColor: 'var(--green-100)' }}>
         <div className="row" style={{ gap: 13, alignItems: 'flex-start' }}>
-          <span className="iconchip" style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+          <span
+            className="iconchip"
+            style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}
+          >
             <Lightbulb size={20} />
           </span>
           <div>
             <strong style={{ color: 'var(--green-700)' }}>Dica de reciclagem</strong>
-            <p className="small" style={{ marginTop: 2 }}>{dica}</p>
+            <p className="small" style={{ marginTop: 2 }}>
+              {dica}
+            </p>
           </div>
         </div>
       </div>
@@ -147,7 +220,10 @@ function ImpactLine({ icon: Icon, color, label, value }) {
 function Atalho({ to, icon: Icon, titulo, desc }) {
   return (
     <Link to={to} className="card card-pad card-hover row" style={{ gap: 12, alignItems: 'center' }}>
-      <span className="iconchip" style={{ width: 44, height: 44, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+      <span
+        className="iconchip"
+        style={{ width: 44, height: 44, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}
+      >
         <Icon size={22} />
       </span>
       <div>

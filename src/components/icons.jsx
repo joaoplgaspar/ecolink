@@ -2,16 +2,48 @@
 // conquistas e notificações — substituindo todos os emojis por SVG.
 
 import {
-  Newspaper, Package, CupSoda, Wine, CookingPot, Cpu, BatteryCharging, Droplet, Box, Leaf, Recycle,
-  Clock, CircleCheck, CircleX, CircleDot,
-  Medal, Award, Gem,
-  Sprout, TreePine, Palette, Dumbbell, Star,
-  Calendar, Gift, MessageCircle, Bell,
+  Newspaper,
+  Package,
+  CupSoda,
+  Wine,
+  CookingPot,
+  Cpu,
+  BatteryCharging,
+  Droplet,
+  Box,
+  Leaf,
+  Recycle,
+  Clock,
+  CircleCheck,
+  CircleX,
+  CircleDot,
+  Medal,
+  Award,
+  Gem,
+  Sprout,
+  TreePine,
+  Palette,
+  Dumbbell,
+  Star,
+  Calendar,
+  Gift,
+  MessageCircle,
+  Bell,
 } from 'lucide-react';
 import { getMaterial } from '@/domain/materiais';
 
 const MATERIAL_ICONS = {
-  Newspaper, Package, CupSoda, Wine, CookingPot, Cpu, BatteryCharging, Droplet, Box, Leaf, Recycle,
+  Newspaper,
+  Package,
+  CupSoda,
+  Wine,
+  CookingPot,
+  Cpu,
+  BatteryCharging,
+  Droplet,
+  Box,
+  Leaf,
+  Recycle,
 };
 
 function withAlpha(hex, alpha = '22') {

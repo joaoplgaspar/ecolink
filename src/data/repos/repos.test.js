@@ -43,9 +43,15 @@ describe('usuarios', () => {
   });
 
   it('cria conta validando e-mail, senha e duplicidade', async () => {
-    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'invalido', senha: '123456' }))).toMatchObject({ status: 422 });
-    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'x@email.com', senha: '123' }))).toMatchObject({ status: 422 });
-    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'Ana@Email.com', senha: '123456' }))).toMatchObject({ status: 409 });
+    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'invalido', senha: '123456' }))).toMatchObject({
+      status: 422,
+    });
+    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'x@email.com', senha: '123' }))).toMatchObject({
+      status: 422,
+    });
+    expect(await erroDe(usuarios.criar({ nome: 'X', email: 'Ana@Email.com', senha: '123456' }))).toMatchObject({
+      status: 409,
+    });
     const novo = await usuarios.criar({ nome: '  Zé  ', email: 'ZE@email.com', senha: '123456' });
     expect(novo).toMatchObject({ nome: 'Zé', email: 'ze@email.com' });
     expect(novo).not.toHaveProperty('senha');
@@ -145,7 +151,9 @@ describe('avaliacoes', () => {
 
   it('valida nota e tamanho do comentário', async () => {
     expect(await erroDe(avaliacoes.salvar({ ponto_id: 1, usuario_id: ANA, nota: 6 }))).toMatchObject({ status: 422 });
-    expect(await erroDe(avaliacoes.salvar({ ponto_id: 1, usuario_id: ANA, nota: 4, comentario: 'x'.repeat(501) }))).toMatchObject({ status: 422 });
+    expect(
+      await erroDe(avaliacoes.salvar({ ponto_id: 1, usuario_id: ANA, nota: 4, comentario: 'x'.repeat(501) })),
+    ).toMatchObject({ status: 422 });
   });
 
   it('o resumo reflete uma nova avaliação', async () => {
@@ -193,7 +201,13 @@ describe('chat', () => {
 
 describe('notificacoes', () => {
   it('marca todas como lidas só para o usuário informado', async () => {
-    await coletas.agendar({ usuario_id: 2, ponto_id: 1, material: 'papel', quantidade_kg: 1, data_agendada: '2026-11-30' });
+    await coletas.agendar({
+      usuario_id: 2,
+      ponto_id: 1,
+      material: 'papel',
+      quantidade_kg: 1,
+      data_agendada: '2026-11-30',
+    });
     await notificacoes.marcarTodasLidas(ANA);
     expect((await notificacoes.listar(ANA)).every((n) => n.lida)).toBe(true);
     expect((await notificacoes.listar(2)).some((n) => !n.lida)).toBe(true);

@@ -19,7 +19,9 @@ export default function Chat() {
   return (
     <div>
       <div className="page-head">
-        <h1><MessageCircle size={24} color="var(--green-600)" /> Chat</h1>
+        <h1>
+          <MessageCircle size={24} color="var(--green-600)" /> Chat
+        </h1>
         <p>Tire dúvidas com os pontos (ex.: &quot;vocês aceitam isopor?&quot;).</p>
       </div>
 
@@ -39,12 +41,24 @@ export default function Chat() {
                 aria-current={String(p.id) === pontoId ? 'true' : undefined}
                 onClick={() => nav(`/chat/${p.id}`)}
               >
-                <span className="iconchip" style={{ width: 38, height: 38, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+                <span
+                  className="iconchip"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    background: 'var(--green-100)',
+                    color: 'var(--green-700)',
+                    flex: 'none',
+                  }}
+                >
                   <Recycle size={19} />
                 </span>
                 <div style={{ minWidth: 0, textAlign: 'left' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.nome}</div>
-                  <div className="small faint" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190 }}>
+                  <div
+                    className="small faint"
+                    style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190 }}
+                  >
                     {ultimas[p.id]?.texto || 'Iniciar conversa'}
                   </div>
                 </div>
@@ -68,7 +82,10 @@ export default function Chat() {
 }
 
 function Conversa({ pontoId, usuarioId, onVoltar }) {
-  const q = useQuery(() => Promise.all([pontos.obter(pontoId), chat.mensagens(usuarioId, pontoId)]), [pontoId, usuarioId]);
+  const q = useQuery(
+    () => Promise.all([pontos.obter(pontoId), chat.mensagens(usuarioId, pontoId)]),
+    [pontoId, usuarioId],
+  );
   const [texto, setTexto] = useState('');
   // Mensagem "otimista": aparece na hora, antes de a resposta da "rede" chegar.
   const [pendente, setPendente] = useState(null);
@@ -92,17 +109,30 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
     if (!r.ok) setTexto(t); // devolve o texto para a pessoa tentar de novo
   }
 
-  if (q.loading) return <div className="card-pad"><Carregando linhas={3} altura={56} rotulo="Carregando conversa…" /></div>;
+  if (q.loading)
+    return (
+      <div className="card-pad">
+        <Carregando linhas={3} altura={56} rotulo="Carregando conversa…" />
+      </div>
+    );
   if (q.error?.status === 404) return <EmptyState title="Ponto não encontrado" />;
   if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
 
   return (
     <>
       <div className="chat-head">
-        <button className="btn btn-sm btn-ghost icon-btn chat-back" style={{ width: 34, height: 34 }} onClick={onVoltar} aria-label="Voltar para a lista">
+        <button
+          className="btn btn-sm btn-ghost icon-btn chat-back"
+          style={{ width: 34, height: 34 }}
+          onClick={onVoltar}
+          aria-label="Voltar para a lista"
+        >
           <ArrowLeft size={18} />
         </button>
-        <span className="iconchip" style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+        <span
+          className="iconchip"
+          style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}
+        >
           <Recycle size={20} />
         </span>
         <div style={{ minWidth: 0 }}>
@@ -115,7 +145,9 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
 
       <div className="chat-body" ref={bodyRef} aria-live="polite">
         {mensagens.length === 0 && !pendente ? (
-          <p className="muted small center" style={{ margin: 'auto' }}>Envie a primeira mensagem para começar a conversa.</p>
+          <p className="muted small center" style={{ margin: 'auto' }}>
+            Envie a primeira mensagem para começar a conversa.
+          </p>
         ) : (
           <>
             {mensagens.map((m) => (
@@ -136,8 +168,20 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
 
       <MensagemErro erro={enviar.error} style={{ padding: '0 14px' }} />
       <form className="chat-input" onSubmit={submit}>
-        <input className="input" aria-label="Mensagem" maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva uma mensagem..." />
-        <button className="btn btn-primary" type="submit" aria-label="Enviar" disabled={enviar.pending || !texto.trim()}>
+        <input
+          className="input"
+          aria-label="Mensagem"
+          maxLength={1000}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Escreva uma mensagem..."
+        />
+        <button
+          className="btn btn-primary"
+          type="submit"
+          aria-label="Enviar"
+          disabled={enviar.pending || !texto.trim()}
+        >
           {enviar.pending ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
         </button>
       </form>

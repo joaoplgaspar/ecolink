@@ -30,7 +30,8 @@ export function useQuery(buscar, deps = []) {
           if (ativo && id === ultimaChamada.current) setEstado({ data, error: null, loading: false, fetching: false });
         },
         (error) => {
-          if (ativo && id === ultimaChamada.current) setEstado((e) => ({ ...e, error, loading: false, fetching: false }));
+          if (ativo && id === ultimaChamada.current)
+            setEstado((e) => ({ ...e, error, loading: false, fetching: false }));
         },
       );
     return () => {

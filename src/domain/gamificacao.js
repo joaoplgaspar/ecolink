@@ -25,7 +25,12 @@ export const CONQUISTAS = [
   { slug: 'primeira', nome: 'Primeira coleta', desc: 'Conclua sua 1ª coleta', teste: (s) => s.concluidas >= 1 },
   { slug: 'fiel', nome: 'Reciclador fiel', desc: '5 coletas concluídas', teste: (s) => s.concluidas >= 5 },
   { slug: 'guerreiro', nome: 'Eco-guerreiro', desc: '10 coletas concluídas', teste: (s) => s.concluidas >= 10 },
-  { slug: 'multi', nome: 'Multimaterial', desc: 'Recicle 4 materiais diferentes', teste: (s) => s.materiaisDistintos >= 4 },
+  {
+    slug: 'multi',
+    nome: 'Multimaterial',
+    desc: 'Recicle 4 materiais diferentes',
+    teste: (s) => s.materiaisDistintos >= 4,
+  },
   { slug: 'peso', nome: 'Peso-pesado', desc: '30 kg reciclados', teste: (s) => s.totalKg >= 30 },
   { slug: 'cem', nome: 'Centurião verde', desc: 'Alcance 100 EcoPontos', teste: (s) => s.ecopontos >= 100 },
 ];

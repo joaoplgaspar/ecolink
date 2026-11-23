@@ -29,7 +29,8 @@ export function salvar({ ponto_id, usuario_id, nota, comentario = '' }) {
       const u = s.usuarios.find((x) => x.id === Number(usuario_id));
       if (!u) throw naoEncontrado('Usuário');
       if (!s.pontos.some((p) => p.id === Number(ponto_id))) throw naoEncontrado('Ponto de coleta');
-      if (!Number.isInteger(nota) || nota < 1 || nota > 5) throw invalido('Escolha uma nota de 1 a 5 estrelas.', 'nota');
+      if (!Number.isInteger(nota) || nota < 1 || nota > 5)
+        throw invalido('Escolha uma nota de 1 a 5 estrelas.', 'nota');
       const coment = texto(comentario, { campo: 'o comentário', max: 500, obrigatorio: false });
 
       const existente = s.avaliacoes.find((a) => a.ponto_id === Number(ponto_id) && a.usuario_id === u.id);

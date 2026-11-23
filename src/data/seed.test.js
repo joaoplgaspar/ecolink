@@ -41,7 +41,9 @@ describe('makeSeed', () => {
 
   it('acompanha a data: outro "hoje" desloca as datas', () => {
     const depois = makeSeed({ agora: new Date('2027-03-01T12:00:00') });
-    expect(depois.coletas.filter((c) => c.status === 'agendada').every((c) => c.data_agendada > '2027-03-01')).toBe(true);
+    expect(depois.coletas.filter((c) => c.status === 'agendada').every((c) => c.data_agendada > '2027-03-01')).toBe(
+      true,
+    );
   });
 
   it('integridade referencial: toda coleta aponta para usuário e ponto existentes', () => {
@@ -62,12 +64,21 @@ describe('makeSeed', () => {
 
   it('avaliações só de quem concluiu coleta naquele ponto', () => {
     for (const a of s.avaliacoes) {
-      expect(s.coletas.some((c) => c.usuario_id === a.usuario_id && c.ponto_id === a.ponto_id && c.status === 'concluida')).toBe(true);
+      expect(
+        s.coletas.some((c) => c.usuario_id === a.usuario_id && c.ponto_id === a.ponto_id && c.status === 'concluida'),
+      ).toBe(true);
     }
   });
 
   it('ids únicos e sequências coerentes', () => {
-    for (const [colecao, chave] of [['usuarios', 'usuario'], ['pontos', 'ponto'], ['coletas', 'coleta'], ['avaliacoes', 'avaliacao'], ['resgates', 'resgate'], ['notificacoes', 'notif']]) {
+    for (const [colecao, chave] of [
+      ['usuarios', 'usuario'],
+      ['pontos', 'ponto'],
+      ['coletas', 'coleta'],
+      ['avaliacoes', 'avaliacao'],
+      ['resgates', 'resgate'],
+      ['notificacoes', 'notif'],
+    ]) {
       const ids = s[colecao].map((x) => x.id);
       expect(new Set(ids).size).toBe(ids.length);
       expect(s.seq[chave]).toBe(Math.max(0, ...ids));

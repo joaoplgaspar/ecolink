@@ -11,7 +11,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <App />
     </AuthProvider>
-  </BrowserRouter>
+  </BrowserRouter>,
 );
 
 // PWA: registra o service worker apenas na build de produção

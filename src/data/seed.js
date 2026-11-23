@@ -43,14 +43,86 @@ const USUARIOS = [
 ];
 
 const PONTOS = [
-  { nome: 'EcoPonto Centro', endereco: 'Praça da Sé, 100', cidade: 'São Paulo', latitude: -23.5505, longitude: -46.6333, materiais: ['papel', 'plástico', 'vidro'], horario: 'Seg-Sex 8h-18h', ativo: true },
-  { nome: 'Coleta Vila Madalena', endereco: 'Rua Harmonia, 250', cidade: 'São Paulo', latitude: -23.5546, longitude: -46.6896, materiais: ['eletrônicos', 'pilhas'], horario: 'Seg-Sáb 9h-17h', ativo: true },
-  { nome: 'ReciclaRio Copacabana', endereco: 'Av. Atlântica, 1500', cidade: 'Rio de Janeiro', latitude: -22.9711, longitude: -43.1822, materiais: ['metal', 'plástico'], horario: 'Todos os dias 7h-19h', ativo: true },
-  { nome: 'Recicla Pinheiros', endereco: 'Rua dos Pinheiros, 1000', cidade: 'São Paulo', latitude: -23.5645, longitude: -46.6996, materiais: ['papel', 'vidro', 'metal', 'papelão'], horario: 'Seg-Sex 8h-20h', ativo: true },
-  { nome: 'EcoStation Tijuca', endereco: 'Rua Conde de Bonfim, 500', cidade: 'Rio de Janeiro', latitude: -22.9249, longitude: -43.2336, materiais: ['papel', 'plástico', 'eletrônicos', 'óleo'], horario: 'Seg-Sáb 8h-18h', ativo: true },
-  { nome: 'Verde Vale Campinas', endereco: 'Av. Norte-Sul, 800', cidade: 'Campinas', latitude: -22.9056, longitude: -47.0608, materiais: ['vidro', 'metal', 'pilhas'], horario: 'Seg-Sex 9h-17h', ativo: false },
-  { nome: 'Cooperativa Mooca', endereco: 'Rua da Mooca, 1200', cidade: 'São Paulo', latitude: -23.5587, longitude: -46.5996, materiais: ['papel', 'papelão', 'plástico', 'metal', 'isopor'], horario: 'Seg-Sáb 7h-16h', ativo: true },
-  { nome: 'EcoPonto Botafogo', endereco: 'Rua Voluntários da Pátria, 300', cidade: 'Rio de Janeiro', latitude: -22.9519, longitude: -43.1857, materiais: ['vidro', 'óleo', 'pilhas', 'eletrônicos'], horario: 'Seg-Sex 8h-19h', ativo: true },
+  {
+    nome: 'EcoPonto Centro',
+    endereco: 'Praça da Sé, 100',
+    cidade: 'São Paulo',
+    latitude: -23.5505,
+    longitude: -46.6333,
+    materiais: ['papel', 'plástico', 'vidro'],
+    horario: 'Seg-Sex 8h-18h',
+    ativo: true,
+  },
+  {
+    nome: 'Coleta Vila Madalena',
+    endereco: 'Rua Harmonia, 250',
+    cidade: 'São Paulo',
+    latitude: -23.5546,
+    longitude: -46.6896,
+    materiais: ['eletrônicos', 'pilhas'],
+    horario: 'Seg-Sáb 9h-17h',
+    ativo: true,
+  },
+  {
+    nome: 'ReciclaRio Copacabana',
+    endereco: 'Av. Atlântica, 1500',
+    cidade: 'Rio de Janeiro',
+    latitude: -22.9711,
+    longitude: -43.1822,
+    materiais: ['metal', 'plástico'],
+    horario: 'Todos os dias 7h-19h',
+    ativo: true,
+  },
+  {
+    nome: 'Recicla Pinheiros',
+    endereco: 'Rua dos Pinheiros, 1000',
+    cidade: 'São Paulo',
+    latitude: -23.5645,
+    longitude: -46.6996,
+    materiais: ['papel', 'vidro', 'metal', 'papelão'],
+    horario: 'Seg-Sex 8h-20h',
+    ativo: true,
+  },
+  {
+    nome: 'EcoStation Tijuca',
+    endereco: 'Rua Conde de Bonfim, 500',
+    cidade: 'Rio de Janeiro',
+    latitude: -22.9249,
+    longitude: -43.2336,
+    materiais: ['papel', 'plástico', 'eletrônicos', 'óleo'],
+    horario: 'Seg-Sáb 8h-18h',
+    ativo: true,
+  },
+  {
+    nome: 'Verde Vale Campinas',
+    endereco: 'Av. Norte-Sul, 800',
+    cidade: 'Campinas',
+    latitude: -22.9056,
+    longitude: -47.0608,
+    materiais: ['vidro', 'metal', 'pilhas'],
+    horario: 'Seg-Sex 9h-17h',
+    ativo: false,
+  },
+  {
+    nome: 'Cooperativa Mooca',
+    endereco: 'Rua da Mooca, 1200',
+    cidade: 'São Paulo',
+    latitude: -23.5587,
+    longitude: -46.5996,
+    materiais: ['papel', 'papelão', 'plástico', 'metal', 'isopor'],
+    horario: 'Seg-Sáb 7h-16h',
+    ativo: true,
+  },
+  {
+    nome: 'EcoPonto Botafogo',
+    endereco: 'Rua Voluntários da Pátria, 300',
+    cidade: 'Rio de Janeiro',
+    latitude: -22.9519,
+    longitude: -43.1857,
+    materiais: ['vidro', 'óleo', 'pilhas', 'eletrônicos'],
+    horario: 'Seg-Sex 8h-19h',
+    ativo: true,
+  },
 ];
 
 // Faixa de kg típica por entrega, por material.
@@ -73,8 +145,17 @@ const AGENDADAS = [
 ];
 
 const COMENTARIOS = {
-  5: ['Atendimento rápido e bem organizado!', 'Aceitam vários materiais, super recomendo.', 'Equipe muito atenciosa, voltarei sempre.', 'Perfeito, tudo muito limpo e sinalizado.'],
-  4: ['Bem localizado e horário amplo.', 'Ótimo ponto, só estava com fila no sábado.', 'Bom atendimento, poderia ter mais sinalização.'],
+  5: [
+    'Atendimento rápido e bem organizado!',
+    'Aceitam vários materiais, super recomendo.',
+    'Equipe muito atenciosa, voltarei sempre.',
+    'Perfeito, tudo muito limpo e sinalizado.',
+  ],
+  4: [
+    'Bem localizado e horário amplo.',
+    'Ótimo ponto, só estava com fila no sábado.',
+    'Bom atendimento, poderia ter mais sinalização.',
+  ],
   3: ['Atendimento ok, mas demorou um pouco.', 'Funciona, mas o acesso é meio confuso.'],
 };
 
@@ -128,22 +209,45 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     for (let k = 0; k < perfil.coletas; k++) {
       const ponto = escolher(opcoes);
       const material = escolher(ponto.materiais);
-      rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'concluida', data_agendada: dia(inteiro(...janela)) });
+      rascunhos.push({
+        usuario_id: u.id,
+        ponto_id: ponto.id,
+        material,
+        quantidade_kg: kgPara(material),
+        status: 'concluida',
+        data_agendada: dia(inteiro(...janela)),
+      });
     }
     if (perfil.coletas >= 5) {
       const ponto = escolher(pontosDaCidade(u.cidade));
       const material = escolher(ponto.materiais);
-      rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'cancelada', data_agendada: dia(inteiro(-40, -5)) });
+      rascunhos.push({
+        usuario_id: u.id,
+        ponto_id: ponto.id,
+        material,
+        quantidade_kg: kgPara(material),
+        status: 'cancelada',
+        data_agendada: dia(inteiro(-40, -5)),
+      });
     }
   });
   for (const [email, offset] of AGENDADAS) {
     const u = usuarios.find((x) => x.email === email);
     const ponto = escolher(pontosDaCidade(u.cidade));
     const material = escolher(ponto.materiais);
-    rascunhos.push({ usuario_id: u.id, ponto_id: ponto.id, material, quantidade_kg: kgPara(material), status: 'agendada', data_agendada: dia(offset) });
+    rascunhos.push({
+      usuario_id: u.id,
+      ponto_id: ponto.id,
+      material,
+      quantidade_kg: kgPara(material),
+      status: 'agendada',
+      data_agendada: dia(offset),
+    });
   }
   // Ids em ordem cronológica (como num banco real, por ordem de criação).
-  rascunhos.sort((a, b) => (a.data_agendada < b.data_agendada ? -1 : a.data_agendada > b.data_agendada ? 1 : a.usuario_id - b.usuario_id));
+  rascunhos.sort((a, b) =>
+    a.data_agendada < b.data_agendada ? -1 : a.data_agendada > b.data_agendada ? 1 : a.usuario_id - b.usuario_id,
+  );
   const coletas = rascunhos.map((c, i) => ({ id: i + 1, ...c }));
 
   /* Avaliações: só de quem já concluiu coleta naquele ponto (avaliação "verificada"). */
@@ -192,15 +296,41 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
   ];
 
   const notificacoes = [
-    { usuario_id: ana.id, tipo: 'coleta', icone: '♻️', texto: `Coleta de ${ultimaConcluida.material} concluída no ${pontoPorId(ultimaConcluida.ponto_id).nome}. +${pontosDaColeta(ultimaConcluida)} EcoPontos!`, em: instante(-1, 17, 5), lida: true },
-    { usuario_id: ana.id, tipo: 'lembrete', icone: '📅', texto: `Lembrete: coleta de ${proxima.material} agendada no ${pontoPorId(proxima.ponto_id).nome}.`, em: instante(0, 8, 0), lida: false },
-    { usuario_id: ana.id, tipo: 'recompensa', icone: '🎁', texto: 'Você já tem EcoPontos para resgatar recompensas na loja!', em: instante(-2, 18, 30), lida: false },
+    {
+      usuario_id: ana.id,
+      tipo: 'coleta',
+      icone: '♻️',
+      texto: `Coleta de ${ultimaConcluida.material} concluída no ${pontoPorId(ultimaConcluida.ponto_id).nome}. +${pontosDaColeta(ultimaConcluida)} EcoPontos!`,
+      em: instante(-1, 17, 5),
+      lida: true,
+    },
+    {
+      usuario_id: ana.id,
+      tipo: 'lembrete',
+      icone: '📅',
+      texto: `Lembrete: coleta de ${proxima.material} agendada no ${pontoPorId(proxima.ponto_id).nome}.`,
+      em: instante(0, 8, 0),
+      lida: false,
+    },
+    {
+      usuario_id: ana.id,
+      tipo: 'recompensa',
+      icone: '🎁',
+      texto: 'Você já tem EcoPontos para resgatar recompensas na loja!',
+      em: instante(-2, 18, 30),
+      lida: false,
+    },
   ].map((n, i) => ({ id: i + 1, ...n }));
 
   const chats = {
     [`${ana.id}:1`]: [
       { id: 1, de: 'eu', texto: 'Olá! Vocês aceitam vidro quebrado?', em: instante(-3, 14, 2) },
-      { id: 2, de: 'ponto', texto: 'Olá, Ana! Aceitamos sim, desde que embrulhado em jornal ou caixa para proteger a equipe. 😊', em: instante(-3, 14, 4) },
+      {
+        id: 2,
+        de: 'ponto',
+        texto: 'Olá, Ana! Aceitamos sim, desde que embrulhado em jornal ou caixa para proteger a equipe. 😊',
+        em: instante(-3, 14, 4),
+      },
     ],
   };
 

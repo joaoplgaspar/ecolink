@@ -33,6 +33,9 @@ export function proximoId(estado, chave) {
 export function texto(valor, { campo, max = 200, obrigatorio = true } = {}) {
   const t = String(valor ?? '').trim();
   if (obrigatorio && !t) throw new ErroApi(422, `Informe ${campo}.`, { campo });
-  if (t.length > max) throw new ErroApi(422, `${campo[0].toUpperCase()}${campo.slice(1)} deve ter no máximo ${max} caracteres.`, { campo });
+  if (t.length > max)
+    throw new ErroApi(422, `${campo[0].toUpperCase()}${campo.slice(1)} deve ter no máximo ${max} caracteres.`, {
+      campo,
+    });
   return t;
 }

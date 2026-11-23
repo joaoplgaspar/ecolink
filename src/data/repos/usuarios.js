@@ -15,7 +15,10 @@ function publico(u) {
   return resto;
 }
 
-const normalizarEmail = (email) => String(email ?? '').trim().toLowerCase();
+const normalizarEmail = (email) =>
+  String(email ?? '')
+    .trim()
+    .toLowerCase();
 const buscarPorEmail = (estado, email) => estado.usuarios.find((u) => u.email.toLowerCase() === normalizarEmail(email));
 
 export function obter(id) {
@@ -65,8 +68,10 @@ export function atualizar(id, dados) {
       if (!u) throw naoEncontrado('Usuário');
       const permitidos = Object.fromEntries(Object.entries(dados).filter(([k]) => CAMPOS_EDITAVEIS.includes(k)));
       if ('nome' in permitidos) permitidos.nome = texto(permitidos.nome, { campo: 'seu nome', max: 80 });
-      if ('telefone' in permitidos) permitidos.telefone = texto(permitidos.telefone, { campo: 'o telefone', max: 20, obrigatorio: false });
-      if ('cidade' in permitidos) permitidos.cidade = texto(permitidos.cidade, { campo: 'a cidade', max: 60, obrigatorio: false });
+      if ('telefone' in permitidos)
+        permitidos.telefone = texto(permitidos.telefone, { campo: 'o telefone', max: 20, obrigatorio: false });
+      if ('cidade' in permitidos)
+        permitidos.cidade = texto(permitidos.cidade, { campo: 'a cidade', max: 60, obrigatorio: false });
       Object.assign(u, permitidos);
       return publico(u);
     }),

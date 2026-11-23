@@ -36,15 +36,21 @@ export default function Login() {
     <div className="auth-wrap">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="leaf"><Recycle size={30} /></div>
+          <div className="leaf">
+            <Recycle size={30} />
+          </div>
           <h1>ECOLINK</h1>
           <p>Reciclar conecta você a quem transforma.</p>
         </div>
 
         <div className="card card-pad">
           <div className="seg" style={{ marginBottom: 18 }}>
-            <button className="active" type="button">Entrar</button>
-            <button type="button" onClick={() => nav('/cadastro')}>Criar conta</button>
+            <button className="active" type="button">
+              Entrar
+            </button>
+            <button type="button" onClick={() => nav('/cadastro')}>
+              Criar conta
+            </button>
           </div>
 
           <form onSubmit={submit}>
@@ -52,14 +58,28 @@ export default function Login() {
               <label>E-mail</label>
               <div className="input-icon">
                 <Mail />
-                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" required />
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@email.com"
+                  required
+                />
               </div>
             </div>
             <div className="field">
               <label>Senha</label>
               <div className="input-icon">
                 <Lock />
-                <input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••" required />
+                <input
+                  className="input"
+                  type="password"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="••••••"
+                  required
+                />
               </div>
             </div>
             <MensagemErro erro={erro} style={{ marginBottom: 10 }} />
@@ -72,7 +92,13 @@ export default function Login() {
           <p className="small muted center mb-1">Entrar rápido com uma conta de teste:</p>
           <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
             {DEMO.map((d) => (
-              <button key={d.email} className="btn btn-sm" type="button" disabled={enviando} onClick={() => entrar(d.email, 'senha123')}>
+              <button
+                key={d.email}
+                className="btn btn-sm"
+                type="button"
+                disabled={enviando}
+                onClick={() => entrar(d.email, 'senha123')}
+              >
                 {d.nome}
               </button>
             ))}

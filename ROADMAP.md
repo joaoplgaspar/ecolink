@@ -34,22 +34,22 @@
 
 **Lacunas que o roadmap resolve.** São problemas reais encontrados no código, e citá-los na apresentação mostra senso crítico:
 
-| # | Problema | Onde | Por que importa |
-|---|---|---|---|
-| D1 | **O próprio cliente marca a coleta como "concluída"** e ganha EcoPontos | `src/pages/MyCollections.jsx:26` → `coletas.concluir` | Fraude trivial: o sistema de recompensas não tem lastro. **É o motivo nº 1 para existir a área do reciclador.** |
-| D2 | O peso é **declarado** pelo cliente e nunca conferido | `ScheduleCollection.jsx` | Sem pesagem real, os EcoPontos e o impacto ambiental são fictícios |
-| D3 | Não há **papéis** (cliente / reciclador / admin) | `AuthContext.jsx`, `ProtectedRoute.jsx` | Qualquer um pode fazer qualquer coisa |
-| D4 | **Senhas em texto puro** no `localStorage` | `db.js` → `usuarios.create` | Qualquer pessoa com acesso ao navegador lê as senhas |
-| D5 | Sessão = só o id do usuário salvo; não expira | `AuthContext.jsx` | Basta editar o id no DevTools para "virar" outra pessoa |
-| D6 | **Regras de negócio só na interface** (ex.: saldo da loja validado só no componente) | `Rewards.jsx:30`, `db.js` → `resgates.create` | Em um backend real, a regra tem que estar no servidor. Aqui, na camada de dados |
-| D7 | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá** | `PointDetail.jsx` | Avaliações manipuláveis; nenhuma confiança |
-| D8 | Não existe denúncia, bloqueio nem moderação | — | Requisito explícito do projeto |
-| D9 | O chat é uma resposta automática por palavra-chave | `db.js` → `respostaAutomatica` | Com o lado do reciclador, vira conversa real entre os dois lados |
-| D10 | Horário do ponto é texto livre (`"Seg-Sex 8h-18h"`) | `seed.js` | Impede agenda por horário, capacidade e "aberto agora" |
-| D11 | Dependência `"reciclaja-api": "file:../reciclaja-api"` aponta para uma pasta fora do repositório | `package.json` | **`npm install` quebra em um clone limpo** (e pode quebrar o deploy). Não é usada em `src/` |
-| D12 | Seed com **datas fixas** (jun/2026) | `seed.js` | Na apresentação, tudo aparece "atrasado" ou "antigo"; as datas precisam ser relativas a hoje |
-| D13 | "Restaurar dados de demonstração" disponível para qualquer usuário no Perfil | `Profile.jsx` | Deve ir para um painel de demonstração/admin |
-| D14 | Mudança de dados não sincroniza **entre abas** | `useDbVersion.js` só escuta o evento local | Impede mostrar o cliente e o reciclador **lado a lado em duas abas** |
+| #   | Problema                                                                                         | Onde                                                  | Por que importa                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| D1  | **O próprio cliente marca a coleta como "concluída"** e ganha EcoPontos                          | `src/pages/MyCollections.jsx:26` → `coletas.concluir` | Fraude trivial: o sistema de recompensas não tem lastro. **É o motivo nº 1 para existir a área do reciclador.** |
+| D2  | O peso é **declarado** pelo cliente e nunca conferido                                            | `ScheduleCollection.jsx`                              | Sem pesagem real, os EcoPontos e o impacto ambiental são fictícios                                              |
+| D3  | Não há **papéis** (cliente / reciclador / admin)                                                 | `AuthContext.jsx`, `ProtectedRoute.jsx`               | Qualquer um pode fazer qualquer coisa                                                                           |
+| D4  | **Senhas em texto puro** no `localStorage`                                                       | `db.js` → `usuarios.create`                           | Qualquer pessoa com acesso ao navegador lê as senhas                                                            |
+| D5  | Sessão = só o id do usuário salvo; não expira                                                    | `AuthContext.jsx`                                     | Basta editar o id no DevTools para "virar" outra pessoa                                                         |
+| D6  | **Regras de negócio só na interface** (ex.: saldo da loja validado só no componente)             | `Rewards.jsx:30`, `db.js` → `resgates.create`         | Em um backend real, a regra tem que estar no servidor. Aqui, na camada de dados                                 |
+| D7  | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá**                                        | `PointDetail.jsx`                                     | Avaliações manipuláveis; nenhuma confiança                                                                      |
+| D8  | Não existe denúncia, bloqueio nem moderação                                                      | —                                                     | Requisito explícito do projeto                                                                                  |
+| D9  | O chat é uma resposta automática por palavra-chave                                               | `db.js` → `respostaAutomatica`                        | Com o lado do reciclador, vira conversa real entre os dois lados                                                |
+| D10 | Horário do ponto é texto livre (`"Seg-Sex 8h-18h"`)                                              | `seed.js`                                             | Impede agenda por horário, capacidade e "aberto agora"                                                          |
+| D11 | Dependência `"reciclaja-api": "file:../reciclaja-api"` aponta para uma pasta fora do repositório | `package.json`                                        | **`npm install` quebra em um clone limpo** (e pode quebrar o deploy). Não é usada em `src/`                     |
+| D12 | Seed com **datas fixas** (jun/2026)                                                              | `seed.js`                                             | Na apresentação, tudo aparece "atrasado" ou "antigo"; as datas precisam ser relativas a hoje                    |
+| D13 | "Restaurar dados de demonstração" disponível para qualquer usuário no Perfil                     | `Profile.jsx`                                         | Deve ir para um painel de demonstração/admin                                                                    |
+| D14 | Mudança de dados não sincroniza **entre abas**                                                   | `useDbVersion.js` só escuta o evento local            | Impede mostrar o cliente e o reciclador **lado a lado em duas abas**                                            |
 
 ---
 
@@ -57,56 +57,56 @@
 
 ### 1.1 A analogia com um marketplace de delivery
 
-| Marketplace de delivery | ECOLINK |
-|---|---|
-| Cliente faz um **pedido** | Cidadão faz uma **solicitação de entrega de recicláveis** |
-| **Restaurante** aceita, prepara e entrega | **Ponto de coleta (reciclador)** aceita, recebe, **pesa e confere** |
-| Acompanhamento do pedido em tempo real | **Linha do tempo da coleta** (solicitada → confirmada → em conferência → concluída) |
-| **Código de entrega** que o cliente informa | **Código de entrega de 4 dígitos / QR** que o cliente mostra no ponto |
-| Gestor de pedidos do restaurante | **Painel de recebimentos** do reciclador |
-| Avaliação mútua, suporte, denúncias | **Reputação bilateral**, denúncias e moderação |
-| Entregador | *(fase opcional)* **Coletor** que retira em domicílio |
-| Pagamento | **EcoPontos** creditados só após a **pesagem oficial** |
+| Marketplace de delivery                     | ECOLINK                                                                             |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Cliente faz um **pedido**                   | Cidadão faz uma **solicitação de entrega de recicláveis**                           |
+| **Restaurante** aceita, prepara e entrega   | **Ponto de coleta (reciclador)** aceita, recebe, **pesa e confere**                 |
+| Acompanhamento do pedido em tempo real      | **Linha do tempo da coleta** (solicitada → confirmada → em conferência → concluída) |
+| **Código de entrega** que o cliente informa | **Código de entrega de 4 dígitos / QR** que o cliente mostra no ponto               |
+| Gestor de pedidos do restaurante            | **Painel de recebimentos** do reciclador                                            |
+| Avaliação mútua, suporte, denúncias         | **Reputação bilateral**, denúncias e moderação                                      |
+| Entregador                                  | _(fase opcional)_ **Coletor** que retira em domicílio                               |
+| Pagamento                                   | **EcoPontos** creditados só após a **pesagem oficial**                              |
 
 ### 1.2 Princípios de design (para repetir na banca)
 
 1. **Confiança se ganha nos dois lados.** O cliente avalia o ponto e o ponto avalia o cliente; cada um tem reputação.
 2. **Quem recebe o material é quem confirma.** EcoPontos só existem depois que o **ponto pesa e aprova** o material.
 3. **Mínimo de dados, máximo de controle.** Cada lado vê só o necessário, só quando necessário. O telefone e o nome completo do cliente não aparecem para o ponto.
-4. **Toda ação sensível deixa rastro.** Há um log de auditoria imutável, e os EcoPontos ficam num extrato contábil (*ledger*) em vez de um número solto.
-5. **Transparência das regras.** O usuário vê *por que* tem determinada reputação e *como* melhorar. As punições são explicadas e podem ser contestadas.
+4. **Toda ação sensível deixa rastro.** Há um log de auditoria imutável, e os EcoPontos ficam num extrato contábil (_ledger_) em vez de um número solto.
+5. **Transparência das regras.** O usuário vê _por que_ tem determinada reputação e _como_ melhorar. As punições são explicadas e podem ser contestadas.
 6. **Pronto para o backend.** As telas falam com repositórios assíncronos. Trocar o `localStorage` por uma API muda um arquivo, não o app.
 
 ---
 
 ## 2. Papéis e permissões (RBAC)
 
-| Papel | Quem é | Entra por |
-|---|---|---|
-| `cidadao` | Pessoa que descarta recicláveis | Cadastro aberto |
-| `parceiro_gestor` | Responsável legal pela organização (cooperativa, ecoponto, empresa) | Cadastro de parceiro → **aprovação do admin** |
-| `parceiro_operador` | Funcionário do ponto (atendente, balança) | **Convite** do gestor |
-| `moderador` | Equipe da plataforma que trata denúncias | Atribuído pelo admin |
-| `admin` | Administrador da plataforma | Seed |
+| Papel               | Quem é                                                              | Entra por                                     |
+| ------------------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| `cidadao`           | Pessoa que descarta recicláveis                                     | Cadastro aberto                               |
+| `parceiro_gestor`   | Responsável legal pela organização (cooperativa, ecoponto, empresa) | Cadastro de parceiro → **aprovação do admin** |
+| `parceiro_operador` | Funcionário do ponto (atendente, balança)                           | **Convite** do gestor                         |
+| `moderador`         | Equipe da plataforma que trata denúncias                            | Atribuído pelo admin                          |
+| `admin`             | Administrador da plataforma                                         | Seed                                          |
 
 Um mesmo usuário pode ter mais de um papel (ex.: operador que também recicla como cidadão), com um **seletor de perfil ativo** no topo, como um app que alterna entre conta pessoal e conta da loja.
 
 ### 2.1 Matriz de permissões (resumo)
 
-| Ação | cidadão | operador | gestor | moderador | admin |
-|---|:-:|:-:|:-:|:-:|:-:|
-| Buscar pontos / agendar | ✅ | ✅* | ✅* | — | — |
-| Cancelar a própria solicitação | ✅ | — | — | — | — |
-| Aceitar/recusar solicitações do **seu** ponto | — | ✅ | ✅ | — | — |
-| Registrar check-in e **pesagem** | — | ✅ | ✅ | — | — |
-| Cadastrar/editar **ponto** | — | — | ✅ | — | ✅ |
-| Convidar/remover operadores | — | — | ✅ | — | ✅ |
-| Pausar recebimento ("fechar loja") | — | ✅ | ✅ | — | ✅ |
-| Avaliar a outra parte após a coleta | ✅ | ✅ | ✅ | — | — |
-| Denunciar | ✅ | ✅ | ✅ | — | — |
-| Tratar denúncias / aplicar sanções | — | — | — | ✅ | ✅ |
-| Aprovar parceiros e pontos | — | — | — | — | ✅ |
-| Ver log de auditoria | — | — | o do seu ponto | ✅ | ✅ |
+| Ação                                          | cidadão | operador |     gestor     | moderador | admin |
+| --------------------------------------------- | :-----: | :------: | :------------: | :-------: | :---: |
+| Buscar pontos / agendar                       |   ✅    |   ✅\*   |      ✅\*      |     —     |   —   |
+| Cancelar a própria solicitação                |   ✅    |    —     |       —        |     —     |   —   |
+| Aceitar/recusar solicitações do **seu** ponto |    —    |    ✅    |       ✅       |     —     |   —   |
+| Registrar check-in e **pesagem**              |    —    |    ✅    |       ✅       |     —     |   —   |
+| Cadastrar/editar **ponto**                    |    —    |    —     |       ✅       |     —     |  ✅   |
+| Convidar/remover operadores                   |    —    |    —     |       ✅       |     —     |  ✅   |
+| Pausar recebimento ("fechar loja")            |    —    |    ✅    |       ✅       |     —     |  ✅   |
+| Avaliar a outra parte após a coleta           |   ✅    |    ✅    |       ✅       |     —     |   —   |
+| Denunciar                                     |   ✅    |    ✅    |       ✅       |     —     |   —   |
+| Tratar denúncias / aplicar sanções            |    —    |    —     |       —        |    ✅     |  ✅   |
+| Aprovar parceiros e pontos                    |    —    |    —     |       —        |     —     |  ✅   |
+| Ver log de auditoria                          |    —    |    —     | o do seu ponto |    ✅     |  ✅   |
 
 \* Com o perfil **cidadão** ativo, e **nunca no próprio ponto** (conflito de interesse; ver §9.4).
 
@@ -144,19 +144,19 @@ stateDiagram-v2
 
 ### 3.1 Tabela de transições (quem pode o quê)
 
-| De → Para | Ator | Pré-condições | Efeitos colaterais |
-|---|---|---|---|
-| — → `solicitada` | cidadão | ponto `ativo`, aceita o material, há vaga na janela, usuário sem bloqueio, dentro dos limites da reputação | notifica o ponto; reserva a vaga |
-| `solicitada` → `confirmada` | operador/gestor | ponto ativo, vaga ainda livre | gera o **código de entrega**; notifica o cidadão |
-| `solicitada` → `recusada` | operador/gestor | motivo da lista (lotado, material não aceito, fora do horário…) | libera a vaga; notifica com sugestão de pontos próximos |
-| `solicitada` → `expirada` | sistema | X horas sem resposta | conta contra a "taxa de resposta" do ponto |
-| `*` → `cancelada` | cidadão / ponto | regras da política de cancelamento | cancelamento tardio afeta a reputação de quem cancelou |
-| `confirmada` → `em_conferencia` | operador | **código correto**, no dia, dentro da janela ± tolerância | registra hora de chegada |
-| `confirmada` → `nao_compareceu` | sistema | janela + tolerância expirada | afeta a reputação do cidadão |
-| `em_conferencia` → `concluida` | operador | peso aferido por item; condição do material | **lança crédito no extrato**; emite comprovante; libera avaliação mútua |
-| `em_conferencia` → `rejeitada` | operador | motivo + foto (opcional) | sem pontos; o cidadão pode contestar |
-| `concluida` → `contestada` | cidadão | até 48h | abre caso para a moderação |
-| `contestada` → `ajustada` | moderador | decisão fundamentada | lançamento de ajuste no extrato (nunca apaga o original) |
+| De → Para                       | Ator            | Pré-condições                                                                                              | Efeitos colaterais                                                      |
+| ------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| — → `solicitada`                | cidadão         | ponto `ativo`, aceita o material, há vaga na janela, usuário sem bloqueio, dentro dos limites da reputação | notifica o ponto; reserva a vaga                                        |
+| `solicitada` → `confirmada`     | operador/gestor | ponto ativo, vaga ainda livre                                                                              | gera o **código de entrega**; notifica o cidadão                        |
+| `solicitada` → `recusada`       | operador/gestor | motivo da lista (lotado, material não aceito, fora do horário…)                                            | libera a vaga; notifica com sugestão de pontos próximos                 |
+| `solicitada` → `expirada`       | sistema         | X horas sem resposta                                                                                       | conta contra a "taxa de resposta" do ponto                              |
+| `*` → `cancelada`               | cidadão / ponto | regras da política de cancelamento                                                                         | cancelamento tardio afeta a reputação de quem cancelou                  |
+| `confirmada` → `em_conferencia` | operador        | **código correto**, no dia, dentro da janela ± tolerância                                                  | registra hora de chegada                                                |
+| `confirmada` → `nao_compareceu` | sistema         | janela + tolerância expirada                                                                               | afeta a reputação do cidadão                                            |
+| `em_conferencia` → `concluida`  | operador        | peso aferido por item; condição do material                                                                | **lança crédito no extrato**; emite comprovante; libera avaliação mútua |
+| `em_conferencia` → `rejeitada`  | operador        | motivo + foto (opcional)                                                                                   | sem pontos; o cidadão pode contestar                                    |
+| `concluida` → `contestada`      | cidadão         | até 48h                                                                                                    | abre caso para a moderação                                              |
+| `contestada` → `ajustada`       | moderador       | decisão fundamentada                                                                                       | lançamento de ajuste no extrato (nunca apaga o original)                |
 
 > Toda transição gera um **evento** (`coleta_eventos`), que é a linha do tempo mostrada ao cliente e ao ponto. Também gera um registro no **log de auditoria**.
 
@@ -187,14 +187,14 @@ Rotas sob `/parceiro/*`, com layout e navegação próprios e cor de destaque di
 
 ### 4.2 Cadastro de ponto (assistente)
 
-| Etapa | Campos e regras |
-|---|---|
-| Identificação | nome, descrição, fotos (até 4), tipo de recebimento: **entrega no ponto** e/ou **retirada em domicílio** (fase opcional) |
-| Localização | busca por endereço (Nominatim) → **alfinete ajustável** no mapa → confirmação do endereço; instruções de acesso ("entrada pela lateral") |
-| Materiais aceitos | por material: aceita? **condições** (limpo, seco, sem tampa…), **o que NÃO aceita**, limite por entrega (kg), *opcional:* valor pago por kg (cooperativas que compram material) |
-| Horários | grade estruturada por dia da semana (abre/fecha, intervalo), **exceções** (feriados, fechamentos pontuais), **duração da janela** (ex.: 30 min) e **capacidade por janela** |
-| Regras de agendamento | antecedência mínima, aceite automático ou manual, tolerância de atraso, prazo para responder solicitações |
-| Revisão | prévia de **como o cidadão verá o ponto** (o mesmo componente da tela pública) → enviar para aprovação |
+| Etapa                 | Campos e regras                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identificação         | nome, descrição, fotos (até 4), tipo de recebimento: **entrega no ponto** e/ou **retirada em domicílio** (fase opcional)                                                        |
+| Localização           | busca por endereço (Nominatim) → **alfinete ajustável** no mapa → confirmação do endereço; instruções de acesso ("entrada pela lateral")                                        |
+| Materiais aceitos     | por material: aceita? **condições** (limpo, seco, sem tampa…), **o que NÃO aceita**, limite por entrega (kg), _opcional:_ valor pago por kg (cooperativas que compram material) |
+| Horários              | grade estruturada por dia da semana (abre/fecha, intervalo), **exceções** (feriados, fechamentos pontuais), **duração da janela** (ex.: 30 min) e **capacidade por janela**     |
+| Regras de agendamento | antecedência mínima, aceite automático ou manual, tolerância de atraso, prazo para responder solicitações                                                                       |
+| Revisão               | prévia de **como o cidadão verá o ponto** (o mesmo componente da tela pública) → enviar para aprovação                                                                          |
 
 Status do ponto: `rascunho → em_analise → ativo ⇄ pausado → suspenso (moderação) / encerrado`.
 
@@ -230,20 +230,20 @@ Status do ponto: `rascunho → em_analise → ativo ⇄ pausado → suspenso (mo
 
 ## 5. Evolução da Área do Cliente
 
-| Hoje | Evolução |
-|---|---|
-| Escolhe uma data livre | Escolhe **dia + janela** a partir das vagas reais do ponto; vê a lotação ("restam 2 vagas") |
-| Um material por coleta | **Vários itens** por coleta, com dicas de preparo por material (do módulo Educação) |
-| Lista de coletas com status | **Acompanhamento em tempo real** com linha do tempo, como num pedido de delivery; cartão "Sua entrega é hoje às 14h" no Início |
-| Marca como concluída sozinho | Recebe o **código de entrega** e o **QR**; quem conclui é o ponto. O cliente recebe o **comprovante** |
-| Pontos derivados das coletas | **Extrato de EcoPontos** (créditos, resgates, ajustes, estornos) com saldo e motivo de cada lançamento |
-| Avalia qualquer ponto | **Avaliação verificada**: só depois de uma coleta `concluida`, com selo "visitou o ponto" |
-| — | **Contestar** uma pesagem em até 48h |
-| — | **Denunciar** ponto, avaliação ou mensagem; **bloquear** um ponto no chat |
-| Perfil básico | Perfil com **reputação e explicação** (§6), **verificação de e-mail/telefone** (simulada), privacidade (apelido no ranking), **exportar meus dados** e **excluir conta** |
-| Busca por cidade/material | Busca "**onde descarto…?**" (pilha, óleo, eletrônico), filtro "**aberto agora**", **favoritos** |
-| — | **Política de cancelamento** clara antes de confirmar; lembrete no dia anterior e 1h antes |
-| — | **Dicas de segurança** na tela de agendamento (horário comercial, local público, nunca pagar nada fora do app) |
+| Hoje                         | Evolução                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Escolhe uma data livre       | Escolhe **dia + janela** a partir das vagas reais do ponto; vê a lotação ("restam 2 vagas")                                                                              |
+| Um material por coleta       | **Vários itens** por coleta, com dicas de preparo por material (do módulo Educação)                                                                                      |
+| Lista de coletas com status  | **Acompanhamento em tempo real** com linha do tempo, como num pedido de delivery; cartão "Sua entrega é hoje às 14h" no Início                                           |
+| Marca como concluída sozinho | Recebe o **código de entrega** e o **QR**; quem conclui é o ponto. O cliente recebe o **comprovante**                                                                    |
+| Pontos derivados das coletas | **Extrato de EcoPontos** (créditos, resgates, ajustes, estornos) com saldo e motivo de cada lançamento                                                                   |
+| Avalia qualquer ponto        | **Avaliação verificada**: só depois de uma coleta `concluida`, com selo "visitou o ponto"                                                                                |
+| —                            | **Contestar** uma pesagem em até 48h                                                                                                                                     |
+| —                            | **Denunciar** ponto, avaliação ou mensagem; **bloquear** um ponto no chat                                                                                                |
+| Perfil básico                | Perfil com **reputação e explicação** (§6), **verificação de e-mail/telefone** (simulada), privacidade (apelido no ranking), **exportar meus dados** e **excluir conta** |
+| Busca por cidade/material    | Busca "**onde descarto…?**" (pilha, óleo, eletrônico), filtro "**aberto agora**", **favoritos**                                                                          |
+| —                            | **Política de cancelamento** clara antes de confirmar; lembrete no dia anterior e 1h antes                                                                               |
+| —                            | **Dicas de segurança** na tela de agendamento (horário comercial, local público, nunca pagar nada fora do app)                                                           |
 
 ---
 
@@ -253,33 +253,33 @@ O diferencial que a banca vai lembrar: **reputação bilateral, calculada por f�
 
 ### 6.1 Reputação do cidadão (0–100)
 
-| Componente | Peso | Como mede |
-|---|:-:|---|
-| Comparecimento | 35% | `1 − (no-shows + cancelamentos tardios) / coletas confirmadas` |
-| Precisão do declarado | 20% | quão próximo o kg declarado ficou do aferido (média das últimas N) |
-| Conformidade do material | 15% | % de itens aprovados sem rejeição |
-| Avaliações dos pontos | 15% | **média bayesiana** das notas recebidas |
-| Verificações | 10% | e-mail ✔, telefone ✔ |
-| Tempo de conta / histórico | 5% | antiguidade e nº de coletas concluídas |
-| Penalidades | — | denúncias **procedentes** subtraem pontos com decaimento no tempo |
+| Componente                 | Peso | Como mede                                                          |
+| -------------------------- | :--: | ------------------------------------------------------------------ |
+| Comparecimento             | 35%  | `1 − (no-shows + cancelamentos tardios) / coletas confirmadas`     |
+| Precisão do declarado      | 20%  | quão próximo o kg declarado ficou do aferido (média das últimas N) |
+| Conformidade do material   | 15%  | % de itens aprovados sem rejeição                                  |
+| Avaliações dos pontos      | 15%  | **média bayesiana** das notas recebidas                            |
+| Verificações               | 10%  | e-mail ✔, telefone ✔                                             |
+| Tempo de conta / histórico |  5%  | antiguidade e nº de coletas concluídas                             |
+| Penalidades                |  —   | denúncias **procedentes** subtraem pontos com decaimento no tempo  |
 
 - **Usuários novos começam em 60 ("Novo")**, e a média bayesiana evita que **uma única** avaliação ruim (ou boa) distorça o score com poucos dados.
-- **Faixas:** 0–39 *Restrito* · 40–69 *Regular* · 70–89 *Confiável* · 90–100 *Exemplar*.
+- **Faixas:** 0–39 _Restrito_ · 40–69 _Regular_ · 70–89 _Confiável_ · 90–100 _Exemplar_.
 - **Consequências (proporcionais e explicadas):**
-  - *Restrito*: máx. 1 agendamento ativo, sem aceite automático, precisa reconfirmar 24h antes.
+  - _Restrito_: máx. 1 agendamento ativo, sem aceite automático, precisa reconfirmar 24h antes.
   - 3 no-shows em 30 dias → **bloqueio de agendamento por 7 dias**, com aviso prévio no 2º.
-  - *Exemplar*: selo no perfil, aceite automático nos pontos que permitem e bônus de EcoPontos em campanhas.
+  - _Exemplar_: selo no perfil, aceite automático nos pontos que permitem e bônus de EcoPontos em campanhas.
 
 ### 6.2 Reputação do ponto (0–100)
 
-| Componente | Peso |
-|---|:-:|
-| Avaliações (média bayesiana) | 35% |
-| Cumprimento (não cancela depois de confirmar) | 20% |
-| Taxa de resposta (não deixa expirar) | 15% |
-| Tempo médio de resposta | 10% |
-| Verificação documental | 10% |
-| Contestações improcedentes / sem denúncias procedentes | 10% |
+| Componente                                             | Peso |
+| ------------------------------------------------------ | :--: |
+| Avaliações (média bayesiana)                           | 35%  |
+| Cumprimento (não cancela depois de confirmar)          | 20%  |
+| Taxa de resposta (não deixa expirar)                   | 15%  |
+| Tempo médio de resposta                                | 10%  |
+| Verificação documental                                 | 10%  |
+| Contestações improcedentes / sem denúncias procedentes | 10%  |
 
 Regras automáticas: nota < 2,5 com ≥ 10 avaliações, ou 3 denúncias procedentes em 30 dias → **revisão automática pela moderação** e selo de alerta oculto até a análise.
 
@@ -295,12 +295,12 @@ Regras automáticas: nota < 2,5 com ≥ 10 avaliações, ou 3 denúncias procede
 
 ### 7.1 O que pode ser denunciado
 
-| Alvo | Exemplos de categoria |
-|---|---|
-| Ponto | não existe / endereço falso, cobrou taxa indevida, comportamento inadequado, pesagem suspeita, descarte irregular |
-| Cidadão | material perigoso escondido, assédio, no-show recorrente, fraude |
-| Avaliação | ofensiva, falsa, conflito de interesse |
-| Mensagem do chat | assédio, spam, golpe (pedido de pagamento/Pix fora do app) |
+| Alvo             | Exemplos de categoria                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Ponto            | não existe / endereço falso, cobrou taxa indevida, comportamento inadequado, pesagem suspeita, descarte irregular |
+| Cidadão          | material perigoso escondido, assédio, no-show recorrente, fraude                                                  |
+| Avaliação        | ofensiva, falsa, conflito de interesse                                                                            |
+| Mensagem do chat | assédio, spam, golpe (pedido de pagamento/Pix fora do app)                                                        |
 
 ### 7.2 Fluxo
 
@@ -363,21 +363,21 @@ Rotas `/admin/*`:
 
 - **Validação centralizada** (esquemas) na entrada de todo repositório: tipos, limites (kg > 0 e ≤ limite do ponto), datas futuras, enums de status.
 - Transições **só pela máquina de estados**; não existe `update(status)` livre.
-- **Extrato contábil imutável**: lançamentos só de inclusão; correções viram *ajuste/estorno*, nunca edição. O saldo é sempre `Σ lançamentos`.
+- **Extrato contábil imutável**: lançamentos só de inclusão; correções viram _ajuste/estorno_, nunca edição. O saldo é sempre `Σ lançamentos`.
 - Saneamento de texto livre (limite de tamanho, sem HTML); nenhum `dangerouslySetInnerHTML`.
 - **Verificação de integridade** dos dados salvos: checksum do estado, que detecta edição manual no DevTools e mostra um aviso no modo demo.
 
 ### 9.4 Antifraude
 
-| Risco | Controle |
-|---|---|
-| Cliente se autoconcede pontos | só operador do ponto conclui (D1 resolvido) |
-| Operador credita pontos para si/amigos | **operador não pode receber pontos no próprio ponto**; volume anômalo por operador gera alerta |
-| Peso inflado | divergência declarado × aferido acima do limite → confirmação dupla + sinalização; **limite diário de kg por material por cidadão** |
-| Coleta "fantasma" | código de entrega exigido + registro de horário do check-in |
-| Avaliação falsa | só com coleta concluída; uma por coleta; edição em até 7 dias |
-| Spam de agendamentos | limite de agendamentos ativos conforme a reputação |
-| Golpe no chat | detector de padrões ("pix", "pagamento", links) com aviso de segurança na conversa |
+| Risco                                  | Controle                                                                                                                            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Cliente se autoconcede pontos          | só operador do ponto conclui (D1 resolvido)                                                                                         |
+| Operador credita pontos para si/amigos | **operador não pode receber pontos no próprio ponto**; volume anômalo por operador gera alerta                                      |
+| Peso inflado                           | divergência declarado × aferido acima do limite → confirmação dupla + sinalização; **limite diário de kg por material por cidadão** |
+| Coleta "fantasma"                      | código de entrega exigido + registro de horário do check-in                                                                         |
+| Avaliação falsa                        | só com coleta concluída; uma por coleta; edição em até 7 dias                                                                       |
+| Spam de agendamentos                   | limite de agendamentos ativos conforme a reputação                                                                                  |
+| Golpe no chat                          | detector de padrões ("pix", "pagamento", links) com aviso de segurança na conversa                                                  |
 
 ### 9.5 Privacidade (LGPD)
 
@@ -390,14 +390,14 @@ Rotas `/admin/*`:
 
 ### 9.6 Modelo de ameaças (STRIDE resumido, para o slide)
 
-| Ameaça | Exemplo no ECOLINK | Mitigação |
-|---|---|---|
-| **S**poofing | logar como outra pessoa | hash + sessão com token + bloqueio por tentativas |
-| **T**ampering | editar kg ou status | máquina de estados + validação + extrato imutável + checksum |
-| **R**epudiation | "não fui eu que pesei" | auditoria com operador, horário e antes/depois |
-| **I**nformation disclosure | ponto ver telefone do cliente | minimização + permissões por escopo |
-| **D**enial of service | flood de agendamentos | limites por reputação + capacidade por janela |
-| **E**levation of privilege | cidadão acessar o painel do parceiro | RBAC na camada de dados + rotas protegidas |
+| Ameaça                     | Exemplo no ECOLINK                   | Mitigação                                                    |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------ |
+| **S**poofing               | logar como outra pessoa              | hash + sessão com token + bloqueio por tentativas            |
+| **T**ampering              | editar kg ou status                  | máquina de estados + validação + extrato imutável + checksum |
+| **R**epudiation            | "não fui eu que pesei"               | auditoria com operador, horário e antes/depois               |
+| **I**nformation disclosure | ponto ver telefone do cliente        | minimização + permissões por escopo                          |
+| **D**enial of service      | flood de agendamentos                | limites por reputação + capacidade por janela                |
+| **E**levation of privilege | cidadão acessar o painel do parceiro | RBAC na camada de dados + rotas protegidas                   |
 
 ---
 
@@ -430,6 +430,7 @@ src/
 ### 10.2 Repositórios assíncronos com "latência simulada"
 
 Todas as funções de `repos/` retornam `Promise` e passam por uma latência configurável (0–400ms). Assim:
+
 1. As telas já tratam **carregando / erro / vazio** como fariam com uma API real.
 2. Plugar a `reciclaja-api` vira trocar a implementação do repositório por `fetch`, sem tocar nas telas.
 3. Um botão no modo demo pode **simular falha de rede** e mostrar como o app se comporta.
@@ -441,34 +442,35 @@ Ouvir o evento nativo `storage` (dispara em **outras** abas quando o `localStora
 ### 10.4 Arquivos (fotos e documentos)
 
 O `localStorage` tem cerca de 5 MB. Por isso:
+
 - imagens **comprimidas no navegador** (canvas → WebP/JPEG, máx. ~1280px, ~150 KB);
 - binários guardados no **IndexedDB**; o estado JSON guarda só a referência;
 - medidor de uso de armazenamento no painel demo (`navigator.storage.estimate()`).
 
 ### 10.5 Entidades (schema v3)
 
-| Coleção | Campos principais |
-|---|---|
-| `usuarios` | id, nome, apelido, email, **senha_hash, senha_salt**, telefone, cidade, **papeis[]**, verificado_email, verificado_tel, status (ativo/suspenso/banido/excluido), codigo_pessoal (QR), privacidade{}, aceite_termos{versao, em}, criado_em |
-| `sessoes` | token, usuario_id, perfil_ativo, criada_em, expira_em, ultimo_uso, dispositivo |
-| `tentativas_login` | email, falhas, bloqueado_ate |
-| `organizacoes` | id, tipo, nome, cnpj/cpf, responsavel_id, documentos[], status (em_analise/aprovada/reprovada/suspensa), motivo |
-| `membros` | organizacao_id, usuario_id, papel (gestor/operador), ponto_ids[], convidado_por, ativo |
-| `convites` | codigo, organizacao_id, email, papel, expira_em, usado |
-| `pontos` | id, organizacao_id, nome, descricao, fotos[], endereco, lat/lng, instrucoes_acesso, **materiais[{slug, condicoes, nao_aceita, limite_kg, preco_kg, pausado}]**, **horarios{dia: [{abre, fecha}]}**, excecoes[], janela_min, capacidade_janela, antecedencia_min, aceite_auto, tolerancia_min, capacidade_estoque{}, status |
-| `coletas` | id, codigo (ECO-XXXX), cidadao_id, ponto_id, tipo (agendada/avulsa), data, janela_inicio/fim, **itens[{material, kg_declarado, kg_aferido, status, motivo, foto_ref}]**, status, **codigo_entrega_hash**, operador_checkin_id, operador_pesagem_id, criada_em, concluida_em |
-| `coleta_eventos` | coleta_id, de, para, ator_id, papel, motivo, em |
-| `extrato` | id, usuario_id, tipo (credito_coleta/resgate/ajuste/estorno/bonus), valor (±), referencia, criado_por, em |
-| `avaliacoes` | id, coleta_id, autor_id, alvo_tipo (ponto/cidadao), alvo_id, nota, criterios{}, comentario, resposta{texto, em}, status (visivel/oculta), em |
-| `denuncias` | id, protocolo, denunciante_id, alvo_tipo, alvo_id, categoria, gravidade, descricao, evidencias[], status, moderador_id, decisao, acao, recurso{}, em |
-| `sancoes` | id, alvo_tipo, alvo_id, tipo, motivo, denuncia_id, inicio, fim, aplicada_por |
-| `bloqueios` | usuario_id, bloqueado_tipo, bloqueado_id |
-| `estoque_movimentos` | ponto_id, material, kg (±), tipo (entrada/destinacao), referencia, em |
-| `destinacoes` | ponto_id, destino, itens[], comprovante_ref, em |
-| `conversas` / `mensagens` | conversa(cidadao_id, ponto_id, coleta_id?), mensagem(autor_id, papel, texto, lida, sinalizada, em) |
-| `notificacoes` | usuario_id, perfil (cidadao/parceiro/admin), tipo, texto, link, lida, em |
-| `auditoria` | id, ator_id, acao, recurso_tipo, recurso_id, antes, depois, em |
-| `meta` | schema_version, relogio_simulado_offset, checksum |
+| Coleção                   | Campos principais                                                                                                                                                                                                                                                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `usuarios`                | id, nome, apelido, email, **senha_hash, senha_salt**, telefone, cidade, **papeis[]**, verificado_email, verificado_tel, status (ativo/suspenso/banido/excluido), codigo_pessoal (QR), privacidade{}, aceite_termos{versao, em}, criado_em                                                                                  |
+| `sessoes`                 | token, usuario_id, perfil_ativo, criada_em, expira_em, ultimo_uso, dispositivo                                                                                                                                                                                                                                             |
+| `tentativas_login`        | email, falhas, bloqueado_ate                                                                                                                                                                                                                                                                                               |
+| `organizacoes`            | id, tipo, nome, cnpj/cpf, responsavel_id, documentos[], status (em_analise/aprovada/reprovada/suspensa), motivo                                                                                                                                                                                                            |
+| `membros`                 | organizacao_id, usuario_id, papel (gestor/operador), ponto_ids[], convidado_por, ativo                                                                                                                                                                                                                                     |
+| `convites`                | codigo, organizacao_id, email, papel, expira_em, usado                                                                                                                                                                                                                                                                     |
+| `pontos`                  | id, organizacao_id, nome, descricao, fotos[], endereco, lat/lng, instrucoes_acesso, **materiais[{slug, condicoes, nao_aceita, limite_kg, preco_kg, pausado}]**, **horarios{dia: [{abre, fecha}]}**, excecoes[], janela_min, capacidade_janela, antecedencia_min, aceite_auto, tolerancia_min, capacidade_estoque{}, status |
+| `coletas`                 | id, codigo (ECO-XXXX), cidadao_id, ponto_id, tipo (agendada/avulsa), data, janela_inicio/fim, **itens[{material, kg_declarado, kg_aferido, status, motivo, foto_ref}]**, status, **codigo_entrega_hash**, operador_checkin_id, operador_pesagem_id, criada_em, concluida_em                                                |
+| `coleta_eventos`          | coleta_id, de, para, ator_id, papel, motivo, em                                                                                                                                                                                                                                                                            |
+| `extrato`                 | id, usuario_id, tipo (credito_coleta/resgate/ajuste/estorno/bonus), valor (±), referencia, criado_por, em                                                                                                                                                                                                                  |
+| `avaliacoes`              | id, coleta_id, autor_id, alvo_tipo (ponto/cidadao), alvo_id, nota, criterios{}, comentario, resposta{texto, em}, status (visivel/oculta), em                                                                                                                                                                               |
+| `denuncias`               | id, protocolo, denunciante_id, alvo_tipo, alvo_id, categoria, gravidade, descricao, evidencias[], status, moderador_id, decisao, acao, recurso{}, em                                                                                                                                                                       |
+| `sancoes`                 | id, alvo_tipo, alvo_id, tipo, motivo, denuncia_id, inicio, fim, aplicada_por                                                                                                                                                                                                                                               |
+| `bloqueios`               | usuario_id, bloqueado_tipo, bloqueado_id                                                                                                                                                                                                                                                                                   |
+| `estoque_movimentos`      | ponto_id, material, kg (±), tipo (entrada/destinacao), referencia, em                                                                                                                                                                                                                                                      |
+| `destinacoes`             | ponto_id, destino, itens[], comprovante_ref, em                                                                                                                                                                                                                                                                            |
+| `conversas` / `mensagens` | conversa(cidadao_id, ponto_id, coleta_id?), mensagem(autor_id, papel, texto, lida, sinalizada, em)                                                                                                                                                                                                                         |
+| `notificacoes`            | usuario_id, perfil (cidadao/parceiro/admin), tipo, texto, link, lida, em                                                                                                                                                                                                                                                   |
+| `auditoria`               | id, ator_id, acao, recurso_tipo, recurso_id, antes, depois, em                                                                                                                                                                                                                                                             |
+| `meta`                    | schema_version, relogio_simulado_offset, checksum                                                                                                                                                                                                                                                                          |
 
 ### 10.6 Migrações
 
@@ -507,30 +509,34 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 
 > Tamanho relativo: **P** (1–2 dias), **M** (3–5 dias), **G** (1–2 semanas) para uma pessoa. Prioridade MoSCoW: **[M]** obrigatório para a banca, **[S]** deveria ter, **[C]** se der tempo.
 
-### Fase 0 — Fundações *(M)* [M]
+### Fase 0 — Fundações _(M)_ [M]
+
 - Corrigir a dependência quebrada (D11); ESLint/Prettier; Vitest; CI.
 - Reestruturar pastas (`domain/`, `data/repos/`, `features/`).
 - Repositórios **assíncronos** com latência simulada; `useQuery`/`useMutation` simples.
 - `schema_version` + migrações; **seed relativo a hoje** (D12), mais rico (3 organizações, 8 pontos, 10 cidadãos, histórico de 60 dias).
 - **Sincronização entre abas** (D14).
-- ✅ *Aceite:* `npm ci && npm test && npm run build` passam em um clone limpo; abrir 2 abas e ver a mudança refletir.
+- ✅ _Aceite:_ `npm ci && npm test && npm run build` passam em um clone limpo; abrir 2 abas e ver a mudança refletir.
 
-### Fase 1 — Identidade, papéis e segurança base *(M)* [M]
+### Fase 1 — Identidade, papéis e segurança base _(M)_ [M]
+
 - Hash de senha, sessão com token e expiração, bloqueio por tentativas (D4, D5).
 - `papeis[]`, seletor de perfil, `RequireRole`, página 403 (D3).
 - `domain/permissoes.js` aplicado nos repositórios (D6).
 - Termos/privacidade com aceite versionado; auditoria básica.
 - Painel demo com seletor de contas; "restaurar dados" sai do perfil (D13).
-- ✅ *Aceite:* nenhuma senha legível no storage; cidadão não acessa `/parceiro` nem por URL nem chamando o repositório.
+- ✅ _Aceite:_ nenhuma senha legível no storage; cidadão não acessa `/parceiro` nem por URL nem chamando o repositório.
 
-### Fase 2 — Onboarding do parceiro e cadastro de pontos *(G)* [M]
+### Fase 2 — Onboarding do parceiro e cadastro de pontos _(G)_ [M]
+
 - Cadastro de parceiro em etapas, com CNPJ validado e upload de documentos (IndexedDB).
 - Assistente de ponto: mapa com alfinete, materiais com condições, **grade de horários**, exceções, capacidade (D10).
 - Aprovação mínima no admin (aprovar/reprovar com motivo).
 - Tela pública do ponto reaproveitada na prévia; "aberto agora".
-- ✅ *Aceite:* um parceiro novo chega a um ponto `ativo` visível no mapa do cidadão, passando pela aprovação.
+- ✅ _Aceite:_ um parceiro novo chega a um ponto `ativo` visível no mapa do cidadão, passando pela aprovação.
 
-### Fase 3 — Jornada da coleta de ponta a ponta *(G)* [M] ⭐ **coração do projeto**
+### Fase 3 — Jornada da coleta de ponta a ponta _(G)_ [M] ⭐ **coração do projeto**
+
 - `domain/coletaMaquina.js` + `coleta_eventos` (§3).
 - Agendamento com **janelas e vagas reais** e **vários itens**.
 - **Painel de recebimentos** do parceiro com aceitar/recusar, alertas e pausar.
@@ -539,38 +545,43 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - Linha do tempo para o cidadão; comprovante para os dois lados.
 - Entrega avulsa via QR do perfil.
 - Jobs do "relógio": expiração, no-show, lembretes.
-- ✅ *Aceite:* **o cidadão não consegue mais concluir a própria coleta** (D1); os pontos só aparecem após a pesagem; todo o fluxo funciona com duas abas lado a lado.
+- ✅ _Aceite:_ **o cidadão não consegue mais concluir a própria coleta** (D1); os pontos só aparecem após a pesagem; todo o fluxo funciona com duas abas lado a lado.
 
-### Fase 4 — Confiança e reputação *(M)* [M]
+### Fase 4 — Confiança e reputação _(M)_ [M]
+
 - Avaliação **verificada e bilateral** por coleta, com resposta pública do ponto (D7).
 - `domain/reputacao.js` (cidadão e ponto) com média bayesiana e testes.
 - Restrições automáticas por faixa; tela "Por que minha reputação é X?".
 - Selos (verificado, resposta rápida, exemplar).
-- ✅ *Aceite:* 3 no-shows simulados (relógio do demo) bloqueiam o agendamento com aviso claro e prazo.
+- ✅ _Aceite:_ 3 no-shows simulados (relógio do demo) bloqueiam o agendamento com aviso claro e prazo.
 
-### Fase 5 — Denúncias, moderação e admin *(G)* [M]
+### Fase 5 — Denúncias, moderação e admin _(G)_ [M]
+
 - Denunciar ponto, cidadão, avaliação e mensagem; bloquear usuário.
 - Fila de moderação priorizada, tela de caso, sanções, recurso.
 - Contestação de pesagem → ajuste no extrato.
 - Painel admin: visão geral, aprovações, usuários/pontos, auditoria.
-- ✅ *Aceite:* uma denúncia procedente suspende um ponto, que some do mapa; o cidadão acompanha o protocolo até a decisão.
+- ✅ _Aceite:_ uma denúncia procedente suspende um ponto, que some do mapa; o cidadão acompanha o protocolo até a decisão.
 
-### Fase 6 — Operação do ponto e chat real *(M)* [S]
+### Fase 6 — Operação do ponto e chat real _(M)_ [S]
+
 - Chat bidirecional real (substitui a resposta automática, D9), respostas rápidas, detector de golpe.
 - Equipe (convites, papéis, revogação).
 - Estoque, capacidade, pausa automática e **destinação** (rastreabilidade).
 - Relatórios com gráficos e exportação CSV.
-- ✅ *Aceite:* um kg entregue pelo cidadão aparece no estoque do ponto e na destinação final.
+- ✅ _Aceite:_ um kg entregue pelo cidadão aparece no estoque do ponto e na destinação final.
 
-### Fase 7 — Polimento, acessibilidade e prova *(M)* [M]
+### Fase 7 — Polimento, acessibilidade e prova _(M)_ [M]
+
 - Auditoria de acessibilidade (axe + teclado + leitor de tela).
 - Revisão de microcopy, estados vazios e erros; onboarding por papel.
 - E2E da jornada completa no CI.
 - LGPD: exportar dados e excluir conta.
 - README, diagramas, ADRs, vídeo de backup da demo.
-- ✅ *Aceite:* E2E verde; Lighthouse ≥ 90 em Acessibilidade e Boas práticas.
+- ✅ _Aceite:_ E2E verde; Lighthouse ≥ 90 em Acessibilidade e Boas práticas.
 
-### Fase 8 — Extensões *(G)* [C]
+### Fase 8 — Extensões _(G)_ [C]
+
 - **Retirada em domicílio** com papel de **coletor** (o "entregador"): raio de atendimento, endereço revelado só após o aceite e ocultado após a conclusão, status "a caminho" com previsão de chegada simulada.
 - Integração com a `reciclaja-api` real, trocando a implementação dos repositórios.
 - Campanhas (dobro de EcoPontos em pilhas na semana do meio ambiente) e metas coletivas por bairro.
@@ -603,30 +614,30 @@ gantt
 
 **Montagem:** notebook com **duas janelas lado a lado**: à esquerda o **cidadão** (Ana, no celular emulado) e à direita o **reciclador** (EcoPonto Centro, no balcão). Uma terceira aba com o **admin** fica minimizada.
 
-| Min | Cena | O que a banca deve perceber |
-|---|---|---|
-| 0–1 | O problema e a analogia com um marketplace de delivery | Produto com dois lados |
-| 1–3 | Ana busca "onde descarto pilha?", vê a reputação e os selos do ponto e agenda 2 itens numa janela com vagas | UX de cliente e informação para decidir |
-| 3–4 | **Na outra janela, toca o alerta**: o ponto vê a solicitação, a reputação da Ana (sem telefone) e aceita | Tempo real, minimização de dados |
-| 4–6 | Ana "chega": mostra o código; o operador digita, pesa (declarou 3 kg, aferiu 2,6 kg) e rejeita parcialmente o vidro quebrado, com motivo | **Quem recebe é quem confirma**; antifraude |
-| 6–7 | Os pontos caem no **extrato** da Ana; comprovante; os dois se avaliam | Extrato contábil, reputação bilateral |
-| 7–8 | Tentativa de fraude ao vivo: o operador tenta se dar pontos no próprio ponto → bloqueado; cidadão tenta abrir `/parceiro` → 403 | Segurança na camada de dados |
-| 8–9 | Denúncia de mensagem com "pague por Pix" → aviso automático → admin suspende → ponto some do mapa | Moderação ponta a ponta |
-| 9–10 | Relógio simulado: no-show → reputação cai → tela "por que minha reputação caiu" | Transparência |
-| 10 | Encerramento: diagrama de estados, matriz de permissões, STRIDE, testes verdes no CI | Rigor técnico |
+| Min  | Cena                                                                                                                                     | O que a banca deve perceber                 |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 0–1  | O problema e a analogia com um marketplace de delivery                                                                                   | Produto com dois lados                      |
+| 1–3  | Ana busca "onde descarto pilha?", vê a reputação e os selos do ponto e agenda 2 itens numa janela com vagas                              | UX de cliente e informação para decidir     |
+| 3–4  | **Na outra janela, toca o alerta**: o ponto vê a solicitação, a reputação da Ana (sem telefone) e aceita                                 | Tempo real, minimização de dados            |
+| 4–6  | Ana "chega": mostra o código; o operador digita, pesa (declarou 3 kg, aferiu 2,6 kg) e rejeita parcialmente o vidro quebrado, com motivo | **Quem recebe é quem confirma**; antifraude |
+| 6–7  | Os pontos caem no **extrato** da Ana; comprovante; os dois se avaliam                                                                    | Extrato contábil, reputação bilateral       |
+| 7–8  | Tentativa de fraude ao vivo: o operador tenta se dar pontos no próprio ponto → bloqueado; cidadão tenta abrir `/parceiro` → 403          | Segurança na camada de dados                |
+| 8–9  | Denúncia de mensagem com "pague por Pix" → aviso automático → admin suspende → ponto some do mapa                                        | Moderação ponta a ponta                     |
+| 9–10 | Relógio simulado: no-show → reputação cai → tela "por que minha reputação caiu"                                                          | Transparência                               |
+| 10   | Encerramento: diagrama de estados, matriz de permissões, STRIDE, testes verdes no CI                                                     | Rigor técnico                               |
 
 ---
 
 ## 15. Riscos e mitigação
 
-| Risco | Mitigação |
-|---|---|
-| Escopo grande para o prazo | MoSCoW + caminho mínimo da §13; Fase 3 tem prioridade absoluta |
-| Limite de ~5 MB do `localStorage` | Imagens comprimidas no IndexedDB; medidor de uso; limpeza por retenção |
-| Dados antigos de quem já testou quebram o app | Migrações versionadas + botão de restaurar no painel demo |
-| Demo falhar ao vivo (internet, mapa) | Seed determinístico; tiles cacheados pelo PWA; **vídeo de backup** |
-| Banca questionar "segurança no front?" | §9 com postura honesta: arquitetura demonstrada, pronta para ir ao servidor |
-| Inconsistência de regras entre telas | Toda regra em `domain/` com testes; telas só chamam os repositórios |
+| Risco                                         | Mitigação                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| Escopo grande para o prazo                    | MoSCoW + caminho mínimo da §13; Fase 3 tem prioridade absoluta              |
+| Limite de ~5 MB do `localStorage`             | Imagens comprimidas no IndexedDB; medidor de uso; limpeza por retenção      |
+| Dados antigos de quem já testou quebram o app | Migrações versionadas + botão de restaurar no painel demo                   |
+| Demo falhar ao vivo (internet, mapa)          | Seed determinístico; tiles cacheados pelo PWA; **vídeo de backup**          |
+| Banca questionar "segurança no front?"        | §9 com postura honesta: arquitetura demonstrada, pronta para ir ao servidor |
+| Inconsistência de regras entre telas          | Toda regra em `domain/` com testes; telas só chamam os repositórios         |
 
 ---
 

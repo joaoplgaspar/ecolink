@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { pontosDaColeta, nivelPor, calcularEstatisticas, calcularRanking, impactoDe } from './gamificacao';
 
-const coleta = (material, kg, status = 'concluida', usuario_id = 1) => ({ material, quantidade_kg: kg, status, usuario_id });
+const coleta = (material, kg, status = 'concluida', usuario_id = 1) => ({
+  material,
+  quantidade_kg: kg,
+  status,
+  usuario_id,
+});
 
 describe('pontosDaColeta', () => {
   it('multiplica kg pelo fator do material e arredonda', () => {
@@ -36,7 +41,12 @@ describe('nivelPor', () => {
 describe('calcularEstatisticas', () => {
   it('considera só coletas concluídas para pontos, kg e materiais', () => {
     const s = calcularEstatisticas({
-      coletas: [coleta('papel', 5), coleta('vidro', 2), coleta('metal', 10, 'agendada'), coleta('plástico', 3, 'cancelada')],
+      coletas: [
+        coleta('papel', 5),
+        coleta('vidro', 2),
+        coleta('metal', 10, 'agendada'),
+        coleta('plástico', 3, 'cancelada'),
+      ],
     });
     expect(s).toMatchObject({ ecopontos: 52, totalKg: 7, concluidas: 2, agendadas: 1, materiaisDistintos: 2 });
   });
@@ -74,7 +84,12 @@ describe('calcularRanking', () => {
       { id: 2, nome: 'Ana', cidade: 'SP' },
       { id: 3, nome: 'Caio', cidade: 'RJ' },
     ];
-    const coletas = [coleta('papel', 1, 'concluida', 1), coleta('papel', 1, 'concluida', 2), coleta('metal', 5, 'concluida', 3), coleta('metal', 50, 'agendada', 1)];
+    const coletas = [
+      coleta('papel', 1, 'concluida', 1),
+      coleta('papel', 1, 'concluida', 2),
+      coleta('metal', 5, 'concluida', 3),
+      coleta('metal', 50, 'agendada', 1),
+    ];
     expect(calcularRanking({ usuarios, coletas }).map((r) => r.nome)).toEqual(['Caio', 'Ana', 'Bia']);
   });
 });

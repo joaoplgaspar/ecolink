@@ -102,7 +102,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthCtx.Provider value={{ user, carregando, erroSessao, tentarDeNovo, login, register, logout, updateUser }}>{children}</AuthCtx.Provider>
+    <AuthCtx.Provider value={{ user, carregando, erroSessao, tentarDeNovo, login, register, logout, updateUser }}>
+      {children}
+    </AuthCtx.Provider>
   );
 }
 

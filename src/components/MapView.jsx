@@ -42,17 +42,19 @@ export default function MapView({
   const pts = pontos.filter((p) => p.latitude != null && p.longitude != null);
 
   const avg = pts.length
-    ? [
-        pts.reduce((s, p) => s + p.latitude, 0) / pts.length,
-        pts.reduce((s, p) => s + p.longitude, 0) / pts.length,
-      ]
+    ? [pts.reduce((s, p) => s + p.latitude, 0) / pts.length, pts.reduce((s, p) => s + p.longitude, 0) / pts.length]
     : [-23.55, -46.63];
   const initialCenter = userLocation ? [userLocation.lat, userLocation.lon] : avg;
   const flyTarget = focus || (userLocation ? [userLocation.lat, userLocation.lon] : null);
 
   return (
     <div className="map-box" style={{ height }}>
-      <MapContainer center={initialCenter} zoom={zoom} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
+      <MapContainer
+        center={initialCenter}
+        zoom={zoom}
+        scrollWheelZoom={false}
+        style={{ height: '100%', width: '100%' }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

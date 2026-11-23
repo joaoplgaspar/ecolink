@@ -20,11 +20,7 @@ export default function StarRating({ value = 0, onChange, size = 22, readOnly = 
           onClick={() => !readOnly && onChange?.(n)}
           aria-label={`${n} estrela${n > 1 ? 's' : ''}`}
         >
-          <Star
-            size={size}
-            fill={n <= display ? '#f5a623' : 'none'}
-            color={n <= display ? '#f5a623' : '#cdd5d0'}
-          />
+          <Star size={size} fill={n <= display ? '#f5a623' : 'none'} color={n <= display ? '#f5a623' : '#cdd5d0'} />
         </button>
       ))}
     </div>

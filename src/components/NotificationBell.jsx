@@ -34,7 +34,12 @@ export default function NotificationBell() {
 
   return (
     <div className="bell" ref={ref}>
-      <button className="btn icon-btn" onClick={toggle} aria-label={naoLidas ? `Notificações (${naoLidas} não lidas)` : 'Notificações'} aria-expanded={open}>
+      <button
+        className="btn icon-btn"
+        onClick={toggle}
+        aria-label={naoLidas ? `Notificações (${naoLidas} não lidas)` : 'Notificações'}
+        aria-expanded={open}
+      >
         <Bell size={20} />
         {naoLidas > 0 && <span className="bell-dot">{naoLidas}</span>}
       </button>
@@ -46,7 +51,9 @@ export default function NotificationBell() {
           </div>
           {lista.length === 0 ? (
             <div className="empty" style={{ padding: '28px 16px' }}>
-              <div className="big"><Bell /></div>
+              <div className="big">
+                <Bell />
+              </div>
               <p className="muted small">Nada por aqui ainda.</p>
             </div>
           ) : (

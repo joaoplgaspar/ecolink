@@ -61,13 +61,15 @@ export function agendar({ usuario_id, ponto_id, material, quantidade_kg, data_ag
       const ponto = s.pontos.find((p) => p.id === Number(ponto_id));
       if (!ponto) throw naoEncontrado('Ponto de coleta');
       if (!ponto.ativo) throw invalido('Este ponto não está recebendo materiais no momento.');
-      if (!ponto.materiais.includes(material)) throw invalido(`Este ponto não aceita ${getMaterial(material).label.toLowerCase()}.`, 'material');
+      if (!ponto.materiais.includes(material))
+        throw invalido(`Este ponto não aceita ${getMaterial(material).label.toLowerCase()}.`, 'material');
 
       const kg = Number(quantidade_kg);
       if (!Number.isFinite(kg) || kg <= 0) throw invalido('Informe uma quantidade maior que zero.', 'quantidade_kg');
       if (kg > KG_MAXIMO) throw invalido(`A quantidade máxima por agendamento é ${KG_MAXIMO} kg.`, 'quantidade_kg');
 
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data_agendada))) throw invalido('Informe uma data válida.', 'data_agendada');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data_agendada)))
+        throw invalido('Informe uma data válida.', 'data_agendada');
       if (data_agendada < isoDia(new Date())) throw invalido('A data não pode estar no passado.', 'data_agendada');
 
       const nova = {
@@ -124,7 +126,8 @@ export function remover(id) {
   return chamar(() =>
     transacao((s) => {
       const c = buscar(s, id);
-      if (c.status === 'concluida') throw new ErroApi(409, 'Coletas concluídas fazem parte do seu histórico e não podem ser apagadas.');
+      if (c.status === 'concluida')
+        throw new ErroApi(409, 'Coletas concluídas fazem parte do seu histórico e não podem ser apagadas.');
       s.coletas = s.coletas.filter((x) => x.id !== c.id);
     }),
   );

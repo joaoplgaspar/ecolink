@@ -30,6 +30,6 @@ self.addEventListener('fetch', (e) => {
         })
         .catch(() => cached);
       return cached || network;
-    })
+    }),
   );
 });

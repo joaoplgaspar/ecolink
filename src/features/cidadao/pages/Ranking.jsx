@@ -23,7 +23,9 @@ export default function Ranking() {
   return (
     <div>
       <div className="page-head">
-        <h1><Trophy size={24} color="var(--amber-500)" /> Ranking</h1>
+        <h1>
+          <Trophy size={24} color="var(--amber-500)" /> Ranking
+        </h1>
         <p>Os maiores recicladores do ECOLINK.{minhaPos > 0 && ` Você está em ${minhaPos}º lugar!`}</p>
       </div>
 
@@ -32,25 +34,34 @@ export default function Ranking() {
       ) : !q.data ? (
         <ErroCarregar erro={q.error} onTentar={q.refetch} />
       ) : (
-
-      <motion.div className="card" style={{ overflow: 'hidden' }} variants={stagger} initial="initial" animate="animate">
-        {ranking.map((r, i) => (
-          <motion.div key={r.id} variants={item} className={`rank-row ${r.id === user.id ? 'me' : ''}`}>
-            <div className="rank-pos"><RankPos pos={i + 1} /></div>
-            <Avatar nome={r.nome} size={40} />
-            <div>
-              <div style={{ fontWeight: 600 }}>
-                {r.nome} {r.id === user.id && <span className="small faint">(você)</span>}
+        <motion.div
+          className="card"
+          style={{ overflow: 'hidden' }}
+          variants={stagger}
+          initial="initial"
+          animate="animate"
+        >
+          {ranking.map((r, i) => (
+            <motion.div key={r.id} variants={item} className={`rank-row ${r.id === user.id ? 'me' : ''}`}>
+              <div className="rank-pos">
+                <RankPos pos={i + 1} />
               </div>
-              <div className="small faint">{r.cidade}</div>
-            </div>
-            <div className="row" style={{ gap: 10, marginLeft: 'auto' }}>
-              <span className="hide-mobile"><LevelChip nivel={r.nivel} /></span>
-              <span className="pts">{nf(r.ecopontos)} pts</span>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
+              <Avatar nome={r.nome} size={40} />
+              <div>
+                <div style={{ fontWeight: 600 }}>
+                  {r.nome} {r.id === user.id && <span className="small faint">(você)</span>}
+                </div>
+                <div className="small faint">{r.cidade}</div>
+              </div>
+              <div className="row" style={{ gap: 10, marginLeft: 'auto' }}>
+                <span className="hide-mobile">
+                  <LevelChip nivel={r.nivel} />
+                </span>
+                <span className="pts">{nf(r.ecopontos)} pts</span>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       <p className="small faint center row mt-2" style={{ gap: 6, justifyContent: 'center' }}>

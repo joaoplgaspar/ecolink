@@ -18,7 +18,9 @@ export default function ScheduleCollection() {
   if (q.error?.status === 404) {
     return (
       <EmptyState icon={CircleHelp} title="Ponto não encontrado">
-        <Link to="/pontos" className="btn btn-sm btn-primary mt-2">Voltar para pontos</Link>
+        <Link to="/pontos" className="btn btn-sm btn-primary mt-2">
+          Voltar para pontos
+        </Link>
       </EmptyState>
     );
   }
@@ -30,7 +32,9 @@ export default function ScheduleCollection() {
       <EmptyState icon={PauseCircle} title="Este ponto não está recebendo agora">
         Escolha outro ponto próximo para agendar sua coleta.
         <br />
-        <Link to="/pontos" className="btn btn-sm btn-primary mt-2">Ver outros pontos</Link>
+        <Link to="/pontos" className="btn btn-sm btn-primary mt-2">
+          Ver outros pontos
+        </Link>
       </EmptyState>
     );
   }
@@ -64,10 +68,16 @@ function FormAgendamento({ ponto }) {
 
   return (
     <div>
-      <Link to={`/pontos/${ponto.id}`} className="btn btn-sm btn-ghost mb-2"><ArrowLeft size={16} /> {ponto.nome}</Link>
+      <Link to={`/pontos/${ponto.id}`} className="btn btn-sm btn-ghost mb-2">
+        <ArrowLeft size={16} /> {ponto.nome}
+      </Link>
       <div className="page-head">
-        <h1><CalendarPlus size={24} color="var(--green-600)" /> Agendar coleta</h1>
-        <p>Em <strong>{ponto.nome}</strong> — {ponto.cidade}</p>
+        <h1>
+          <CalendarPlus size={24} color="var(--green-600)" /> Agendar coleta
+        </h1>
+        <p>
+          Em <strong>{ponto.nome}</strong> — {ponto.cidade}
+        </p>
       </div>
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
@@ -75,24 +85,47 @@ function FormAgendamento({ ponto }) {
           <div className="field">
             <label htmlFor="ag-material">Material</label>
             <select id="ag-material" className="select" value={material} onChange={(e) => setMaterial(e.target.value)}>
-              {ponto.materiais.map((m) => <option key={m} value={m}>{getMaterial(m).label}</option>)}
+              {ponto.materiais.map((m) => (
+                <option key={m} value={m}>
+                  {getMaterial(m).label}
+                </option>
+              ))}
             </select>
             <p className="hint">Este ponto aceita apenas os materiais listados.</p>
           </div>
 
           <div className="field">
             <label htmlFor="ag-kg">Quantidade (kg)</label>
-            <input id="ag-kg" className="input" type="number" min="0.1" max="500" step="0.1" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} required />
+            <input
+              id="ag-kg"
+              className="input"
+              type="number"
+              min="0.1"
+              max="500"
+              step="0.1"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              required
+            />
           </div>
 
           <div className="field">
             <label htmlFor="ag-data">Data desejada</label>
-            <input id="ag-data" className="input" type="date" min={hoje} value={data} onChange={(e) => setData(e.target.value)} required />
+            <input
+              id="ag-data"
+              className="input"
+              type="date"
+              min={hoje}
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              required
+            />
           </div>
 
           <MensagemErro erro={agendar.error} style={{ marginBottom: 10 }} />
           <button className="btn btn-primary btn-block mt-1" type="submit" disabled={agendar.pending}>
-            {agendar.pending ? <Loader2 size={18} className="spin" /> : <CalendarPlus size={18} />} Confirmar agendamento
+            {agendar.pending ? <Loader2 size={18} className="spin" /> : <CalendarPlus size={18} />} Confirmar
+            agendamento
           </button>
         </form>
 

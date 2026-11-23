@@ -4,7 +4,19 @@
 import { useState } from 'react';
 import { NavLink, Link, useOutlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, MapPin, Recycle, MessageCircle, Trophy, User, LogOut, Leaf, Gift, GraduationCap, MoreHorizontal } from 'lucide-react';
+import {
+  Home,
+  MapPin,
+  Recycle,
+  MessageCircle,
+  Trophy,
+  User,
+  LogOut,
+  Leaf,
+  Gift,
+  GraduationCap,
+  MoreHorizontal,
+} from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { estatisticas } from '@/data/repos';
@@ -56,8 +68,12 @@ export default function Layout() {
     <div className="app-shell">
       <header className="topbar">
         <Link to="/" className="brand">
-          <span className="leaf"><Recycle size={20} /></span>
-          <span>ECOLINK<span className="sub">reciclar conecta</span></span>
+          <span className="leaf">
+            <Recycle size={20} />
+          </span>
+          <span>
+            ECOLINK<span className="sub">reciclar conecta</span>
+          </span>
         </Link>
         <div className="topbar-spacer" />
         <Link to="/loja" className="ecopoints-pill" title="Saldo para resgatar">
@@ -81,7 +97,15 @@ export default function Layout() {
           <div className="row" style={{ gap: 10 }}>
             <Avatar nome={user.nome} size={38} />
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 {user.nome}
               </div>
               <button className="btn btn-sm btn-ghost" style={{ padding: '2px 0', gap: 5 }} onClick={sair}>
@@ -117,7 +141,13 @@ export default function Layout() {
       <AnimatePresence>
         {sheet && (
           <>
-            <motion.div className="sheet-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSheet(false)} />
+            <motion.div
+              className="sheet-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSheet(false)}
+            />
             <motion.div
               className="sheet"
               initial={{ y: '100%' }}
@@ -134,7 +164,9 @@ export default function Layout() {
                   </NavLink>
                 );
               })}
-              <button className="sheet-item" onClick={sair}><LogOut size={20} /> Sair</button>
+              <button className="sheet-item" onClick={sair}>
+                <LogOut size={20} /> Sair
+              </button>
             </motion.div>
           </>
         )}

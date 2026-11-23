@@ -83,12 +83,16 @@ export default function Points() {
   return (
     <div>
       <div className="page-head">
-        <h1><MapPin size={24} color="var(--green-600)" /> Pontos de coleta</h1>
+        <h1>
+          <MapPin size={24} color="var(--green-600)" /> Pontos de coleta
+        </h1>
         <p>Encontre onde reciclar perto de você.</p>
       </div>
 
       <div className="card card-pad mb-2">
-        <label className="small" style={{ fontWeight: 600, color: 'var(--muted)' }}>Buscar pontos próximos</label>
+        <label className="small" style={{ fontWeight: 600, color: 'var(--muted)' }}>
+          Buscar pontos próximos
+        </label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
           <div className="input-icon" style={{ flex: '1 1 220px' }}>
             <MapPin />
@@ -125,7 +129,11 @@ export default function Points() {
             <label>Cidade</label>
             <select className="select" value={cidade} onChange={(e) => setCidade(e.target.value)}>
               <option value="">Todas as cidades</option>
-              {cidades.map((c) => <option key={c} value={c}>{c}</option>)}
+              {cidades.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </div>
           <div className="field" style={{ margin: 0, display: 'flex', alignItems: 'flex-end' }}>
@@ -136,20 +144,35 @@ export default function Points() {
           </div>
         </div>
 
-        <label className="small muted" style={{ fontWeight: 600 }}>Filtrar por material</label>
+        <label className="small muted" style={{ fontWeight: 600 }}>
+          Filtrar por material
+        </label>
         <div className="row wrap mt-1" style={{ gap: 6 }}>
-          <span className={`tag clickable ${material === '' ? 'active' : ''}`} onClick={() => setMaterial('')}>Todos</span>
+          <span className={`tag clickable ${material === '' ? 'active' : ''}`} onClick={() => setMaterial('')}>
+            Todos
+          </span>
           {materiais.map((m) => (
-            <MaterialTag key={m} slug={m} active={material === m} onClick={() => setMaterial(material === m ? '' : m)} />
+            <MaterialTag
+              key={m}
+              slug={m}
+              active={material === m}
+              onClick={() => setMaterial(material === m ? '' : m)}
+            />
           ))}
         </div>
       </div>
 
       <div className="row between mb-2 wrap" style={{ gap: 10 }}>
-        <span className="small muted" aria-live="polite">{q.loading ? 'Buscando pontos…' : `${lista.length} ponto(s) encontrado(s)`}</span>
+        <span className="small muted" aria-live="polite">
+          {q.loading ? 'Buscando pontos…' : `${lista.length} ponto(s) encontrado(s)`}
+        </span>
         <div className="seg" style={{ width: 200 }}>
-          <button className={view === 'mapa' ? 'active' : ''} onClick={() => setView('mapa')}><MapIcon size={17} /> Mapa</button>
-          <button className={view === 'lista' ? 'active' : ''} onClick={() => setView('lista')}><List size={17} /> Lista</button>
+          <button className={view === 'mapa' ? 'active' : ''} onClick={() => setView('mapa')}>
+            <MapIcon size={17} /> Mapa
+          </button>
+          <button className={view === 'lista' ? 'active' : ''} onClick={() => setView('lista')}>
+            <List size={17} /> Lista
+          </button>
         </div>
       </div>
 
@@ -171,7 +194,9 @@ export default function Points() {
         </EmptyState>
       ) : (
         <div className="grid grid-auto">
-          {lista.map((p) => <PointCard key={p.id} ponto={p} distanceKm={p._dist} />)}
+          {lista.map((p) => (
+            <PointCard key={p.id} ponto={p} distanceKm={p._dist} />
+          ))}
         </div>
       )}
     </div>

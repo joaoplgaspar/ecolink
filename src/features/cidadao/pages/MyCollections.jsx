@@ -33,7 +33,8 @@ export default function MyCollections() {
     if (r.ok) setMsg(`Coleta concluída! Você ganhou +${r.data.pontos} EcoPontos.`);
   }
   function cancelar(c) {
-    if (window.confirm(`Cancelar a coleta de ${c.material} em ${c.ponto_nome}?`)) acao.mutate({ tipo: 'cancelar', id: c.id });
+    if (window.confirm(`Cancelar a coleta de ${c.material} em ${c.ponto_nome}?`))
+      acao.mutate({ tipo: 'cancelar', id: c.id });
   }
   function remover(c) {
     if (window.confirm('Excluir esta coleta do seu histórico?')) acao.mutate({ tipo: 'remover', id: c.id });
@@ -43,10 +44,14 @@ export default function MyCollections() {
     <div>
       <div className="page-head row between wrap" style={{ gap: 12 }}>
         <div>
-          <h1><Recycle size={24} color="var(--green-600)" /> Minhas coletas</h1>
+          <h1>
+            <Recycle size={24} color="var(--green-600)" /> Minhas coletas
+          </h1>
           <p>Acompanhe, conclua e gerencie suas reciclagens.</p>
         </div>
-        <Link to="/pontos" className="btn btn-primary"><Plus size={18} /> Nova coleta</Link>
+        <Link to="/pontos" className="btn btn-primary">
+          <Plus size={18} /> Nova coleta
+        </Link>
       </div>
 
       <AnimatePresence>
@@ -61,7 +66,12 @@ export default function MyCollections() {
             <span className="row" style={{ color: 'var(--green-700)', fontWeight: 600, gap: 8 }}>
               <CheckCircle2 size={18} /> {msg}
             </span>
-            <button className="btn btn-sm btn-ghost icon-btn" style={{ width: 34, height: 34 }} onClick={() => setMsg(null)} aria-label="Fechar">
+            <button
+              className="btn btn-sm btn-ghost icon-btn"
+              style={{ width: 34, height: 34 }}
+              onClick={() => setMsg(null)}
+              aria-label="Fechar"
+            >
               <X size={16} />
             </button>
           </motion.div>
@@ -70,7 +80,13 @@ export default function MyCollections() {
 
       <div className="row wrap mb-3" style={{ gap: 6 }} role="group" aria-label="Filtrar por status">
         {FILTROS.map((f) => (
-          <button key={f.key} type="button" aria-pressed={filtro === f.key} className={`tag clickable ${filtro === f.key ? 'active' : ''}`} onClick={() => setFiltro(f.key)}>
+          <button
+            key={f.key}
+            type="button"
+            aria-pressed={filtro === f.key}
+            className={`tag clickable ${filtro === f.key ? 'active' : ''}`}
+            onClick={() => setFiltro(f.key)}
+          >
             {f.label}
           </button>
         ))}
@@ -87,10 +103,23 @@ export default function MyCollections() {
           Que tal agendar uma? Seus EcoPontos agradecem.
         </EmptyState>
       ) : (
-        <motion.div className="grid" style={{ gap: 12 }} variants={stagger} initial="initial" animate="animate" key={filtro}>
+        <motion.div
+          className="grid"
+          style={{ gap: 12 }}
+          variants={stagger}
+          initial="initial"
+          animate="animate"
+          key={filtro}
+        >
           {lista.map((c) => (
             <motion.div key={c.id} variants={item}>
-              <CollectionCard coleta={c} onConcluir={concluir} onCancelar={cancelar} onRemover={remover} ocupado={acao.pending} />
+              <CollectionCard
+                coleta={c}
+                onConcluir={concluir}
+                onCancelar={cancelar}
+                onRemover={remover}
+                ocupado={acao.pending}
+              />
             </motion.div>
           ))}
         </motion.div>

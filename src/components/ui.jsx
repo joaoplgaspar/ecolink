@@ -2,7 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowRight, CalendarPlus, Check, X, Trash2, Calendar, Recycle, Inbox, Star, AlertCircle, RotateCcw, CloudOff } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  ArrowRight,
+  CalendarPlus,
+  Check,
+  X,
+  Trash2,
+  Calendar,
+  Recycle,
+  Inbox,
+  Star,
+  AlertCircle,
+  RotateCcw,
+  CloudOff,
+} from 'lucide-react';
 import { getMaterial, materialLabel } from '@/domain/materiais';
 import { formatDate, nf, initials } from '@/utils/format';
 import { formatDistance } from '@/utils/geo';
@@ -46,7 +61,10 @@ export function ProgressBar({ value }) {
 
 export function LevelChip({ nivel }) {
   return (
-    <span className="tag" style={{ background: 'var(--amber-100)', color: 'var(--amber-700)', borderColor: 'transparent' }}>
+    <span
+      className="tag"
+      style={{ background: 'var(--amber-100)', color: 'var(--amber-700)', borderColor: 'transparent' }}
+    >
       <LevelIcon nome={nivel.nome} color="currentColor" /> {nivel.nome}
     </span>
   );
@@ -68,7 +86,9 @@ export function Metric({ icon: Icon, label, value, sub }) {
 export function EmptyState({ icon: Icon = Inbox, title, children }) {
   return (
     <div className="empty">
-      <div className="big"><Icon /></div>
+      <div className="big">
+        <Icon />
+      </div>
       <h3>{title}</h3>
       {children && <p className="muted mt-1">{children}</p>}
     </div>
@@ -108,7 +128,9 @@ export function PointCard({ ponto, distanceKm }) {
         {!ponto.ativo ? (
           <span className="badge badge-cancelada">Inativo</span>
         ) : distanceKm != null ? (
-          <span className="distance"><MapPin size={13} /> {formatDistance(distanceKm)}</span>
+          <span className="distance">
+            <MapPin size={13} /> {formatDistance(distanceKm)}
+          </span>
         ) : null}
       </div>
       <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
@@ -120,14 +142,24 @@ export function PointCard({ ponto, distanceKm }) {
           </span>
         )}
       </div>
-      <div className="small muted row" style={{ gap: 6 }}><MapPin size={14} /> {ponto.endereco} — {ponto.cidade}</div>
-      <div className="small muted row" style={{ gap: 6 }}><Clock size={14} /> {ponto.horario}</div>
+      <div className="small muted row" style={{ gap: 6 }}>
+        <MapPin size={14} /> {ponto.endereco} — {ponto.cidade}
+      </div>
+      <div className="small muted row" style={{ gap: 6 }}>
+        <Clock size={14} /> {ponto.horario}
+      </div>
       <div className="row wrap" style={{ gap: 6 }}>
-        {ponto.materiais.map((m) => <MaterialTag key={m} slug={m} />)}
+        {ponto.materiais.map((m) => (
+          <MaterialTag key={m} slug={m} />
+        ))}
       </div>
       <div className="row" style={{ gap: 8, marginTop: 4 }}>
-        <Link to={`/pontos/${ponto.id}`} className="btn btn-sm btn-primary">Detalhes <ArrowRight size={16} /></Link>
-        <Link to={`/agendar/${ponto.id}`} className="btn btn-sm"><CalendarPlus size={16} /> Agendar</Link>
+        <Link to={`/pontos/${ponto.id}`} className="btn btn-sm btn-primary">
+          Detalhes <ArrowRight size={16} />
+        </Link>
+        <Link to={`/agendar/${ponto.id}`} className="btn btn-sm">
+          <CalendarPlus size={16} /> Agendar
+        </Link>
       </div>
     </div>
   );
@@ -141,7 +173,9 @@ export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover, ocup
         <div className="row" style={{ gap: 12 }}>
           <MaterialIcon slug={coleta.material} chip chipSize={46} size={22} />
           <div>
-            <div style={{ fontWeight: 700 }}>{materialLabel(coleta.material)} · {nf(coleta.quantidade_kg, 1)} kg</div>
+            <div style={{ fontWeight: 700 }}>
+              {materialLabel(coleta.material)} · {nf(coleta.quantidade_kg, 1)} kg
+            </div>
             <div className="small muted row" style={{ gap: 6 }}>
               <Calendar size={14} /> {coleta.ponto_nome} · {formatDate(coleta.data_agendada)}
             </div>
@@ -153,7 +187,15 @@ export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover, ocup
       <div className="row between">
         <div className="small">
           {coleta.status === 'concluida' ? (
-            <span style={{ color: 'var(--green-700)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span
+              style={{
+                color: 'var(--green-700)',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
               <Recycle size={15} /> +{pts} EcoPontos
             </span>
           ) : coleta.status === 'agendada' ? (
@@ -165,13 +207,29 @@ export function CollectionCard({ coleta, onConcluir, onCancelar, onRemover, ocup
         <div className="row" style={{ gap: 8 }}>
           {coleta.status === 'agendada' && (
             <>
-              <button className="btn btn-sm btn-primary" disabled={ocupado} onClick={() => onConcluir?.(coleta)}><Check size={16} /> Concluir</button>
-              <button className="btn btn-sm btn-danger" disabled={ocupado} onClick={() => onCancelar?.(coleta)} aria-label="Cancelar coleta"><X size={16} /></button>
+              <button className="btn btn-sm btn-primary" disabled={ocupado} onClick={() => onConcluir?.(coleta)}>
+                <Check size={16} /> Concluir
+              </button>
+              <button
+                className="btn btn-sm btn-danger"
+                disabled={ocupado}
+                onClick={() => onCancelar?.(coleta)}
+                aria-label="Cancelar coleta"
+              >
+                <X size={16} />
+              </button>
             </>
           )}
           {/* Coletas concluídas são o lastro dos EcoPontos: não podem ser apagadas. */}
           {onRemover && coleta.status !== 'concluida' && (
-            <button className="btn btn-sm btn-ghost" disabled={ocupado} onClick={() => onRemover(coleta)} aria-label="Excluir do histórico"><Trash2 size={16} /></button>
+            <button
+              className="btn btn-sm btn-ghost"
+              disabled={ocupado}
+              onClick={() => onRemover(coleta)}
+              aria-label="Excluir do histórico"
+            >
+              <Trash2 size={16} />
+            </button>
           )}
         </div>
       </div>
@@ -197,11 +255,15 @@ export function Carregando({ linhas = 3, altura = 86, rotulo = 'Carregando…' }
 export function ErroCarregar({ erro, onTentar, titulo = 'Não foi possível carregar' }) {
   return (
     <div className="empty" role="alert">
-      <div className="big"><CloudOff /></div>
+      <div className="big">
+        <CloudOff />
+      </div>
       <h3>{titulo}</h3>
       <p className="muted mt-1">{mensagemDeErro(erro)}</p>
       {onTentar && (
-        <button className="btn btn-sm btn-primary mt-2" onClick={onTentar}><RotateCcw size={15} /> Tentar de novo</button>
+        <button className="btn btn-sm btn-primary mt-2" onClick={onTentar}>
+          <RotateCcw size={15} /> Tentar de novo
+        </button>
       )}
     </div>
   );

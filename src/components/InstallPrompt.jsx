@@ -42,15 +42,25 @@ export default function InstallPrompt() {
           exit={{ opacity: 0, y: 40 }}
           transition={{ type: 'spring', stiffness: 320, damping: 30 }}
         >
-          <span className="iconchip" style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}>
+          <span
+            className="iconchip"
+            style={{ width: 40, height: 40, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}
+          >
             <Download size={20} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Instalar o ECOLINK</div>
             <div className="small faint">Adicione à tela inicial e use como um app.</div>
           </div>
-          <button className="btn btn-sm btn-primary" onClick={instalar}>Instalar</button>
-          <button className="btn btn-sm btn-ghost icon-btn" style={{ width: 32, height: 32 }} onClick={fechar} aria-label="Agora não">
+          <button className="btn btn-sm btn-primary" onClick={instalar}>
+            Instalar
+          </button>
+          <button
+            className="btn btn-sm btn-ghost icon-btn"
+            style={{ width: 32, height: 32 }}
+            onClick={fechar}
+            aria-label="Agora não"
+          >
             <X size={16} />
           </button>
         </motion.div>
