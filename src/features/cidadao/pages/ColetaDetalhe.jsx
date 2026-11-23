@@ -18,6 +18,9 @@ import {
   ShieldCheck,
   Pencil,
   Scale,
+  Route,
+  Truck,
+  Warehouse,
 } from 'lucide-react';
 import { coletas, avaliacoes } from '@/data/repos';
 import { TAGS_PONTO, PRAZO_AVALIAR_DIAS } from '@/domain/avaliacoes';
@@ -129,7 +132,10 @@ export default function ColetaDetalhe() {
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="col" style={{ gap: 16 }}>
           {c.comprovante ? (
-            <Comprovante comprovante={c.comprovante} />
+            <>
+              <Comprovante comprovante={c.comprovante} />
+              {c.rastreio?.length > 0 && <Rastreio rastreio={c.rastreio} pontoNome={c.ponto_nome} />}
+            </>
           ) : (
             <div className="card card-pad">
               <h3 className="mb-2">O que você vai levar</h3>
@@ -422,6 +428,54 @@ function Contestacao({ coleta }) {
           </div>
         </form>
       )}
+    </div>
+  );
+}
+
+/**
+ * Rastreabilidade: para onde foi o material desta entrega (cidadão → ponto →
+ * destino final). Cada destinação leva primeiro o que chegou antes.
+ */
+function Rastreio({ rastreio, pontoNome }) {
+  return (
+    <div className="card card-pad">
+      <h3 className="row mb-1" style={{ gap: 8 }}>
+        <Route size={18} color="var(--green-600)" /> Para onde foi seu material
+      </h3>
+      <p className="small muted mb-2">Do seu saco de recicláveis até a reciclagem, passo a passo.</p>
+      <ul className="col rastreio" style={{ gap: 12, listStyle: 'none', padding: 0, margin: 0 }}>
+        {rastreio.map((r) => (
+          <li key={r.material}>
+            <div className="row" style={{ gap: 8 }}>
+              <MaterialIcon slug={r.material} chip chipSize={30} size={15} />
+              <strong className="small">
+                {nf(r.kg, 1)} kg de {getMaterial(r.material).label.toLowerCase()}
+              </strong>
+            </div>
+            <ol className="passos-rastreio">
+              <li>
+                <Warehouse size={14} />
+                <span>Recebido e pesado no {pontoNome}</span>
+              </li>
+              {r.destinos.map((d, k) => (
+                <li key={k} className="feito">
+                  <Truck size={14} />
+                  <span>
+                    {nf(d.kg, 1)} kg seguiram para <strong>{d.destino_nome}</strong> ({d.destino_tipo.toLowerCase()}) em{' '}
+                    {formatDate(d.data)}
+                  </span>
+                </li>
+              ))}
+              {r.no_ponto > 0 && (
+                <li className="aguardando">
+                  <Clock3 size={14} />
+                  <span>{nf(r.no_ponto, 1)} kg aguardando envio para reciclagem</span>
+                </li>
+              )}
+            </ol>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -126,6 +126,15 @@ export function RegrasMateriais({ ponto }) {
             <MaterialIcon slug={slug} chip chipSize={36} size={17} />
             <div style={{ flex: 1 }}>
               <strong>{getMaterial(slug).label}</strong>
+              {ponto.materiais_lotados?.includes(slug) && (
+                <span
+                  className="status-ponto alerta"
+                  style={{ marginLeft: 8 }}
+                  title="O estoque deste material está cheio"
+                >
+                  lotado no momento
+                </span>
+              )}
               {r.condicoes && <div className="small muted">✓ {r.condicoes}</div>}
               {r.nao_aceita && (
                 <div className="small" style={{ color: 'var(--danger)' }}>

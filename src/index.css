@@ -2292,3 +2292,284 @@ a.aviso:hover {
 .btn-danger.solido:hover {
   background: #a93226;
 }
+
+/* --------------------------- Fase 6: chat real --------------------------- */
+.bolha-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bolha-linha.me {
+  align-items: flex-end;
+}
+.bolha-linha.them {
+  align-items: flex-start;
+}
+.bolha-linha .bubble {
+  max-width: 76%;
+}
+.bubble .when {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bubble.me .when {
+  justify-content: flex-end;
+}
+.bubble .visto {
+  color: #c9f5e4;
+  display: inline-flex;
+}
+.bubble.automatica {
+  background: #f1f3f2;
+  border: 1px dashed #cfd8d4;
+}
+.rotulo-auto {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+.aviso-golpe {
+  display: flex;
+  gap: 8px;
+  max-width: 86%;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  background: #fff6e5;
+  color: #7a4f06;
+  border: 1px solid #f6dfae;
+}
+.aviso-golpe.perigo {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: #f3c7c7;
+}
+.chat-rodape {
+  border-top: 1px solid var(--border);
+}
+.chat-rodape .aviso-golpe {
+  margin: 10px 14px 0;
+  max-width: none;
+}
+.chat-rodape .chat-input {
+  border-top: 0;
+}
+.respostas-rapidas {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  padding: 10px 14px 0;
+  scrollbar-width: thin;
+}
+.respostas-rapidas .tag {
+  white-space: nowrap;
+  flex: none;
+}
+.selo-nao-lidas {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--green-600);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.thread-item .linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/* Gráficos (relatórios) */
+.grafico {
+  position: relative;
+  width: 100%;
+}
+.grafico svg {
+  display: block;
+  overflow: visible;
+}
+.grafico .grade {
+  stroke: #e8ecea;
+  stroke-width: 1;
+}
+.grafico .eixo {
+  font-size: 11px;
+  fill: var(--muted);
+}
+.grafico .valor-topo {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.grafico .coluna {
+  cursor: default;
+  outline: none;
+}
+.grafico .coluna.ativa path,
+.grafico .coluna.ativa rect:not([fill='transparent']) {
+  filter: brightness(1.08);
+}
+.grafico .coluna:focus-visible rect[fill='transparent'] {
+  stroke: var(--green-600);
+  stroke-width: 1;
+}
+.dica-grafico {
+  position: absolute;
+  top: 0;
+  width: 170px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 5;
+}
+.linha-dica {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.linha-dica .traco {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+.legenda {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legenda .chave {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.barras-material {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px 12px;
+  align-items: center;
+}
+.barras-material li {
+  display: contents;
+}
+.barras-material .trilho {
+  height: 12px;
+  background: var(--green-50);
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+}
+.barras-material .trilho span {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+}
+.medidor-capacidade {
+  display: block;
+  height: 6px;
+  width: 120px;
+  background: var(--green-50);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.medidor-capacidade span {
+  display: block;
+  height: 100%;
+  background: var(--green-600);
+  border-radius: var(--radius-pill);
+}
+.medidor-capacidade.alerta span {
+  background: #e0a020;
+}
+.medidor-capacidade.erro span {
+  background: var(--danger);
+}
+.destinacao {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.abas-painel {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.abas-painel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.abas-painel button:hover {
+  color: var(--ink);
+}
+.abas-painel button.ativa {
+  color: var(--green-700);
+  border-bottom-color: var(--green-600);
+}
+.passos-rastreio {
+  list-style: none;
+  margin: 6px 0 0 14px;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--green-100);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.passos-rastreio li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.passos-rastreio li svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--green-600);
+}
+.passos-rastreio li.aguardando {
+  color: var(--muted);
+}
+.passos-rastreio li.aguardando svg {
+  color: var(--muted);
+}

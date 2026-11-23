@@ -239,6 +239,11 @@ function ContextoAlvo({ c }) {
           <span className="small muted">
             {a.historico.entregas} entrega(s) · {a.historico.concluidas} concluída(s) · {a.historico.faltas} falta(s)
           </span>
+          {a.mensagem && (
+            <blockquote className="resposta-ponto small" style={{ margin: 0 }}>
+              “{a.mensagem}”
+            </blockquote>
+          )}
         </>
       )}
       {a?.tipo === 'avaliacao' && a.avaliacao && (

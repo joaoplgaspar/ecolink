@@ -103,6 +103,17 @@ export default function Profile() {
         </div>
       )}
       <DadosConta />
+      <Link
+        to="/convite"
+        className="card card-pad card-hover mb-3 row between wrap"
+        style={{ gap: 8, color: 'inherit' }}
+      >
+        <span className="small">
+          <strong>Recebeu um convite para a equipe de um ponto?</strong>
+          <span className="muted"> Use o código do e-mail para entrar.</span>
+        </span>
+        <span className="btn btn-sm btn-ghost">Usar código →</span>
+      </Link>
       {(perfil === 'cidadao' || perfil === 'parceiro') && <Bloqueios perfil={perfil} />}
       <Seguranca />
 

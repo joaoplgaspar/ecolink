@@ -36,6 +36,7 @@ import FilaDenuncias from '@/features/admin/pages/FilaDenuncias.jsx';
 import CasoDenuncia from '@/features/admin/pages/CasoDenuncia.jsx';
 import Contestacoes from '@/features/admin/pages/Contestacoes.jsx';
 import MinhasDenuncias from '@/features/shared/pages/MinhasDenuncias.jsx';
+import AceitarConvite from '@/features/shared/pages/AceitarConvite.jsx';
 
 /** "/" leva cada perfil à sua página inicial. */
 function Inicio() {
@@ -70,6 +71,7 @@ export default function App() {
       >
         <Route path="/" element={<Inicio />} />
         <Route path="/perfil" element={<Profile />} />
+        <Route path="/convite" element={<AceitarConvite />} />
         <Route
           path="/denuncias"
           element={

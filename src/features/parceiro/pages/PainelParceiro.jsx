@@ -7,7 +7,7 @@
 //   • os recebimentos: aceitar/recusar, check-in com código ou QR e pesagem.
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Store,
   CalendarClock,
@@ -34,9 +34,15 @@ import { Carregando, ErroCarregar, EmptyState, Metric, MensagemErro } from '@/co
 import { SeloFuncionamento } from '@/components/PontoInfo.jsx';
 import Recebimentos from '@/features/parceiro/components/Recebimentos.jsx';
 import ReputacaoPonto from '@/features/parceiro/components/ReputacaoPonto.jsx';
+import ConversasPonto from '@/features/parceiro/components/ConversasPonto.jsx';
+import EstoquePonto from '@/features/parceiro/components/EstoquePonto.jsx';
+import EquipePonto from '@/features/parceiro/components/EquipePonto.jsx';
+import RelatoriosPonto from '@/features/parceiro/components/RelatoriosPonto.jsx';
+import { chat } from '@/data/repos';
 import { formatDate, nf, relativeTime } from '@/utils/format';
 
-const APROVADOS = ['ativo', 'pausado'];
+// Suspenso continua aqui: a equipe conclui o que está em andamento, conversa e vê o estoque.
+const APROVADOS = ['ativo', 'pausado', 'suspenso'];
 
 export default function PainelParceiro() {
   const { user } = useAuth();
@@ -139,8 +145,7 @@ export default function PainelParceiro() {
             <Metric icon={Scale} label="Já recebido" value={`${nf(ponto.resumo.recebidas_kg, 1)} kg`} />
           </div>
 
-          <Recebimentos key={ponto.id} ponto={ponto} />
-          <ReputacaoPonto key={`rep-${ponto.id}`} ponto={ponto} />
+          <AbasDoPonto ponto={ponto} />
         </>
       )}
     </div>
@@ -294,5 +299,54 @@ function CabecalhoPonto({ ponto }) {
       </div>
       <MensagemErro erro={alternar.error} style={{ marginTop: 8 }} />
     </div>
+  );
+}
+
+const ABAS = [
+  { chave: 'recebimentos', rotulo: 'Recebimentos' },
+  { chave: 'conversas', rotulo: 'Conversas' },
+  { chave: 'estoque', rotulo: 'Estoque e destinação' },
+  { chave: 'equipe', rotulo: 'Equipe' },
+  { chave: 'relatorios', rotulo: 'Relatórios' },
+  { chave: 'avaliacoes', rotulo: 'Avaliações' },
+];
+
+/** Operação do ponto em abas (a aba fica na URL: dá para compartilhar o link). */
+function AbasDoPonto({ ponto }) {
+  const [params, setParams] = useSearchParams();
+  const aba = ABAS.some((a) => a.chave === params.get('aba')) ? params.get('aba') : 'recebimentos';
+  const conversas = useQuery(() => chat.conversasDoPonto(ponto.id), [ponto.id]);
+  const naoLidas = (conversas.data || []).reduce((t, c) => t + c.nao_lidas, 0);
+
+  return (
+    <>
+      <div className="abas-painel mb-3" role="tablist" aria-label="Operação do ponto">
+        {ABAS.map((a) => (
+          <button
+            key={a.chave}
+            type="button"
+            role="tab"
+            aria-selected={aba === a.chave}
+            className={aba === a.chave ? 'ativa' : ''}
+            onClick={() => setParams(a.chave === 'recebimentos' ? {} : { aba: a.chave }, { replace: true })}
+          >
+            {a.rotulo}
+            {a.chave === 'conversas' && naoLidas > 0 && (
+              <span className="selo-nao-lidas" aria-label={`${naoLidas} não lida(s)`}>
+                {naoLidas}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" aria-label={ABAS.find((a) => a.chave === aba).rotulo}>
+        {aba === 'recebimentos' && <Recebimentos key={ponto.id} ponto={ponto} />}
+        {aba === 'conversas' && <ConversasPonto key={ponto.id} ponto={ponto} />}
+        {aba === 'estoque' && <EstoquePonto key={ponto.id} ponto={ponto} />}
+        {aba === 'equipe' && <EquipePonto key={ponto.id} ponto={ponto} />}
+        {aba === 'relatorios' && <RelatoriosPonto key={ponto.id} ponto={ponto} />}
+        {aba === 'avaliacoes' && <ReputacaoPonto key={ponto.id} ponto={ponto} />}
+      </div>
+    </>
   );
 }

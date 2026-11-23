@@ -89,13 +89,16 @@ const diaRotulo = (iso) => {
 function FormAgendamento({ agenda, reputacao: rep }) {
   const { ponto, dias } = agenda;
   const nav = useNavigate();
-  const [itens, setItens] = useState([{ material: ponto.materiais[0], kg: '1' }]);
+  // Materiais com estoque cheio no ponto ficam fora (voltam quando houver destinação).
+  const lotados = ponto.materiais_lotados || [];
+  const aceitos = ponto.materiais.filter((m) => !lotados.includes(m));
+  const [itens, setItens] = useState([{ material: aceitos[0] ?? ponto.materiais[0], kg: '1' }]);
   const [data, setData] = useState(dias[0]?.data || '');
   const [janela, setJanela] = useState('');
   const solicitar = useMutation((dados) => coletas.solicitar(dados));
 
   const dia = dias.find((d) => d.data === data);
-  const livres = ponto.materiais.filter((m) => !itens.some((i) => i.material === m));
+  const livres = aceitos.filter((m) => !itens.some((i) => i.material === m));
   const estimativa = useMemo(
     () =>
       pontosDosItens(
@@ -141,6 +144,16 @@ function FormAgendamento({ agenda, reputacao: rep }) {
             Com reputação <strong>Restrito</strong>, você pode ter {rep.restricoes.max_ativas} entrega em aberto por vez
             e a equipe do ponto confirma cada pedido. <Link to="/reputacao">Veja como recuperar</Link>.
           </div>
+        </div>
+      )}
+
+      {lotados.length > 0 && (
+        <div className="aviso mb-3" role="note">
+          <Info size={17} style={{ flex: 'none' }} />
+          <span>
+            Lotado no momento: <strong>{lotados.map((m) => getMaterial(m).label.toLowerCase()).join(', ')}</strong>. O
+            ponto volta a receber quando enviar o estoque para reciclagem.
+          </span>
         </div>
       )}
 

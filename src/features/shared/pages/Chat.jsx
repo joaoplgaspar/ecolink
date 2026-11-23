@@ -1,21 +1,30 @@
-import { useState, useEffect, useRef } from 'react';
+// Chat do cidadão com os pontos: conversas de verdade com a equipe (D9),
+// "visto", resposta automática de ausência e avisos de golpe.
+
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Send, ArrowLeft, Recycle, Loader2 } from 'lucide-react';
+import { MessageCircle, ArrowLeft, Recycle, Clock } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { pontos, chat } from '@/data/repos';
-import { relativeTime } from '@/utils/format';
-import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
-import { BotaoDenunciar } from '@/components/Denunciar.jsx';
+import { pontos, chat, bloqueios } from '@/data/repos';
+import { EmptyState, Carregando, ErroCarregar } from '@/components/ui.jsx';
+import { ListaMensagens, CaixaMensagem } from '@/components/ChatConversa.jsx';
 
 export default function Chat() {
   const { pontoId } = useParams();
   const { user } = useAuth();
   const nav = useNavigate();
 
-  const contatosQ = useQuery(() => Promise.all([pontos.listar({ ativo: true }), chat.ultimas()]), [user.id]);
-  const [contatos, ultimas] = contatosQ.data || [[], {}];
+  // Conversas existentes primeiro; depois os outros pontos (sem os bloqueados).
+  const q = useQuery(
+    () => Promise.all([chat.minhasConversas(), pontos.listar(), bloqueios.listar().catch(() => [])]),
+    [user.id],
+  );
+  const [conversas, todos, bl] = q.data || [[], [], []];
+  const ocultos = new Set(bl.filter((b) => b.alvo_tipo === 'ponto').map((b) => b.alvo_id));
+  const comConversa = new Set(conversas.map((c) => c.ponto_id));
+  const outros = todos.filter((p) => !comConversa.has(p.id) && !ocultos.has(p.id) && p.status !== 'suspenso');
 
   return (
     <div>
@@ -23,48 +32,39 @@ export default function Chat() {
         <h1>
           <MessageCircle size={24} color="var(--green-600)" /> Chat
         </h1>
-        <p>Tire dúvidas com os pontos (ex.: &quot;vocês aceitam isopor?&quot;).</p>
+        <p>Converse com a equipe dos pontos. Por segurança, mantenha a conversa aqui no app.</p>
       </div>
 
       <div className={`chat-wrap ${pontoId ? 'is-conversation' : 'is-list'}`}>
         <div className="card card-pad thread-list">
-          <strong className="small muted mb-1">Pontos de coleta</strong>
-          {contatosQ.loading ? (
+          {q.loading ? (
             <Carregando linhas={4} altura={48} rotulo="Carregando conversas…" />
-          ) : !contatosQ.data ? (
-            <ErroCarregar erro={contatosQ.error} onTentar={contatosQ.refetch} />
+          ) : !q.data ? (
+            <ErroCarregar erro={q.error} onTentar={q.refetch} />
           ) : (
-            contatos.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`thread-item ${String(p.id) === pontoId ? 'active' : ''}`}
-                aria-current={String(p.id) === pontoId ? 'true' : undefined}
-                onClick={() => nav(`/chat/${p.id}`)}
-              >
-                <span
-                  className="iconchip"
-                  style={{
-                    width: 38,
-                    height: 38,
-                    background: 'var(--green-100)',
-                    color: 'var(--green-700)',
-                    flex: 'none',
-                  }}
-                >
-                  <Recycle size={19} />
-                </span>
-                <div style={{ minWidth: 0, textAlign: 'left' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.nome}</div>
-                  <div
-                    className="small faint"
-                    style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190 }}
-                  >
-                    {ultimas[p.id]?.texto || 'Iniciar conversa'}
-                  </div>
-                </div>
-              </button>
-            ))
+            <>
+              {conversas.length > 0 && <strong className="small muted mb-1">Suas conversas</strong>}
+              {conversas.map((c) => (
+                <ItemConversa
+                  key={c.ponto_id}
+                  ativo={String(c.ponto_id) === pontoId}
+                  nome={c.ponto_nome}
+                  previa={c.ultima ? `${c.ultima.minha ? 'Você: ' : ''}${c.ultima.texto}` : ''}
+                  naoLidas={c.nao_lidas}
+                  onClick={() => nav(`/chat/${c.ponto_id}`)}
+                />
+              ))}
+              <strong className="small muted mb-1 mt-2">Outros pontos</strong>
+              {outros.map((p) => (
+                <ItemConversa
+                  key={p.id}
+                  ativo={String(p.id) === pontoId}
+                  nome={p.nome}
+                  previa="Iniciar conversa"
+                  onClick={() => nav(`/chat/${p.id}`)}
+                />
+              ))}
+            </>
           )}
         </div>
 
@@ -74,7 +74,7 @@ export default function Chat() {
               Selecione um ponto de coleta na lista.
             </EmptyState>
           ) : (
-            <Conversa key={pontoId} pontoId={pontoId} usuarioId={user.id} onVoltar={() => nav('/chat')} />
+            <Conversa key={pontoId} pontoId={pontoId} onVoltar={() => nav('/chat')} />
           )}
         </div>
       </div>
@@ -82,30 +82,50 @@ export default function Chat() {
   );
 }
 
-function Conversa({ pontoId, usuarioId, onVoltar }) {
-  const q = useQuery(() => Promise.all([pontos.obter(pontoId), chat.mensagens(pontoId)]), [pontoId, usuarioId]);
-  const [texto, setTexto] = useState('');
-  // Mensagem "otimista": aparece na hora, antes de a resposta da "rede" chegar.
+function ItemConversa({ ativo, nome, previa, naoLidas = 0, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`thread-item ${ativo ? 'active' : ''}`}
+      aria-current={ativo ? 'true' : undefined}
+      onClick={onClick}
+    >
+      <span
+        className="iconchip"
+        style={{ width: 38, height: 38, background: 'var(--green-100)', color: 'var(--green-700)', flex: 'none' }}
+      >
+        <Recycle size={19} />
+      </span>
+      <div style={{ minWidth: 0, textAlign: 'left', flex: 1 }}>
+        <div className="linha">
+          <span style={{ fontWeight: naoLidas ? 800 : 600, fontSize: '0.9rem', flex: 1, minWidth: 0 }}>{nome}</span>
+          {naoLidas > 0 && (
+            <span className="selo-nao-lidas" aria-label={`${naoLidas} não lida(s)`}>
+              {naoLidas}
+            </span>
+          )}
+        </div>
+        <div
+          className="small faint"
+          style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}
+        >
+          {previa}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function Conversa({ pontoId, onVoltar }) {
+  const q = useQuery(() => chat.comPonto(pontoId), [pontoId]);
   const [pendente, setPendente] = useState(null);
   const enviar = useMutation((t) => chat.enviar(pontoId, t));
-  const bodyRef = useRef(null);
+  const naoLidas = q.data?.nao_lidas ?? 0;
 
-  const [ponto, mensagens] = q.data || [null, []];
-
+  // Abriu a conversa: o que o ponto mandou fica como lido (e ele vê "visto").
   useEffect(() => {
-    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-  }, [mensagens.length, pendente]);
-
-  async function submit(e) {
-    e.preventDefault();
-    const t = texto.trim();
-    if (!t || enviar.pending) return;
-    setPendente(t);
-    setTexto('');
-    const r = await enviar.mutate(t);
-    setPendente(null);
-    if (!r.ok) setTexto(t); // devolve o texto para a pessoa tentar de novo
-  }
+    if (naoLidas > 0) chat.marcarLidas({ ponto_id: pontoId }).catch(() => {});
+  }, [naoLidas, pontoId]);
 
   if (q.loading)
     return (
@@ -115,6 +135,14 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
     );
   if (q.error?.status === 404) return <EmptyState title="Ponto não encontrado" />;
   if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+  const { ponto, mensagens } = q.data;
+
+  async function mandar(t) {
+    setPendente(t);
+    const r = await enviar.mutate(t);
+    setPendente(null);
+    return r;
+  }
 
   return (
     <>
@@ -135,68 +163,27 @@ function Conversa({ pontoId, usuarioId, onVoltar }) {
         </span>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700 }}>{ponto.nome}</div>
-          <div className="small faint" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {ponto.cidade} · {ponto.horario}
+          <div
+            className="small faint row"
+            style={{ gap: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          >
+            <Clock size={12} />{' '}
+            {ponto.aberto ? 'Equipe atendendo agora' : `${ponto.status_rotulo} · responde no horário`}
           </div>
         </div>
       </div>
-
-      <div className="chat-body" ref={bodyRef} aria-live="polite">
-        {mensagens.length === 0 && !pendente ? (
-          <p className="muted small center" style={{ margin: 'auto' }}>
-            Envie a primeira mensagem para começar a conversa.
-          </p>
-        ) : (
-          <>
-            {mensagens.map((m) => (
-              <div key={m.id} className={`bubble ${m.de === 'eu' ? 'me' : 'them'} ${m.removida ? 'removida' : ''}`}>
-                {m.texto}
-                <span className="when">
-                  {relativeTime(m.em)}
-                  {m.de !== 'eu' && !m.removida && (
-                    <BotaoDenunciar
-                      compacto
-                      rotulo="Denunciar"
-                      className="denunciar-msg"
-                      alvo={{
-                        tipo: 'mensagem',
-                        id: m.id,
-                        rotulo: `“${m.texto.slice(0, 60)}${m.texto.length > 60 ? '…' : ''}”`,
-                      }}
-                    />
-                  )}
-                </span>
-              </div>
-            ))}
-            {pendente && (
-              <div className="bubble me pending">
-                {pendente}
-                <span className="when">enviando…</span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <MensagemErro erro={enviar.error} style={{ padding: '0 14px' }} />
-      <form className="chat-input" onSubmit={submit}>
-        <input
-          className="input"
-          aria-label="Mensagem"
-          maxLength={1000}
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Escreva uma mensagem..."
-        />
-        <button
-          className="btn btn-primary"
-          type="submit"
-          aria-label="Enviar"
-          disabled={enviar.pending || !texto.trim()}
-        >
-          {enviar.pending ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-        </button>
-      </form>
+      <ListaMensagens
+        mensagens={mensagens}
+        pendente={pendente}
+        vazio="Envie a primeira mensagem: quem responde é a equipe do ponto."
+      />
+      <CaixaMensagem
+        onEnviar={mandar}
+        pendente={enviar.pending}
+        erro={enviar.error}
+        desabilitada={ponto.suspenso}
+        motivoDesabilitada="Este ponto está suspenso pela moderação e não recebe mensagens."
+      />
     </>
   );
 }
