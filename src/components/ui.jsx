@@ -24,6 +24,7 @@ import { formatDistance } from '@/utils/geo';
 import { pontosDaColeta } from '@/domain/gamificacao';
 import { mensagemDeErro } from '@/data/erros';
 import { MaterialIcon, StatusIcon, LevelIcon } from './icons.jsx';
+import { SeloFuncionamento } from './PontoInfo.jsx';
 
 export function Avatar({ nome, size = 40 }) {
   return (
@@ -125,9 +126,7 @@ export function PointCard({ ponto, distanceKm }) {
     <div className="card card-pad card-hover col" style={{ gap: 10 }}>
       <div className="row between" style={{ alignItems: 'flex-start' }}>
         <h3>{ponto.nome}</h3>
-        {!ponto.ativo ? (
-          <span className="badge badge-cancelada">Inativo</span>
-        ) : distanceKm != null ? (
+        {distanceKm != null ? (
           <span className="distance">
             <MapPin size={13} /> {formatDistance(distanceKm)}
           </span>
@@ -141,6 +140,9 @@ export function PointCard({ ponto, distanceKm }) {
             <span className="faint">({rating.total})</span>
           </span>
         )}
+      </div>
+      <div>
+        <SeloFuncionamento ponto={ponto} />
       </div>
       <div className="small muted row" style={{ gap: 6 }}>
         <MapPin size={14} /> {ponto.endereco} — {ponto.cidade}

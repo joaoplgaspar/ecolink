@@ -130,7 +130,13 @@ export default function Login() {
           />
         </div>
 
-        <p className="small faint center mt-2">
+        <p className="small center mt-2">
+          Tem um ponto de coleta?{' '}
+          <Link to="/seja-parceiro" style={{ color: 'var(--green-700)', fontWeight: 700 }}>
+            Seja parceiro
+          </Link>
+        </p>
+        <p className="small faint center mt-1">
           <Link to="/termos">Termos de Uso</Link> · <Link to="/privacidade">Privacidade</Link>
         </p>
       </div>

@@ -29,6 +29,7 @@ import {
   Gift,
   MessageCircle,
   Bell,
+  ClipboardCheck,
 } from 'lucide-react';
 import { getMaterial } from '@/domain/materiais';
 
@@ -90,8 +91,20 @@ export function AchievementIcon({ slug, size = 20 }) {
   return <Cmp size={size} aria-hidden="true" />;
 }
 
-const NOTIF_ICONS = { coleta: Recycle, lembrete: Calendar, recompensa: Gift, chat: MessageCircle };
-const NOTIF_COLORS = { coleta: '#1d9e75', lembrete: '#ef9f27', recompensa: '#d4537e', chat: '#378add' };
+const NOTIF_ICONS = {
+  coleta: Recycle,
+  lembrete: Calendar,
+  recompensa: Gift,
+  chat: MessageCircle,
+  aprovacao: ClipboardCheck,
+};
+const NOTIF_COLORS = {
+  coleta: '#1d9e75',
+  lembrete: '#ef9f27',
+  recompensa: '#d4537e',
+  chat: '#378add',
+  aprovacao: '#0e5a7a',
+};
 export function NotifIcon({ tipo, size = 16 }) {
   const Cmp = NOTIF_ICONS[tipo] || Bell;
   const color = NOTIF_COLORS[tipo] || '#1d9e75';

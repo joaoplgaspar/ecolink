@@ -23,6 +23,7 @@ import {
   Users,
   ScrollText,
   Repeat,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
@@ -55,9 +56,10 @@ const MENUS = {
     itens: [{ to: '/parceiro', icon: Store, label: 'Meus pontos', end: true }, PERFIL_ITEM],
   },
   admin: {
-    inferior: 3,
+    inferior: 4,
     itens: [
       { to: '/admin', icon: Users, label: 'Usuários', end: true },
+      { to: '/admin/aprovacoes', icon: ClipboardCheck, label: 'Aprovações' },
       { to: '/admin/auditoria', icon: ScrollText, label: 'Auditoria' },
       PERFIL_ITEM,
     ],

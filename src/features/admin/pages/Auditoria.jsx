@@ -14,6 +14,8 @@ const FILTROS = [
   { chave: 'senha', rotulo: 'Senha' },
   { chave: 'perfil', rotulo: 'Perfil' },
   { chave: 'usuario', rotulo: 'Moderação' },
+  { chave: 'organizacao', rotulo: 'Parceiros' },
+  { chave: 'ponto', rotulo: 'Pontos' },
   { chave: 'acesso', rotulo: 'Acessos negados' },
   { chave: 'coleta', rotulo: 'Coletas' },
   { chave: 'resgate', rotulo: 'Loja' },
@@ -43,6 +45,19 @@ const DESCRICOES = {
   'avaliacao.editada': 'Editou avaliação',
   'resgate.criado': 'Resgatou recompensa',
   'acesso.negado': 'Tentou uma ação sem permissão',
+  'organizacao.iniciada': 'Iniciou cadastro de parceiro',
+  'organizacao.documento_anexado': 'Anexou documento',
+  'organizacao.enviada': 'Enviou cadastro para análise',
+  'organizacao.aprovada': 'Aprovou parceiro',
+  'organizacao.reprovada': 'Pediu ajustes ao parceiro',
+  'ponto.criado': 'Criou rascunho de ponto',
+  'ponto.editado': 'Editou ponto',
+  'ponto.enviado': 'Enviou ponto para análise',
+  'ponto.aprovado': 'Aprovou ponto',
+  'ponto.reprovado': 'Pediu ajustes no ponto',
+  'ponto.pausado': 'Pausou o recebimento',
+  'ponto.retomado': 'Retomou o recebimento',
+  'ponto.rascunho_excluido': 'Excluiu rascunho de ponto',
 };
 
 const quando = (iso) =>

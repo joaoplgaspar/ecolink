@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   MapPin,
-  Clock,
   CalendarPlus,
   MessageCircle,
   ExternalLink,
@@ -18,7 +17,8 @@ import { pontos, avaliacoes } from '@/data/repos';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { MaterialTag, EmptyState, Avatar, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import { EmptyState, Avatar, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
+import PontoInfo from '@/components/PontoInfo.jsx';
 import StarRating from '@/components/StarRating.jsx';
 import MapView from '@/components/MapView.jsx';
 import { mapaExternoUrl } from '@/utils/maplink';
@@ -67,71 +67,51 @@ export default function PointDetail() {
     <div>
       {voltar}
 
-      <div className="card card-pad mb-3">
-        <div className="row between wrap" style={{ gap: 10 }}>
-          <h1>{ponto.nome}</h1>
-          {ponto.ativo ? (
-            <span className="badge badge-concluida">Ativo</span>
-          ) : (
-            <span className="badge badge-cancelada">Inativo</span>
-          )}
-        </div>
-
-        {resumo.total > 0 && (
-          <div className="row mt-1" style={{ gap: 8 }}>
-            <StarRating value={Math.round(resumo.media)} size={16} readOnly />
-            <strong>{resumo.media.toFixed(1)}</strong>
-            <span className="faint small">({resumo.total} avaliações)</span>
+      <PontoInfo
+        ponto={ponto}
+        acoes={
+          <>
+            {resumo.total > 0 && (
+              <div className="row mt-2" style={{ gap: 8 }}>
+                <StarRating value={Math.round(resumo.media)} size={16} readOnly />
+                <strong>{resumo.media.toFixed(1)}</strong>
+                <span className="faint small">({resumo.total} avaliações)</span>
+                <span className="faint small row" style={{ gap: 5, marginLeft: 8 }}>
+                  <Navigation size={13} /> {ponto.total_coletas} coleta(s) registrada(s)
+                </span>
+              </div>
+            )}
+            <div className="row wrap mt-3" style={{ gap: 10 }}>
+              {ponto.ativo && (
+                <Link to={`/agendar/${ponto.id}`} className="btn btn-primary">
+                  <CalendarPlus size={18} /> Agendar entrega
+                </Link>
+              )}
+              <Link to={`/chat/${ponto.id}`} className="btn">
+                <MessageCircle size={18} /> Conversar
+              </Link>
+              <a className="btn btn-ghost" href={mapaExternoUrl(ponto)} target="_blank" rel="noreferrer">
+                <ExternalLink size={18} /> Abrir no mapa
+              </a>
+            </div>
+          </>
+        }
+        mapa={
+          <div className="card card-pad">
+            <h3 className="row mb-2" style={{ gap: 8 }}>
+              <MapPin size={18} color="var(--green-600)" /> Localização
+            </h3>
+            <MapView
+              pontos={[ponto]}
+              selectedId={ponto.id}
+              focus={[ponto.latitude, ponto.longitude]}
+              zoom={15}
+              height={280}
+            />
           </div>
-        )}
-
-        <div className="col mt-2" style={{ gap: 8 }}>
-          <div className="muted row" style={{ gap: 7 }}>
-            <MapPin size={16} /> {ponto.endereco} — {ponto.cidade}
-          </div>
-          <div className="muted row" style={{ gap: 7 }}>
-            <Clock size={16} /> {ponto.horario}
-          </div>
-          <div className="faint small row" style={{ gap: 7 }}>
-            <Navigation size={14} /> {ponto.total_coletas} coleta(s) registrada(s) neste ponto
-          </div>
-        </div>
-
-        <div className="divider" />
-        <strong className="small muted">Materiais aceitos</strong>
-        <div className="row wrap mt-1" style={{ gap: 6 }}>
-          {ponto.materiais.map((m) => (
-            <MaterialTag key={m} slug={m} />
-          ))}
-        </div>
-
-        <div className="row wrap mt-3" style={{ gap: 10 }}>
-          {ponto.ativo && (
-            <Link to={`/agendar/${ponto.id}`} className="btn btn-primary">
-              <CalendarPlus size={18} /> Agendar coleta
-            </Link>
-          )}
-          <Link to={`/chat/${ponto.id}`} className="btn">
-            <MessageCircle size={18} /> Conversar
-          </Link>
-          <a className="btn btn-ghost" href={mapaExternoUrl(ponto)} target="_blank" rel="noreferrer">
-            <ExternalLink size={18} /> Abrir no mapa
-          </a>
-        </div>
-      </div>
-
-      <div className="card card-pad mb-3">
-        <h3 className="row mb-2" style={{ gap: 8 }}>
-          <MapPin size={18} color="var(--green-600)" /> Localização
-        </h3>
-        <MapView
-          pontos={[ponto]}
-          selectedId={ponto.id}
-          focus={[ponto.latitude, ponto.longitude]}
-          zoom={15}
-          height={280}
-        />
-      </div>
+        }
+      />
+      <div className="mb-3" />
 
       <div className="card card-pad">
         <h3 className="row mb-2" style={{ gap: 8 }}>

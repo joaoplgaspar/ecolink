@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Leaf,
   Recycle,
@@ -16,6 +16,7 @@ import {
   MonitorSmartphone,
   CheckCircle2,
   BadgeCheck,
+  Store,
 } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
@@ -81,6 +82,21 @@ export default function Profile() {
       </div>
 
       {perfil === 'cidadao' && <ResumoCidadao />}
+      {!user.papeis.includes('parceiro_gestor') && (
+        <div className="card card-pad mb-3 row between wrap" style={{ gap: 10 }}>
+          <div>
+            <strong className="row" style={{ gap: 6 }}>
+              <Store size={17} /> Tem um ponto de coleta?
+            </strong>
+            <p className="small muted">
+              Cooperativas, associações, ecopontos e catadores podem receber recicláveis pelo ECOLINK.
+            </p>
+          </div>
+          <Link to="/seja-parceiro" className="btn btn-sm">
+            Seja parceiro
+          </Link>
+        </div>
+      )}
       <DadosConta />
       <Seguranca />
 

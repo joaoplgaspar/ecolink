@@ -4,6 +4,7 @@ import { Search, LocateFixed, Map as MapIcon, List, MapPin, AlertCircle, Loader2
 import { pontos } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
 import { filtrarPontos, cidadesDe, materiaisDe } from '@/domain/pontos';
+import { statusFuncionamento } from '@/domain/horarios';
 import { PointCard, MaterialTag, EmptyState, Carregando, ErroCarregar } from '@/components/ui.jsx';
 import MapView from '@/components/MapView.jsx';
 import { haversineKm, geocode, getCurrentLocation } from '@/utils/geo';
@@ -13,6 +14,7 @@ export default function Points() {
   const [cidade, setCidade] = useState('');
   const [material, setMaterial] = useState('');
   const [apenasAtivos, setApenasAtivos] = useState(false);
+  const [abertosAgora, setAbertosAgora] = useState(false);
   const [view, setView] = useState('mapa');
 
   const [endereco, setEndereco] = useState('');
@@ -34,6 +36,7 @@ export default function Points() {
     material: material || undefined,
     ativo: apenasAtivos ? true : undefined,
   });
+  if (abertosAgora) lista = lista.filter((p) => p.ativo && statusFuncionamento(p).aberto);
   if (userLocation) {
     lista = lista
       .map((p) => ({
@@ -139,7 +142,11 @@ export default function Points() {
           <div className="field" style={{ margin: 0, display: 'flex', alignItems: 'flex-end' }}>
             <label className="row" style={{ gap: 8, cursor: 'pointer', fontWeight: 600 }}>
               <input type="checkbox" checked={apenasAtivos} onChange={(e) => setApenasAtivos(e.target.checked)} />
-              Mostrar apenas pontos ativos
+              Só pontos recebendo
+            </label>
+            <label className="row" style={{ gap: 8, cursor: 'pointer', fontWeight: 600, marginLeft: 16 }}>
+              <input type="checkbox" checked={abertosAgora} onChange={(e) => setAbertosAgora(e.target.checked)} />
+              Abertos agora
             </label>
           </div>
         </div>

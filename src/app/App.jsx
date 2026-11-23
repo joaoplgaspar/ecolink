@@ -22,6 +22,10 @@ import Chat from '@/features/shared/pages/Chat.jsx';
 import Profile from '@/features/shared/pages/Profile.jsx';
 
 import PainelParceiro from '@/features/parceiro/pages/PainelParceiro.jsx';
+import SejaParceiro from '@/features/parceiro/pages/SejaParceiro.jsx';
+import CadastroOrganizacao from '@/features/parceiro/pages/CadastroOrganizacao.jsx';
+import AssistentePonto from '@/features/parceiro/pages/AssistentePonto.jsx';
+import Aprovacoes from '@/features/admin/pages/Aprovacoes.jsx';
 import Usuarios from '@/features/admin/pages/Usuarios.jsx';
 import Auditoria from '@/features/admin/pages/Auditoria.jsx';
 
@@ -46,6 +50,7 @@ export default function App() {
       <Route path="/termos" element={<Documento tipo="termos" />} />
       <Route path="/privacidade" element={<Documento tipo="privacidade" />} />
       <Route path="/demo/emails" element={<CaixaEmails />} />
+      <Route path="/seja-parceiro" element={<SejaParceiro />} />
 
       {/* Privadas */}
       <Route
@@ -71,9 +76,12 @@ export default function App() {
 
         {/* Parceiro */}
         <Route path="/parceiro" element={parceiro(<PainelParceiro />)} />
+        <Route path="/parceiro/cadastro" element={parceiro(<CadastroOrganizacao />)} />
+        <Route path="/parceiro/pontos/:id" element={parceiro(<AssistentePonto />)} />
 
         {/* Plataforma */}
         <Route path="/admin" element={plataforma(<Usuarios />)} />
+        <Route path="/admin/aprovacoes" element={plataforma(<Aprovacoes />)} />
         <Route path="/admin/auditoria" element={plataforma(<Auditoria />)} />
       </Route>
 
