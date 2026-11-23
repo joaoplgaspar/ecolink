@@ -16,7 +16,9 @@
     "format:check": "prettier --check .",
     "check": "npm run lint && npm run format:check && npm test && npm run build",
     "e2e": "playwright test",
-    "e2e:video": "E2E_VIDEO=1 playwright test --project=desktop video-demo"
+    "e2e:video": "E2E_VIDEO=1 playwright test --project=desktop video-demo",
+    "test:banco": "bash scripts/testar-banco.sh",
+    "seed:supabase": "vite-node scripts/gerar-seed-supabase.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.40.0",

@@ -32,7 +32,7 @@ export default [
     languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
-    files: ['*.config.js', 'src/**/*.test.{js,jsx}', 'e2e/**/*.js'],
+    files: ['*.config.js', 'src/**/*.test.{js,jsx}', 'e2e/**/*.js', 'scripts/**/*.{js,mjs}'],
     languageOptions: { globals: { ...globals.node } },
   },
   prettier,

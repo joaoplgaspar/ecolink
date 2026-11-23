@@ -49,3 +49,12 @@ jobs:
           name: playwright-resultados
           path: test-results
           retention-days: 7
+
+  # Banco (Supabase/Postgres): RLS, privilégios e funções da jornada, com pgTAP,
+  # num Postgres do Supabase em Docker — prova que a segurança está NO BANCO.
+  banco:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testes do banco (pgTAP)
+        run: bash scripts/testar-banco.sh
