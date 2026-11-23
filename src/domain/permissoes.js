@@ -62,6 +62,7 @@ export function papeisValidos(papeis) {
  */
 const tem = (ator, papel) => ator.papeis.includes(papel);
 const membroDo = (ator, pontoId) => ator.pontos.includes(Number(pontoId));
+const gestorDo = (ator, pontoId) => (ator.gestor_de || []).includes(Number(pontoId));
 const comoCidadao = (ator) => ator.perfil === 'cidadao' && tem(ator, 'cidadao');
 const comoParceiro = (ator) =>
   ator.perfil === 'parceiro' && (tem(ator, 'parceiro_gestor') || tem(ator, 'parceiro_operador'));
@@ -114,6 +115,16 @@ const REGRAS = {
   'contestacao.decidir': (a) => comoPlataforma(a),
   'bloqueio.gerenciar': (a) => comoCidadao(a) || comoParceiro(a),
   'admin.visao_geral': (a) => comoPlataforma(a),
+
+  // Operação do ponto (Fase 6)
+  'chat.responder': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id),
+  'chat.configurar': (a, r) => comoParceiro(a) && gestorDo(a, r.ponto_id),
+  'equipe.ver': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id),
+  'equipe.gerenciar': (a, r) => comoParceiro(a) && gestorDo(a, r.ponto_id),
+  'estoque.ver': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id),
+  'destinacao.registrar': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id),
+  'capacidade.definir': (a, r) => comoParceiro(a) && gestorDo(a, r.ponto_id),
+  'relatorio.ver': (a, r) => (comoParceiro(a) && membroDo(a, r.ponto_id)) || comoPlataforma(a),
 
   // Qualquer pessoa logada
   'ranking.ver': () => true,

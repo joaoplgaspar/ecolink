@@ -139,3 +139,17 @@ describe('termos', () => {
     expect(precisaAceitarTermos({ aceite_termos: { versao: TERMOS.versao } })).toBe(false);
   });
 });
+
+describe('operação do ponto (Fase 6)', () => {
+  const gestor = ator(['parceiro_gestor'], 'parceiro', { pontos: [1, 4], gestor_de: [1] });
+  const operador = ator(['parceiro_operador'], 'parceiro', { pontos: [2] });
+  it('qualquer membro conversa, vê estoque e registra destinação; só gestor gerencia', () => {
+    expect(pode(operador, 'chat.responder', { ponto_id: 2 })).toBe(true);
+    expect(pode(operador, 'destinacao.registrar', { ponto_id: 2 })).toBe(true);
+    expect(pode(operador, 'equipe.gerenciar', { ponto_id: 2 })).toBe(false);
+    expect(pode(operador, 'capacidade.definir', { ponto_id: 2 })).toBe(false);
+    expect(pode(gestor, 'equipe.gerenciar', { ponto_id: 1 })).toBe(true);
+    expect(pode(gestor, 'equipe.gerenciar', { ponto_id: 4 })).toBe(false); // é membro, mas não gestor dali
+    expect(pode(gestor, 'chat.responder', { ponto_id: 2 })).toBe(false); // não é do ponto
+  });
+});
