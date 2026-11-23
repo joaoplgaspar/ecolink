@@ -6,3 +6,5 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 coverage
+test-results
+playwright-report
