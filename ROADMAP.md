@@ -43,7 +43,7 @@
 | D4  | **Senhas em texto puro** no `localStorage`                                                       | `db.js` → `usuarios.create`                           | Qualquer pessoa com acesso ao navegador lê as senhas                                                            |
 | D5  | Sessão = só o id do usuário salvo; não expira                                                    | `AuthContext.jsx`                                     | Basta editar o id no DevTools para "virar" outra pessoa                                                         |
 | D6  | **Regras de negócio só na interface** (ex.: saldo da loja validado só no componente)             | `Rewards.jsx:30`, `db.js` → `resgates.create`         | Em um backend real, a regra tem que estar no servidor. Aqui, na camada de dados                                 |
-| D7  | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá**                                        | `PointDetail.jsx`                                     | Avaliações manipuláveis; nenhuma confiança                                                                      |
+| D7  | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá** — ✅ resolvido na Fase 4               | `PointDetail.jsx`                                     | Avaliações manipuláveis; nenhuma confiança                                                                      |
 | D8  | Não existe denúncia, bloqueio nem moderação                                                      | —                                                     | Requisito explícito do projeto                                                                                  |
 | D9  | O chat é uma resposta automática por palavra-chave                                               | `db.js` → `respostaAutomatica`                        | Com o lado do reciclador, vira conversa real entre os dois lados                                                |
 | D10 | Horário do ponto é texto livre (`"Seg-Sex 8h-18h"`)                                              | `seed.js`                                             | Impede agenda por horário, capacidade e "aberto agora"                                                          |
@@ -554,13 +554,15 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Antifraude: **o cidadão não tem como concluir a própria coleta (D1 resolvido)**, ninguém opera a própria entrega (conflito de interesse) e o cancelamento tardio fica marcado para a reputação (Fase 4).
 - ✅ _Aceite verificado:_ teste de ponta a ponta com **duas abas lado a lado**: cidadã agenda → parceiro recebe na hora e aceita → código → check-in (código errado recusado) → pesagem com divergência → comprovante e extrato dos dois lados → entrega sem agendamento → cancelamento → simulação de prazos. São 295 testes automatizados e um teste de mutação confirmando que eles pegam falhas no check-in.
 
-### Fase 4 — Confiança e reputação _(M)_ [M]
+### Fase 4 — Confiança e reputação _(M)_ [M] — ✅ **concluída**
 
-- Avaliação **verificada e bilateral** por coleta, com resposta pública do ponto (D7).
-- `domain/reputacao.js` (cidadão e ponto) com média bayesiana e testes.
-- Restrições automáticas por faixa; tela "Por que minha reputação é X?".
-- Selos (verificado, resposta rápida, exemplar).
-- ✅ _Aceite:_ 3 no-shows simulados (relógio do demo) bloqueiam o agendamento com aviso claro e prazo.
+- ✅ Avaliação **verificada e bilateral**: uma por entrega conferida (prazo de 14 dias, edição em até 7), estrelas + destaques + comentário; o ponto avalia o cidadão e responde publicamente às avaliações que recebe (**D7 resolvido**). Avaliações antigas sem entrega foram migradas (v7) e ficam marcadas como "não verificada", fora da nota.
+- ✅ `domain/reputacao.js` (cidadão e ponto) com **pesos explícitos e média bayesiana**, "Novo" nas 3 primeiras entregas, falta pesando o dobro de uma entrega e teto em Restrito para quem falta à maioria das entregas; testado com casos de borda.
+- ✅ Restrições automáticas: Restrito = 1 entrega em aberto e sem confirmação automática; **3 faltas em 30 dias = 7 dias sem agendar**, com aviso na 2ª falta. As regras valem no repositório (403/429 com mensagem clara), não só na tela.
+- ✅ Tela **"Por que minha reputação é X?"** com componentes, regras em vigor, dicas com ganho estimado e avaliações recebidas; cartão no perfil e avisos no início e no agendamento.
+- ✅ Selos: Parceiro verificado, Responde rápido, Muito bem avaliado (pontos); Reciclador exemplar, Sempre comparece (cidadãos). Reputação do ponto pública com explicação; o ponto vê do cidadão só a faixa e o número.
+- ✅ Alerta de revisão para pontos com média abaixo de 2,5 em 10+ avaliações (entra na fila da moderação na Fase 5).
+- ✅ _Aceite verificado:_ no navegador, a 3ª falta do Felipe (relógio da demonstração) **bloqueia o agendamento com aviso claro e prazo**; ciclo completo de avaliação bilateral com resposta do ponto em duas abas; 323 testes automatizados e um teste de mutação confirmando que eles pegam a remoção do bloqueio.
 
 ### Fase 5 — Denúncias, moderação e admin _(G)_ [M]
 

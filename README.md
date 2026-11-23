@@ -51,11 +51,20 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - 🙋 **Entrega sem agendamento** pelo QR pessoal do perfil
 - ⏰ **Prazos automáticos**: solicitação sem resposta expira, falta vira "não compareceu" e um lembrete sai 24 h antes
 
+**Confiança e reputação** (Fase 4 do [ROADMAP](./ROADMAP.md))
+
+- ⭐ **Avaliações verificadas e bilaterais**: só avalia quem teve a entrega conferida, **uma avaliação por entrega**, com estrelas, destaques ("Atendimento rápido", "Material bem separado"…) e comentário; dá para editar por 7 dias. O ponto avalia o cidadão e o cidadão avalia o ponto
+- 💬 **Resposta pública do ponto** a cada avaliação, com filtro "Sem resposta" no painel
+- 🧮 **Reputação de 0 a 100 com fórmula explícita** (`src/domain/reputacao.js`): componentes com pesos públicos (comparecimento, peso declarado × balança, material conforme, avaliações, perfil, histórico) e **média bayesiana**, para que uma única nota não decida a reputação de ninguém. Quem tem menos de 3 entregas aparece como "Novo"
+- 🔍 **"Por que minha reputação é X?"** (`/reputacao`): cada componente com barra e explicação, regras em vigor e dicas para melhorar ("comparecer às próximas 3 entregas recupera cerca de N pontos")
+- 🚦 **Restrições automáticas**: na faixa Restrito, 1 entrega em aberto por vez e sem confirmação automática; **3 faltas em 30 dias bloqueiam novos agendamentos por 7 dias**, com aviso na 2ª falta e o prazo bem claro
+- 🏅 **Selos**: Parceiro verificado, Responde rápido, Muito bem avaliado, Reciclador exemplar, Sempre comparece
+- 🕵️ **Privacidade**: o ponto vê só a faixa e o número do cidadão ("Exemplar · 93"), nunca os detalhes. Ponto com média abaixo de 2,5 em 10+ avaliações entra em revisão da moderação
+
 **Diferenciais**
 
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
 - 🎁 **Loja de recompensas** — troque EcoPontos (saldo) por brindes e descontos de parceiros, com geração de **voucher**
-- ⭐ **Avaliações dos pontos** — nota por estrelas + comentários
 - 📚 **Modo educação** — cores da coleta seletiva, guia por material e **quiz interativo**
 - 💬 **Chat** com os pontos de coleta (com resposta automática simulada)
 - 🔔 **Notificações** (lembretes, coleta concluída, recompensas)
@@ -84,6 +93,7 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 | Perfil     | E-mail                  | Quem é                                                             |
 | ---------- | ----------------------- | ------------------------------------------------------------------ |
 | Cidadão    | `ana@email.com`         | Cidadã com histórico completo (+ Bruno, Carla e mais 7)            |
+| Cidadão    | `felipe@email.com`      | Reputação Regular: 2 faltas em 30 dias (mais uma bloqueia)         |
 | Parceiro   | `marcos@email.com`      | Gestor do EcoPonto Centro e da Recicla Pinheiros; também é cidadão |
 | Parceiro   | `paula@email.com`       | Operadora da Coleta Vila Madalena                                  |
 | Parceiro   | `lucia@email.com`       | Gestora da ReciclaRio (CNPJ alfanumérico), com um ponto em análise |
@@ -106,7 +116,9 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 2. Janela 2: **Marcos** vê a solicitação chegar em "Novas" (com aviso) e aceita. Na janela 1 aparecem o código e o QR.
 3. Entre como **Diego** (`diego@email.com`): ele tem uma entrega **hoje** no EcoPonto Centro. Mostre o código, e o Marcos faz o check-in, pesa e conclui. O comprovante e os EcoPontos aparecem para o Diego na hora.
 4. No perfil da Ana, "Mostrar meu QR" → o Marcos usa "Ler QR / código" para registrar uma entrega sem agendamento.
-5. Na tela de login, "Simular passagem do tempo" mostra solicitações expirando e faltas sendo registradas.
+5. Depois da pesagem, o Marcos **avalia o Diego**; o Diego vê a avaliação na hora e **avalia o ponto**. O Marcos responde pelo painel ("Avaliações recebidas → Sem resposta"), e a resposta aparece na página do EcoPonto Centro com o selo "entrega verificada".
+6. Entre como **Felipe** (`felipe@email.com`): ele tem **2 faltas** e já vê o aviso. Em "Minha reputação", tudo é explicado.
+7. Na tela de login, "Simular passagem do tempo" (+3 dias) mostra solicitações expirando e faltas sendo registradas: a 3ª falta do Felipe **bloqueia novos agendamentos por 7 dias**.
 
 ---
 
