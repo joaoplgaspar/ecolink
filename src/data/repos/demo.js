@@ -4,13 +4,15 @@ import { ler, resetar } from '../storage';
 import { CONTAS_DEMO, SENHA_DEMO } from '../contasDemo';
 import { PAPEIS } from '../../domain/permissoes';
 import { limparToken } from '../sessaoCliente';
+import { limparTodos } from '../arquivos';
 import { chamar } from './_rede';
 
 /** Apaga todos os dados do dispositivo e recria o seed de demonstração. */
 export function restaurar() {
-  return chamar(() => {
+  return chamar(async () => {
     resetar();
     limparToken();
+    await limparTodos(); // fotos e documentos enviados
   });
 }
 

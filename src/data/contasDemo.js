@@ -20,6 +20,12 @@ export const CONTAS_DEMO = [
     descricao: 'Gestor do EcoPonto Centro e da Recicla Pinheiros (também é cidadão)',
   },
   { email: 'paula@email.com', grupo: 'Parceiros', descricao: 'Operadora da Coleta Vila Madalena' },
+  {
+    email: 'lucia@email.com',
+    grupo: 'Parceiros',
+    descricao: 'Gestora da ReciclaRio (CNPJ alfanumérico); tem um ponto em análise',
+  },
+  { email: 'rafael@email.com', grupo: 'Parceiros', descricao: 'Organização recém-cadastrada, aguardando aprovação' },
   { email: 'moderacao@ecolink.app', grupo: 'Plataforma', descricao: 'Equipe de moderação' },
   { email: 'admin@ecolink.app', grupo: 'Plataforma', descricao: 'Administração da plataforma' },
 ];

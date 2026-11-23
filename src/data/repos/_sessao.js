@@ -59,6 +59,7 @@ export function montarAtor(estado, usuario, sessao) {
     perfil: sessao.perfil,
     sessao_id: sessao.id,
     pontos: estado.membros.filter((m) => m.usuario_id === usuario.id && m.ativo).map((m) => m.ponto_id),
+    organizacoes: (estado.organizacoes || []).filter((o) => o.responsavel_id === usuario.id).map((o) => o.id),
   };
 }
 

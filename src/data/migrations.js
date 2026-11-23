@@ -6,8 +6,10 @@
 // (Mesma ideia das migrations de um banco real — ex.: Supabase/Postgres.)
 
 import { SENHA_DEMO, HASH_SENHA_DEMO } from './contasDemo';
+import { parseHorarioLegado } from '../domain/horarios';
+import { REGRAS_PADRAO } from '../domain/pontos';
 
-export const VERSAO_ATUAL = 4;
+export const VERSAO_ATUAL = 5;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -22,6 +24,7 @@ const SEQUENCIAS = {
   membros: 'membro',
   recuperacoes: 'recuperacao',
   emails_demo: 'email',
+  organizacoes: 'organizacao',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -80,8 +83,32 @@ export const MIGRACOES = [
       s.recuperacoes = s.recuperacoes || [];
       s.emails_demo = s.emails_demo || [];
       for (const [colecao, chave] of Object.entries(SEQUENCIAS)) {
+        if (!s[colecao]) continue;
         s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
       }
+    },
+  },
+  {
+    para: 5,
+    descricao: 'Organizações parceiras, ciclo de vida dos pontos e horários estruturados',
+    aplicar(s) {
+      s.organizacoes = s.organizacoes || [];
+      for (const p of s.pontos) {
+        // "ativo: true/false" vira um status do ciclo de vida.
+        if (!p.status) p.status = p.ativo === false ? 'pausado' : 'ativo';
+        delete p.ativo;
+        // Horário em texto livre ("Seg-Sex 8h-18h") vira grade semanal (D10).
+        if (!p.horarios) p.horarios = parseHorarioLegado(p.horario);
+        delete p.horario;
+        p.excecoes = p.excecoes || [];
+        p.regras_materiais = p.regras_materiais || {};
+        p.regras = { ...REGRAS_PADRAO, ...(p.regras || {}) };
+        p.descricao = p.descricao ?? '';
+        p.instrucoes_acesso = p.instrucoes_acesso ?? '';
+        p.fotos = p.fotos || [];
+        p.organizacao_id = p.organizacao_id ?? null; // pontos antigos: sem organização (não verificados)
+      }
+      s.seq.organizacao = Math.max(s.seq.organizacao || 0, maxId(s.organizacoes));
     },
   },
 ];

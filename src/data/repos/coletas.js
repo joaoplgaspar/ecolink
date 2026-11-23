@@ -11,6 +11,9 @@ import { naoEncontrado, invalido, conflito, ErroApi } from '../erros';
 import { getMaterial } from '../../domain/materiais';
 import { pontosDaColeta } from '../../domain/gamificacao';
 import { isoDia } from '../../utils/datas';
+import { recebendo } from '../../domain/pontos';
+import { fechadoNoDia, excecaoDoDia } from '../../domain/horarios';
+import { formatDate } from '../../utils/format';
 import { chamarAutenticado, proximoId } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
@@ -72,17 +75,30 @@ export function agendar({ ponto_id, material, quantidade_kg, data_agendada }) {
 
       const ponto = s.pontos.find((p) => p.id === Number(ponto_id));
       if (!ponto) throw naoEncontrado('Ponto de coleta');
-      if (!ponto.ativo) throw invalido('Este ponto não está recebendo materiais no momento.');
+      if (!recebendo(ponto)) throw invalido('Este ponto não está recebendo materiais no momento.');
       if (!ponto.materiais.includes(material))
         throw invalido(`Este ponto não aceita ${getMaterial(material).label.toLowerCase()}.`, 'material');
 
       const kg = Number(quantidade_kg);
       if (!Number.isFinite(kg) || kg <= 0) throw invalido('Informe uma quantidade maior que zero.', 'quantidade_kg');
       if (kg > KG_MAXIMO) throw invalido(`A quantidade máxima por agendamento é ${KG_MAXIMO} kg.`, 'quantidade_kg');
+      const limite = ponto.regras_materiais?.[material]?.limite_kg;
+      if (limite && kg > limite)
+        throw invalido(
+          `Este ponto recebe até ${limite} kg de ${getMaterial(material).label.toLowerCase()} por entrega.`,
+          'quantidade_kg',
+        );
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data_agendada)))
         throw invalido('Informe uma data válida.', 'data_agendada');
       if (data_agendada < isoDia(new Date())) throw invalido('A data não pode estar no passado.', 'data_agendada');
+      if (fechadoNoDia(ponto, data_agendada)) {
+        const excecao = excecaoDoDia(ponto, data_agendada);
+        throw invalido(
+          `O ponto não abre em ${formatDate(data_agendada)}${excecao?.motivo ? ` (${excecao.motivo})` : ''}. Escolha outro dia.`,
+          'data_agendada',
+        );
+      }
 
       const nova = {
         id: proximoId(s, 'coleta'),

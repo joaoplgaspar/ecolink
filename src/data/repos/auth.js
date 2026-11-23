@@ -130,7 +130,20 @@ function validarNovaSenha(senha, usuario) {
 
 /* ------------------------------- cadastro ------------------------------- */
 
-export function cadastrar({ nome, email, senha, telefone = '', cidade = '', aceitouTermos = false, lembrar = false }) {
+/**
+ * Cria a conta. `parceiro: true` cria a conta já como gestor(a) de ponto de
+ * coleta (fluxo "Seja parceiro"); o cadastro da organização vem em seguida.
+ */
+export function cadastrar({
+  nome,
+  email,
+  senha,
+  telefone = '',
+  cidade = '',
+  aceitouTermos = false,
+  lembrar = false,
+  parceiro = false,
+}) {
   return chamar(async () => {
     const dados = {
       nome: texto(nome, { campo: 'seu nome', max: 80 }),
@@ -151,7 +164,7 @@ export function cadastrar({ nome, email, senha, telefone = '', cidade = '', acei
         id: proximoId(s, 'usuario'),
         ...dados,
         senha_hash,
-        papeis: ['cidadao'],
+        papeis: parceiro ? ['parceiro_gestor'] : ['cidadao'],
         status: 'ativo',
         criado_em: agoraISO(),
         aceite_termos: { versao: TERMOS.versao, em: agoraISO() },

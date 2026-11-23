@@ -13,6 +13,9 @@ import { TERMOS } from '../domain/termos';
 import { RECOMPENSAS } from './recompensas';
 import { pontosDaColeta } from '../domain/gamificacao';
 import { isoDia, somarDias } from '../utils/datas';
+import { gradeCom, SEMANA, fechadoNoDia } from '../domain/horarios';
+import { REGRAS_PADRAO } from '../domain/pontos';
+import { documentosExigidos } from '../domain/organizacoes';
 
 /* ------------------------------ utilitários ------------------------------ */
 
@@ -81,88 +84,253 @@ const EQUIPE = [
     papeis: ['admin'],
     pontos: [],
   },
+  {
+    nome: 'Sérgio Alves',
+    email: 'sergio@email.com',
+    cidade: 'São Paulo',
+    desde: 140,
+    papeis: ['parceiro_gestor'],
+    pontos: [
+      [2, 'gestor'],
+      [7, 'gestor'],
+    ],
+  },
+  {
+    nome: 'Lúcia Prado',
+    email: 'lucia@email.com',
+    cidade: 'Rio de Janeiro',
+    desde: 130,
+    papeis: ['parceiro_gestor'],
+    pontos: [
+      [3, 'gestor'],
+      [5, 'gestor'],
+      [6, 'gestor'],
+      [8, 'gestor'],
+      [9, 'gestor'],
+    ],
+  },
+  {
+    nome: 'Rafael Costa',
+    email: 'rafael@email.com',
+    cidade: 'São Paulo',
+    desde: 3,
+    papeis: ['parceiro_gestor', 'cidadao'],
+    pontos: [],
+  },
+];
+
+// Horário com intervalo de almoço (helper do seed).
+const comAlmoco = (dias, manha, tarde) =>
+  Object.fromEntries(
+    SEMANA.map((d) => [
+      d,
+      dias.includes(d)
+        ? [
+            { abre: manha[0], fecha: manha[1] },
+            { abre: tarde[0], fecha: tarde[1] },
+          ]
+        : [],
+    ]),
+  );
+const UTEIS = ['seg', 'ter', 'qua', 'qui', 'sex'];
+const UTEIS_E_SABADO = [...UTEIS, 'sab'];
+
+// Organizações parceiras. A 3ª usa o CNPJ ALFANUMÉRICO (novo formato de 2026).
+const ORGANIZACOES = [
+  {
+    tipo: 'associacao',
+    nome: 'Rede EcoCentro',
+    razao_social: 'Associação Rede EcoCentro de Reciclagem',
+    documento: '48219357000191',
+    responsavel: 'marcos@email.com',
+    cargo: 'Coordenador',
+    status: 'aprovada',
+    desde: 118,
+    sobre: 'Rede de ecopontos no centro expandido de São Paulo.',
+  },
+  {
+    tipo: 'cooperativa',
+    nome: 'Cooperativa Recicla Juntos',
+    razao_social: 'Cooperativa de Trabalho Recicla Juntos',
+    documento: '37190462000129',
+    responsavel: 'sergio@email.com',
+    cargo: 'Presidente',
+    status: 'aprovada',
+    desde: 140,
+    sobre: 'Cooperativa de catadores com 40 cooperados. Compramos materiais separados.',
+  },
+  {
+    tipo: 'empresa',
+    nome: 'ReciclaRio',
+    razao_social: 'ReciclaRio Soluções Ambientais Ltda.',
+    documento: '6RZK4QW8000102',
+    responsavel: 'lucia@email.com',
+    cargo: 'Diretora de operações',
+    status: 'aprovada',
+    desde: 130,
+    sobre: 'Gestão de resíduos recicláveis no Rio de Janeiro e interior de SP.',
+  },
+  {
+    tipo: 'associacao',
+    nome: 'Associação Recicla Leste',
+    razao_social: 'Associação de Moradores Recicla Leste',
+    documento: '25804613000102',
+    responsavel: 'rafael@email.com',
+    cargo: 'Presidente',
+    status: 'em_analise',
+    desde: 3,
+    sobre: 'Moradores da zona leste que querem abrir um ecoponto comunitário.',
+  },
 ];
 
 const PONTOS = [
   {
     nome: 'EcoPonto Centro',
+    organizacao: 1,
+    descricao: 'Ecoponto da Rede EcoCentro na Praça da Sé. Recebemos recicláveis secos separados por tipo.',
     endereco: 'Praça da Sé, 100',
     cidade: 'São Paulo',
     latitude: -23.5505,
     longitude: -46.6333,
+    instrucoes_acesso: 'Entrada pela lateral, ao lado da banca de jornal.',
     materiais: ['papel', 'plástico', 'vidro'],
-    horario: 'Seg-Sex 8h-18h',
-    ativo: true,
+    regras_materiais: {
+      papel: { condicoes: 'Limpo e seco', nao_aceita: 'Papel engordurado, guardanapo e papel higiênico' },
+      vidro: {
+        condicoes: 'Cacos embrulhados em jornal ou caixa',
+        nao_aceita: 'Espelhos, lâmpadas e cerâmica',
+        limite_kg: 30,
+      },
+    },
+    horarios: gradeCom(UTEIS, '08:00', '18:00'),
+    feriados: true,
+    status: 'ativo',
   },
   {
     nome: 'Coleta Vila Madalena',
+    organizacao: 2,
+    descricao: 'Ponto especializado em eletrônicos e pilhas, com destinação certificada.',
     endereco: 'Rua Harmonia, 250',
     cidade: 'São Paulo',
     latitude: -23.5546,
     longitude: -46.6896,
+    instrucoes_acesso: 'Portão verde; toque o interfone "Coleta".',
     materiais: ['eletrônicos', 'pilhas'],
-    horario: 'Seg-Sáb 9h-17h',
-    ativo: true,
+    regras_materiais: {
+      eletrônicos: {
+        condicoes: 'Pequenos e médios aparelhos',
+        nao_aceita: 'Geladeiras, fogões e máquinas de lavar',
+        limite_kg: 15,
+      },
+      pilhas: { condicoes: 'Em saco plástico fechado', limite_kg: 2 },
+    },
+    horarios: { ...comAlmoco(UTEIS, ['09:00', '12:00'], ['13:00', '17:00']), sab: [{ abre: '09:00', fecha: '13:00' }] },
+    status: 'ativo',
   },
   {
     nome: 'ReciclaRio Copacabana',
+    organizacao: 3,
+    descricao: 'Ponto de entrega de metais e plásticos na orla.',
     endereco: 'Av. Atlântica, 1500',
     cidade: 'Rio de Janeiro',
     latitude: -22.9711,
     longitude: -43.1822,
+    instrucoes_acesso: '',
     materiais: ['metal', 'plástico'],
-    horario: 'Todos os dias 7h-19h',
-    ativo: true,
+    regras_materiais: {},
+    horarios: gradeCom(SEMANA, '07:00', '19:00'),
+    status: 'ativo',
   },
   {
     nome: 'Recicla Pinheiros',
+    organizacao: 1,
+    descricao: 'Ecoponto com estacionamento para descarga de volumes maiores.',
     endereco: 'Rua dos Pinheiros, 1000',
     cidade: 'São Paulo',
     latitude: -23.5645,
     longitude: -46.6996,
+    instrucoes_acesso: 'Vaga de carga e descarga em frente ao portão.',
     materiais: ['papel', 'vidro', 'metal', 'papelão'],
-    horario: 'Seg-Sex 8h-20h',
-    ativo: true,
+    regras_materiais: { papelão: { condicoes: 'Desmontado e amarrado' } },
+    horarios: gradeCom(UTEIS, '08:00', '20:00'),
+    feriados: true,
+    status: 'ativo',
   },
   {
     nome: 'EcoStation Tijuca',
+    organizacao: 3,
+    descricao: 'Recebemos óleo de cozinha usado e eletrônicos, além de recicláveis secos.',
     endereco: 'Rua Conde de Bonfim, 500',
     cidade: 'Rio de Janeiro',
     latitude: -22.9249,
     longitude: -43.2336,
+    instrucoes_acesso: '',
     materiais: ['papel', 'plástico', 'eletrônicos', 'óleo'],
-    horario: 'Seg-Sáb 8h-18h',
-    ativo: true,
+    regras_materiais: { óleo: { condicoes: 'Frio, em garrafa PET bem fechada', limite_kg: 10 } },
+    horarios: gradeCom(UTEIS_E_SABADO, '08:00', '18:00'),
+    status: 'ativo',
   },
   {
     nome: 'Verde Vale Campinas',
+    organizacao: 3,
+    descricao: 'Ponto temporariamente pausado para reforma.',
     endereco: 'Av. Norte-Sul, 800',
     cidade: 'Campinas',
     latitude: -22.9056,
     longitude: -47.0608,
+    instrucoes_acesso: '',
     materiais: ['vidro', 'metal', 'pilhas'],
-    horario: 'Seg-Sex 9h-17h',
-    ativo: false,
+    regras_materiais: {},
+    horarios: gradeCom(UTEIS, '09:00', '17:00'),
+    status: 'pausado',
   },
   {
     nome: 'Cooperativa Mooca',
+    organizacao: 2,
+    descricao: 'Galpão da cooperativa. Pagamos por kg de papelão e metal entregues separados.',
     endereco: 'Rua da Mooca, 1200',
     cidade: 'São Paulo',
     latitude: -23.5587,
     longitude: -46.5996,
+    instrucoes_acesso: 'Galpão ao fundo do terreno.',
     materiais: ['papel', 'papelão', 'plástico', 'metal', 'isopor'],
-    horario: 'Seg-Sáb 7h-16h',
-    ativo: true,
+    regras_materiais: {
+      papelão: { condicoes: 'Seco e desmontado', preco_kg: 0.4 },
+      metal: { condicoes: 'Latas amassadas', preco_kg: 3.5 },
+      isopor: { condicoes: 'Limpo, sem restos de comida' },
+    },
+    horarios: gradeCom(UTEIS_E_SABADO, '07:00', '16:00'),
+    regras: { aceite_automatico: true },
+    status: 'ativo',
   },
   {
     nome: 'EcoPonto Botafogo',
+    organizacao: 3,
+    descricao: 'Vidro, óleo, pilhas e eletrônicos em Botafogo.',
     endereco: 'Rua Voluntários da Pátria, 300',
     cidade: 'Rio de Janeiro',
     latitude: -22.9519,
     longitude: -43.1857,
+    instrucoes_acesso: '',
     materiais: ['vidro', 'óleo', 'pilhas', 'eletrônicos'],
-    horario: 'Seg-Sex 8h-19h',
-    ativo: true,
+    regras_materiais: {},
+    horarios: gradeCom(UTEIS, '08:00', '19:00'),
+    status: 'ativo',
+  },
+  {
+    // Enviado para análise: aparece na fila de aprovações da plataforma.
+    nome: 'ReciclaRio Barra',
+    organizacao: 3,
+    descricao: 'Novo ponto da ReciclaRio na Barra da Tijuca, dentro do estacionamento do shopping.',
+    endereco: 'Av. das Américas, 4666',
+    cidade: 'Rio de Janeiro',
+    latitude: -23.0004,
+    longitude: -43.3659,
+    instrucoes_acesso: 'Estacionamento G2, próximo à saída B.',
+    materiais: ['papel', 'plástico', 'metal', 'vidro'],
+    regras_materiais: { vidro: { condicoes: 'Sem tampas', limite_kg: 20 } },
+    horarios: { ...gradeCom(SEMANA, '10:00', '22:00'), dom: [{ abre: '14:00', fecha: '20:00' }] },
+    status: 'em_analise',
   },
 ];
 
@@ -247,13 +415,78 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     }));
   }).map((m, i) => ({ id: i + 1, ...m }));
 
-  const pontos = PONTOS.map((p, i) => ({ id: i + 1, ...p }));
+  const porEmail = (email) => usuarios.find((u) => u.email === email);
+
+  // Próxima ocorrência de uma data fixa (dia/mês) a partir de hoje — para feriados.
+  const proximaData = (mes, diaDoMes) => {
+    const ano = agora.getFullYear();
+    const iso = `${ano}-${pad(mes)}-${pad(diaDoMes)}`;
+    return iso >= isoDia(agora) ? iso : `${ano + 1}-${pad(mes)}-${pad(diaDoMes)}`;
+  };
+  const FERIADOS = [
+    { data: proximaData(12, 25), fechado: true, motivo: 'Natal' },
+    { data: proximaData(1, 1), fechado: true, motivo: 'Confraternização Universal' },
+  ];
+
+  const organizacoes = ORGANIZACOES.map((o, i) => {
+    const enviado = instante(-Math.min(o.desde, 2), 15, 30);
+    return {
+      id: i + 1,
+      tipo: o.tipo,
+      nome: o.nome,
+      razao_social: o.razao_social,
+      documento: o.documento,
+      responsavel_id: porEmail(o.responsavel).id,
+      responsavel_cargo: o.cargo,
+      telefone: porEmail(o.responsavel).telefone,
+      sobre: o.sobre,
+      // Os documentos do seed são ilustrativos ("demo:…"): não há arquivo real.
+      documentos: Object.entries(documentosExigidos(o.tipo)).map(([tipo, rotulo], k) => ({
+        id: k + 1,
+        tipo,
+        nome: `${tipo === 'licenca' ? 'licenca-ambiental' : 'cartao-cnpj'}.pdf`,
+        mime: 'application/pdf',
+        tamanho: 180_000 + k * 25_000,
+        ref: `demo:${rotulo}`,
+        enviado_em: enviado,
+      })),
+      status: o.status,
+      motivo: null,
+      criado_em: instante(-o.desde, 10, 0),
+      enviado_em: enviado,
+      analisado_em: o.status === 'aprovada' ? instante(-o.desde + 1, 11, 0) : null,
+      analisado_por: o.status === 'aprovada' ? porEmail('admin@ecolink.app').id : null,
+    };
+  });
+
+  const pontos = PONTOS.map((p, i) => {
+    const { organizacao, feriados, regras, ...resto } = p;
+    return {
+      id: i + 1,
+      ...resto,
+      organizacao_id: organizacao,
+      excecoes: feriados ? FERIADOS.map((f) => ({ ...f })) : [],
+      regras: { ...REGRAS_PADRAO, ...regras },
+      fotos: [],
+      criado_em: instante(-100, 10, 0),
+      enviado_em: instante(p.status === 'em_analise' ? -1 : -99, 16, 0),
+      aprovado_em: p.status === 'em_analise' ? null : instante(-98, 11, 0),
+      motivo_status: null,
+    };
+  });
   const pontoPorId = (id) => pontos.find((p) => p.id === id);
 
   // Pontos onde cada usuário costuma reciclar (os da cidade dele).
-  // Campinas só tem um ponto, hoje inativo: o histórico de lá é anterior à desativação.
+  // Campinas só tem um ponto, hoje pausado: o histórico de lá é anterior à pausa.
   const pontosDaCidade = (cidade, { incluirInativos = false } = {}) =>
-    pontos.filter((p) => p.cidade === cidade && (p.ativo || incluirInativos));
+    pontos.filter((p) => p.cidade === cidade && (p.status === 'ativo' || (incluirInativos && p.status === 'pausado')));
+
+  /** Primeiro dia (a partir do deslocamento) em que o ponto abre. */
+  const diaAberto = (ponto, offset) => {
+    let d = offset;
+    while (fechadoNoDia(ponto, dia(d)) && d < offset + 14) d++;
+    return dia(d);
+  };
 
   const kgPara = (material) => {
     const [min, max] = FAIXA_KG[material] || FAIXA_PADRAO;
@@ -301,7 +534,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       material,
       quantidade_kg: kgPara(material),
       status: 'agendada',
-      data_agendada: dia(offset),
+      data_agendada: diaAberto(ponto, offset),
     });
   }
   // Ids em ordem cronológica (como num banco real, por ordem de criação).
@@ -405,6 +638,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       notif: notificacoes.length,
       msg: 2,
       membro: membros.length,
+      organizacao: organizacoes.length,
       sessao: 0,
       auditoria: 0,
       recuperacao: 0,
@@ -418,6 +652,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     chats,
     notificacoes,
     membros,
+    organizacoes,
     sessoes: [],
     tentativas_login: {},
     auditoria: [],

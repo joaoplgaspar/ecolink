@@ -7,6 +7,7 @@ import { naoEncontrado } from '../erros';
 import { chamarAutenticado, agoraISO, proximoId, texto } from './_rede';
 import { exigir } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
+import { resumoHorario } from '../../domain/horarios';
 
 const chave = (usuarioId, pontoId) => `${Number(usuarioId)}:${Number(pontoId)}`;
 const MSG_PERFIL = 'Entre no perfil Cidadão para conversar com os pontos.';
@@ -53,7 +54,7 @@ export function respostaAutomatica(mensagem, ponto) {
   const t = mensagem.toLowerCase();
   const mats = ponto.materiais.join(', ');
   if (t.includes('horár') || t.includes('hora') || t.includes('aberto'))
-    return `Nosso horário de funcionamento é ${ponto.horario}. 😊`;
+    return `Nosso horário de funcionamento é ${resumoHorario(ponto.horarios)}. 😊`;
   if (t.includes('aceita') || t.includes('material') || t.includes('recicl'))
     return `Aqui no ${ponto.nome} aceitamos: ${mats}. Se tiver dúvida sobre algum item específico, é só perguntar!`;
   if (t.includes('onde') || t.includes('endereç') || t.includes('local'))

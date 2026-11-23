@@ -248,7 +248,7 @@ describe('chat', () => {
     const msgs = await chat.enviar(2, 'Qual o horário?');
     expect(msgs.at(-2)).toMatchObject({ de: 'eu', texto: 'Qual o horário?' });
     expect(msgs.at(-1).de).toBe('ponto');
-    expect(msgs.at(-1).texto).toContain('Seg-Sáb 9h-17h');
+    expect(msgs.at(-1).texto).toContain('Seg–Sex 9h–12h e 13h–17h · Sáb 9h–13h');
     expect((await chat.ultimas())['2'].de).toBe('ponto');
   });
 

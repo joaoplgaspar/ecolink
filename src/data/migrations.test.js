@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { migrar, versaoDe, VERSAO_ATUAL } from './migrations';
 import { HASH_SENHA_DEMO } from './contasDemo';
+import { resumoHorario } from '../domain/horarios';
 
 // Formato salvo pela versão anterior do app (chave "ecolink:v2"), sem `meta`.
 const legadoV2 = () => ({
@@ -91,5 +92,20 @@ describe('migração v4 (segurança)', () => {
     const s = migrar(legadoV2());
     for (const c of ['sessoes', 'auditoria', 'membros', 'recuperacoes', 'emails_demo']) expect(s[c]).toEqual([]);
     expect(s.tentativas_login).toEqual({});
+  });
+});
+
+describe('migração v5 (organizações e horários)', () => {
+  it('ativo vira status e o horário em texto vira grade semanal', () => {
+    const s = legadoV2();
+    s.pontos.push({ id: 2, nome: 'Q', materiais: ['vidro'], ativo: false, horario: 'Todos os dias 7h-19h' });
+    s.pontos[0].horario = 'Seg-Sáb 9h-17h';
+    migrar(s);
+    expect(s.pontos[0]).toMatchObject({ status: 'ativo', organizacao_id: null, excecoes: [], fotos: [] });
+    expect(s.pontos[1].status).toBe('pausado');
+    expect(resumoHorario(s.pontos[0].horarios)).toBe('Seg–Sáb 9h–17h');
+    expect(resumoHorario(s.pontos[1].horarios)).toBe('Todos os dias 7h–19h');
+    expect(s.pontos.every((p) => !('ativo' in p) && !('horario' in p))).toBe(true);
+    expect(s.organizacoes).toEqual([]);
   });
 });

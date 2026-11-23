@@ -4,6 +4,10 @@ import { VERSAO_ATUAL } from './migrations';
 import { calcularEstatisticas } from '../domain/gamificacao';
 import { isoDia } from '../utils/datas';
 import { CONTAS_DEMO, HASH_SENHA_DEMO } from './contasDemo';
+import { validarCNPJ } from '../domain/documentos';
+import { fechadoNoDia } from '../domain/horarios';
+import { problemasDoPonto, pontoCompleto } from '../domain/pontos';
+import { organizacaoCompleta } from '../domain/organizacoes';
 
 const AGORA = new Date('2026-11-23T12:00:00');
 const HOJE = isoDia(AGORA);
@@ -20,9 +24,11 @@ describe('makeSeed', () => {
   });
 
   it('tem volume suficiente para a demonstração', () => {
-    expect(s.usuarios.filter((u) => u.papeis.includes('cidadao'))).toHaveLength(11); // 10 cidadãos + gestor que também recicla
-    expect(s.usuarios).toHaveLength(14);
-    expect(s.pontos).toHaveLength(8);
+    expect(s.usuarios.filter((u) => u.papeis.includes('cidadao'))).toHaveLength(12); // 10 cidadãos + 2 gestores que também reciclam
+    expect(s.usuarios).toHaveLength(17);
+    expect(s.pontos.filter((p) => ['ativo', 'pausado'].includes(p.status))).toHaveLength(8);
+    expect(s.pontos.filter((p) => p.status === 'em_analise')).toHaveLength(1);
+    expect(s.organizacoes).toHaveLength(4);
     expect(s.coletas.length).toBeGreaterThanOrEqual(50);
   });
 
@@ -80,7 +86,7 @@ describe('makeSeed', () => {
 
   it('agendamentos futuros só em pontos ativos', () => {
     for (const c of s.coletas.filter((x) => x.status === 'agendada')) {
-      expect(s.pontos.find((p) => p.id === c.ponto_id).ativo).toBe(true);
+      expect(s.pontos.find((p) => p.id === c.ponto_id).status).toBe('ativo');
     }
   });
 
@@ -101,6 +107,7 @@ describe('makeSeed', () => {
       ['resgates', 'resgate'],
       ['notificacoes', 'notif'],
       ['membros', 'membro'],
+      ['organizacoes', 'organizacao'],
     ]) {
       const ids = s[colecao].map((x) => x.id);
       expect(new Set(ids).size).toBe(ids.length);
@@ -115,6 +122,42 @@ describe('makeSeed', () => {
         resgates: s.resgates.filter((r) => r.usuario_id === u.id),
       });
       expect(saldo).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('organizações: CNPJ válido (inclusive o alfanumérico), cadastro completo e uma em análise', () => {
+    for (const o of s.organizacoes) {
+      expect(validarCNPJ(o.documento)).toBe(true);
+      expect(organizacaoCompleta(o)).toBe(true);
+    }
+    expect(s.organizacoes.some((o) => /[A-Z]/.test(o.documento))).toBe(true);
+    expect(s.organizacoes.filter((o) => o.status === 'em_analise').map((o) => o.nome)).toEqual([
+      'Associação Recicla Leste',
+    ]);
+  });
+
+  it('todo ponto pertence a uma organização aprovada e passa na validação do assistente', () => {
+    for (const p of s.pontos) {
+      expect(s.organizacoes.find((o) => o.id === p.organizacao_id)?.status).toBe('aprovada');
+      expect(problemasDoPonto(p)).toEqual({
+        identificacao: [],
+        localizacao: [],
+        materiais: [],
+        horarios: [],
+        regras: [],
+      });
+      expect(pontoCompleto(p)).toBe(true);
+    }
+  });
+
+  it('nenhuma coleta agendada cai em dia em que o ponto está fechado', () => {
+    for (const c of s.coletas.filter((x) => x.status === 'agendada')) {
+      expect(
+        fechadoNoDia(
+          s.pontos.find((p) => p.id === c.ponto_id),
+          c.data_agendada,
+        ),
+      ).toBe(false);
     }
   });
 });

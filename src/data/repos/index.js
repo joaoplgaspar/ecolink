@@ -17,5 +17,7 @@ export * as chat from './chat';
 export * as notificacoes from './notificacoes';
 export * as estatisticas from './estatisticas';
 export * as parceiro from './parceiro';
+export * as organizacoes from './organizacoes';
+export * as arquivos from './arquivos';
 export * as admin from './admin';
 export * as demo from './demo';
