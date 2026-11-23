@@ -71,14 +71,21 @@ function resolverAlvo(s, ator, { alvo_tipo, alvo_id, coleta_id }) {
     return { alvo_id: id, ponto_id: a.ponto_id, denunciado_id: a.usuario_id };
   }
   if (alvo_tipo === 'mensagem') {
-    // Só mensagens RECEBIDAS numa conversa da própria pessoa.
-    for (const [k, msgs] of Object.entries(s.chats)) {
-      const [uid, pid] = k.split(':').map(Number);
-      if (uid !== ator.id) continue;
-      const m = msgs.find((x) => x.id === id && x.de !== 'eu');
-      if (m) return { alvo_id: id, ponto_id: pid, denunciado_id: null, trecho: m.texto.slice(0, 280) };
-    }
-    throw naoEncontrado('Mensagem');
+    // Só mensagens RECEBIDAS numa conversa de que a pessoa participa:
+    // o cidadão denuncia o que o ponto mandou; a equipe, o que o cidadão mandou.
+    const m = s.mensagens.find((x) => x.id === id && !x.removida);
+    const c = m && s.conversas.find((x) => x.id === m.conversa_id);
+    const recebida =
+      c &&
+      ((ator.perfil === 'cidadao' && c.usuario_id === ator.id && m.de === 'ponto') ||
+        (ator.perfil === 'parceiro' && ator.pontos.includes(c.ponto_id) && m.de === 'cidadao'));
+    if (!recebida) throw naoEncontrado('Mensagem');
+    return {
+      alvo_id: id,
+      ponto_id: c.ponto_id,
+      denunciado_id: m.de === 'cidadao' ? c.usuario_id : null,
+      trecho: m.texto.slice(0, 280),
+    };
   }
   throw invalido('Escolha o que você quer denunciar.');
 }
@@ -224,7 +231,8 @@ export function minhas() {
 
 /** Esta pessoa responde pelo alvo da denúncia? (ela mesma, a avaliação dela, ou um ponto que ela gere) */
 function respondePor(s, ator, d) {
-  if (['cidadao', 'avaliacao'].includes(d.alvo_tipo)) return ator.perfil === 'cidadao' && d.denunciado_id === ator.id;
+  if (['cidadao', 'avaliacao'].includes(d.alvo_tipo) || (d.alvo_tipo === 'mensagem' && d.denunciado_id))
+    return ator.perfil === 'cidadao' && d.denunciado_id === ator.id;
   if (['ponto', 'mensagem'].includes(d.alvo_tipo))
     return ator.perfil === 'parceiro' && gestoresDo(s, d.ponto_id).includes(ator.id);
   return false;

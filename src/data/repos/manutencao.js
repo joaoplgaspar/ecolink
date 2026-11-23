@@ -14,6 +14,7 @@ import { mudarStatus, notificarEquipe, quando } from './_coleta';
 import { situacaoDeFaltas, FALTAS_PARA_BLOQUEIO } from '../../domain/reputacao';
 import { SANCOES } from '../../domain/denuncias';
 import { encerrarSancoesVencidas } from './_moderacao';
+import { RETENCAO_DIAS } from '../../domain/chat';
 
 function pendencias(estado, agora) {
   const t = agora.getTime();
@@ -37,6 +38,10 @@ function pendencias(estado, agora) {
         SANCOES[x.tipo]?.restringe &&
         Date.parse(x.fim) <= Date.now(),
     ),
+    // Fase 6 (LGPD): mensagens de chat com mais de 1 ano são apagadas (relógio real).
+    mensagens_antigas: (estado.mensagens || []).filter(
+      (m) => Date.now() - Date.parse(m.em) > RETENCAO_DIAS * 24 * 3600_000,
+    ),
   };
 }
 
@@ -49,13 +54,18 @@ export function processarPrazos({ agora = new Date() } = {}) {
       nao_compareceu: p.faltou.length,
       lembretes: p.lembrar.length,
       sancoes_encerradas: p.sancoes.length,
+      mensagens_apagadas: p.mensagens_antigas.length,
     };
-    if (!total.expiradas && !total.nao_compareceu && !total.lembretes && !total.sancoes_encerradas) return total;
+    if (Object.values(total).every((n) => !n)) return total;
 
     transacao((s) => {
       const em = agora.toISOString();
       const pegar = (c) => s.coletas.find((x) => x.id === c.id);
       if (p.sancoes.length) encerrarSancoesVencidas(s, new Date());
+      if (p.mensagens_antigas.length) {
+        const apagar = new Set(p.mensagens_antigas.map((m) => m.id));
+        s.mensagens = s.mensagens.filter((m) => !apagar.has(m.id));
+      }
       for (const c0 of p.expirar) {
         const c = pegar(c0);
         mudarStatus(s, c, 'expirar', { ator: 'sistema', em });

@@ -32,6 +32,7 @@ import { novoCodigoEntrega, novoCodigoColeta, lerQr, codigosIguais } from '../..
 import { montarComprovante } from '../../domain/comprovante';
 import { mudarStatus, registrarEvento, lancar, quando } from './_coleta';
 import { resumoParaPonto, reputacaoDoPonto as calcularReputacaoDoPonto } from './_reputacao';
+import { atualizarCapacidade } from './_estoque';
 import { TAGS_CIDADAO, podeAvaliar, podeEditar, problemasDaAvaliacao } from '../../domain/avaliacoes';
 
 import { nomeReduzido } from '../../utils/format';
@@ -465,6 +466,7 @@ export function registrarPesagem(id, itens, { confirmarDivergencia = false } = {
         emitidoEm: c.concluida_em,
       });
       c.pontos_creditados = c.comprovante.pontos;
+      atualizarCapacidade(s, c.ponto_id); // Fase 6: alerta de 90% e pausa do material cheio
       if (c.pontos_creditados > 0) {
         lancar(s, {
           usuario_id: c.usuario_id,

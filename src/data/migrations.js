@@ -10,8 +10,9 @@ import { parseHorarioLegado } from '../domain/horarios';
 import { REGRAS_PADRAO } from '../domain/pontos';
 import { pontosDaColeta } from '../domain/gamificacao';
 import { novoCodigoColeta, novoCodigoEntrega, novoCodigoPessoal } from '../domain/codigos';
+import { analisarMensagem, RESPOSTAS_PADRAO, MENSAGEM_AUSENCIA_PADRAO } from '../domain/chat';
 
-export const VERSAO_ATUAL = 8;
+export const VERSAO_ATUAL = 9;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -33,6 +34,10 @@ const SEQUENCIAS = {
   denuncias: 'denuncia',
   sancoes: 'sancao',
   bloqueios: 'bloqueio',
+  conversas: 'conversa',
+  mensagens: 'msg',
+  convites: 'convite',
+  destinacoes: 'destinacao',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -229,6 +234,52 @@ export const MIGRACOES = [
         denuncias: 'denuncia',
         sancoes: 'sancao',
         bloqueios: 'bloqueio',
+      }))
+        s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
+    },
+  },
+  {
+    para: 9,
+    descricao: 'Chat real (conversas e mensagens), convites de equipe, destinações e configuração do chat dos pontos',
+    aplicar(s) {
+      // O chat era um mapa "usuario:ponto" → mensagens com resposta automática.
+      // Agora: conversas (com id próprio, sem expor o id do cidadão ao ponto) e mensagens.
+      s.conversas = s.conversas || [];
+      s.mensagens = s.mensagens || [];
+      let idConversa = s.conversas.length;
+      for (const [chave, msgs] of Object.entries(s.chats || {})) {
+        if (!msgs.length) continue;
+        const [usuario_id, ponto_id] = chave.split(':').map(Number);
+        const conversa = { id: ++idConversa, usuario_id, ponto_id, criada_em: msgs[0].em, ultima_em: msgs.at(-1).em };
+        s.conversas.push(conversa);
+        for (const m of msgs) {
+          const doCidadao = m.de === 'eu';
+          s.mensagens.push({
+            id: m.id,
+            conversa_id: conversa.id,
+            de: doCidadao ? 'cidadao' : 'ponto',
+            autor_id: doCidadao ? usuario_id : null,
+            texto: m.texto,
+            em: m.em,
+            lida_em: m.em, // o histórico antigo conta como lido
+            automatica: !doCidadao, // eram as respostas automáticas por palavra-chave
+            alertas: analisarMensagem(m.texto),
+            ...(m.removida ? { removida: m.removida } : {}),
+          });
+        }
+      }
+      delete s.chats;
+      s.convites = s.convites || [];
+      s.destinacoes = s.destinacoes || [];
+      for (const p of s.pontos) {
+        p.chat = p.chat || { respostas_rapidas: [...RESPOSTAS_PADRAO], mensagem_ausencia: MENSAGEM_AUSENCIA_PADRAO };
+        p.capacidade_status = p.capacidade_status || {};
+      }
+      for (const [colecao, chave] of Object.entries({
+        conversas: 'conversa',
+        mensagens: 'msg',
+        convites: 'convite',
+        destinacoes: 'destinacao',
       }))
         s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
     },

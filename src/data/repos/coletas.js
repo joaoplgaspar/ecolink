@@ -27,6 +27,8 @@ import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, registrarEvento, notificarEquipe, quando } from './_coleta';
 import { reputacaoDoCidadao } from './_reputacao';
 import { exigirSemRestricao, notificarModeracao } from './_moderacao';
+import { estoqueDoPonto, capacidadeDe, materiaisLotados, rastreioDaColeta } from './_estoque';
+import { cabeNoEstoque } from '../../domain/estoque';
 import { cidadaoBloqueouPonto, pontoBloqueouCidadao } from './bloqueios';
 import { podeContestar, MOTIVOS_CONTESTACAO, PRAZO_CONTESTAR_DIAS } from '../../domain/denuncias';
 
@@ -84,6 +86,8 @@ function paraCidadao(estado, c, { detalhe = false } = {}) {
     };
     r.comprovante = c.comprovante || null;
     r.pode_contestar = podeContestar(c);
+    // Rastreabilidade (Fase 6): para onde foi o material desta entrega.
+    r.rastreio = ['concluida', 'contestada', 'ajustada'].includes(c.status) ? rastreioDaColeta(estado, c) : null;
     r.contestacao = c.contestacao
       ? {
           motivo: c.contestacao.motivo,
@@ -125,6 +129,7 @@ export function agenda(pontoId) {
         regras: p.regras,
         horario: resumoHorario(p.horarios),
         recebendo: recebendo(p),
+        materiais_lotados: materiaisLotados(s, p),
       },
       dias: recebendo(p) ? diasDisponiveis(p, s.coletas, new Date()) : [],
     };
@@ -181,6 +186,28 @@ export function solicitar({ ponto_id, data, janela_inicio, itens = [] }) {
           throw invalido(`Este ponto recebe até ${limite} kg de ${label} por entrega.`, 'itens');
         return { material, kg_declarado: Math.round(n * 10) / 10, kg_aferido: null, status: 'pendente', motivo: null };
       });
+
+      // Capacidade do estoque (Fase 6): material lotado fica pausado; o que já está
+      // agendado conta como reservado, para ninguém chegar a um ponto sem espaço.
+      const est = estoqueDoPonto(s, ponto.id);
+      for (const i of limpos) {
+        const capacidade = capacidadeDe(ponto, i.material);
+        const { cabe, livre } = cabeNoEstoque({
+          estoque: est.estoque[i.material]?.estoque ?? 0,
+          reservado: est.reservado[i.material] ?? 0,
+          capacidade,
+          kg: i.kg_declarado,
+        });
+        if (!cabe) {
+          const label = getMaterial(i.material).label.toLowerCase();
+          throw invalido(
+            livre > 0
+              ? `O ponto tem espaço para só mais ${livre.toLocaleString('pt-BR')} kg de ${label} agora. Diminua a quantidade ou escolha outro ponto.`
+              : `O estoque de ${label} deste ponto está cheio no momento. Escolha outro ponto ou tente depois.`,
+            'itens',
+          );
+        }
+      }
 
       // Agenda
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data))) throw invalido('Escolha o dia da entrega.', 'data');

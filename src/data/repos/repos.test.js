@@ -113,12 +113,12 @@ describe('resgates', () => {
 describe('chat', () => {
   beforeEach(() => entrarComo(IDS.ana));
 
-  it('envia mensagem, recebe resposta automática e atualiza a prévia', async () => {
-    const msgs = await chat.enviar(2, 'Qual o horário?');
-    expect(msgs.at(-2)).toMatchObject({ de: 'eu', texto: 'Qual o horário?' });
-    expect(msgs.at(-1).de).toBe('ponto');
-    expect(msgs.at(-1).texto).toContain('Seg–Sex 9h–12h e 13h–17h · Sáb 9h–13h');
-    expect((await chat.ultimas())['2'].de).toBe('ponto');
+  it('a mensagem chega à conversa (a equipe responde de verdade, não há resposta por palavra-chave)', async () => {
+    const r = await chat.enviar(2, 'Qual o horário?');
+    expect(r.mensagem).toMatchObject({ de: 'cidadao', texto: 'Qual o horário?', minha: true, vista: false });
+    const conversa = await chat.comPonto(2);
+    expect(conversa.mensagens.filter((m) => !m.automatica)).toHaveLength(1);
+    expect((await chat.minhasConversas()).find((c) => c.ponto_id === 2).ultima).toBeTruthy();
   });
 
   it('não envia mensagem vazia', async () => {
@@ -128,7 +128,7 @@ describe('chat', () => {
   it('cada pessoa só vê as próprias conversas', async () => {
     await chat.enviar(2, 'Oi');
     await entrarComo(IDS.bruno);
-    expect(await chat.mensagens(2)).toEqual([]);
+    expect((await chat.comPonto(2)).mensagens).toEqual([]);
   });
 });
 

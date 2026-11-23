@@ -7,8 +7,18 @@ import { chamarAutenticado, agoraISO, proximoId } from './_rede';
  * Registra uma notificação DENTRO de uma transação já aberta
  * (uso interno dos repositórios — ex.: ao agendar uma coleta).
  */
-export function registrarNotificacao(estado, usuarioId, { tipo, icone, texto }) {
+export function registrarNotificacao(estado, usuarioId, { tipo, icone, texto, ref = null }) {
+  // Com `ref` (ex.: "conversa:12"), mensagens seguidas atualizam a MESMA notificação
+  // ainda não lida, em vez de encher o sino.
+  if (ref) {
+    const aberta = estado.notificacoes.find((n) => n.usuario_id === Number(usuarioId) && n.ref === ref && !n.lida);
+    if (aberta) {
+      Object.assign(aberta, { texto, icone, em: agoraISO() });
+      return;
+    }
+  }
   estado.notificacoes.push({
+    ref,
     id: proximoId(estado, 'notif'),
     usuario_id: Number(usuarioId),
     tipo,

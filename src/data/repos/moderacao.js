@@ -25,6 +25,7 @@ import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, lancar, notificarEquipe } from './_coleta';
 import { resumoParaPonto, reputacaoDoPonto } from './_reputacao';
+import { atualizarCapacidade } from './_estoque';
 import {
   aplicarSancao,
   revogarSancao as desfazerSancao,
@@ -113,7 +114,7 @@ export function fila({ filtro = 'abertas' } = {}) {
 /* --------------------------------- caso --------------------------------- */
 
 function contextoDoAlvo(s, d) {
-  if (d.alvo_tipo === 'ponto' || d.alvo_tipo === 'mensagem') {
+  if (d.alvo_tipo === 'ponto' || (d.alvo_tipo === 'mensagem' && !d.denunciado_id)) {
     const p = s.pontos.find((x) => x.id === d.ponto_id);
     const rep = reputacaoDoPonto(s, d.ponto_id);
     return {
@@ -129,7 +130,7 @@ function contextoDoAlvo(s, d) {
       mensagem: d.alvo_tipo === 'mensagem' ? d.trecho : null,
     };
   }
-  if (d.alvo_tipo === 'cidadao') {
+  if (d.alvo_tipo === 'cidadao' || d.alvo_tipo === 'mensagem') {
     const coletas = s.coletas.filter((c) => c.usuario_id === d.denunciado_id);
     return {
       tipo: 'cidadao',
@@ -140,6 +141,7 @@ function contextoDoAlvo(s, d) {
         concluidas: coletas.filter((c) => ['concluida', 'ajustada'].includes(c.status)).length,
         faltas: coletas.filter((c) => c.status === 'nao_compareceu').length,
       },
+      mensagem: d.alvo_tipo === 'mensagem' ? d.trecho : null,
     };
   }
   if (d.alvo_tipo === 'avaliacao') {
@@ -321,7 +323,7 @@ const alvoDaSancao = (d) =>
 
 /** Avisa quem responde pelo alvo (sem nunca dizer quem denunciou). */
 function avisarDenunciado(s, d, texto) {
-  if (['ponto', 'mensagem'].includes(d.alvo_tipo)) {
+  if (d.alvo_tipo === 'ponto' || (d.alvo_tipo === 'mensagem' && !d.denunciado_id)) {
     for (const uid of gestoresDo(s, d.ponto_id))
       registrarNotificacao(s, uid, { tipo: 'moderacao', icone: '⚖️', texto });
   } else if (d.denunciado_id) {
@@ -442,9 +444,10 @@ export function decidir(id, { procedente, sancao = null, justificativa = '', apl
       if (procedente) {
         const texto = `Decisão da moderação (${d.protocolo}): ${d.decisao.texto_denunciado} Você pode recorrer em até 7 dias.`;
         avisarDenunciado(s, d, texto);
-        const destinatarios = ['ponto', 'mensagem'].includes(d.alvo_tipo)
-          ? gestoresDo(s, d.ponto_id)
-          : [d.denunciado_id];
+        const destinatarios =
+          d.alvo_tipo === 'ponto' || (d.alvo_tipo === 'mensagem' && !d.denunciado_id)
+            ? gestoresDo(s, d.ponto_id)
+            : [d.denunciado_id];
         for (const uid of destinatarios.filter(Boolean))
           emailDemo(
             s,
@@ -738,6 +741,7 @@ export function decidirContestacao(coletaId, { ajustar, itens = [], justificativ
       } else {
         mudarStatus(s, c, 'manter', { ator: 'moderacao', ator_id: ator.id });
       }
+      atualizarCapacidade(s, c.ponto_id);
       Object.assign(c.contestacao, {
         decidida_em: agoraISO(),
         resultado: ajustar ? 'ajustada' : 'mantida',

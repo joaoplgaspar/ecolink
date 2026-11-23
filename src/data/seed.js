@@ -18,6 +18,8 @@ import { montarComprovante } from '../domain/comprovante';
 import { nomeReduzido } from '../utils/format';
 import { TAGS_PONTO, TAGS_CIDADAO } from '../domain/avaliacoes';
 import { categoriaDe, prazoDeAnalise, fimDaSancao } from '../domain/denuncias';
+import { analisarMensagem, RESPOSTAS_PADRAO, MENSAGEM_AUSENCIA_PADRAO } from '../domain/chat';
+import { entradasDoPonto, estoquePorMaterial, situacaoCapacidade } from '../domain/estoque';
 import { REGRAS_PADRAO } from '../domain/pontos';
 import { documentosExigidos } from '../domain/organizacoes';
 
@@ -827,17 +829,136 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     .sort((a, b) => (a.em < b.em ? -1 : 1))
     .map((l, i) => ({ id: i + 1, ...l }));
 
-  const chats = {
-    [`${ana.id}:1`]: [
-      { id: 1, de: 'eu', texto: 'Olá! Vocês aceitam vidro quebrado?', em: instante(-3, 14, 2) },
-      {
-        id: 2,
-        de: 'ponto',
-        texto: 'Olá, Ana! Aceitamos sim, desde que embrulhado em jornal ou caixa para proteger a equipe. 😊',
-        em: instante(-3, 14, 4),
-      },
-    ],
+  /* Fase 6: chat real (conversas e mensagens, com o detector de golpe já aplicado). */
+  const conversas = [];
+  const mensagens = [];
+  const conversa = (usuario, pontoId, msgs) => {
+    const c = {
+      id: conversas.length + 1,
+      usuario_id: usuario.id,
+      ponto_id: pontoId,
+      criada_em: msgs[0].em,
+      ultima_em: msgs.at(-1).em,
+    };
+    conversas.push(c);
+    for (const m of msgs)
+      mensagens.push({
+        id: mensagens.length + 1,
+        conversa_id: c.id,
+        de: m.de,
+        autor_id: m.de === 'cidadao' ? usuario.id : (m.autor_id ?? null),
+        texto: m.texto,
+        em: m.em,
+        lida_em: m.lida === false ? null : maisMin(m.em, 3),
+        automatica: false,
+        alertas: analisarMensagem(m.texto),
+      });
   };
+  conversa(ana, 1, [
+    { de: 'cidadao', texto: 'Olá! Vocês aceitam vidro quebrado?', em: instante(-3, 14, 2) },
+    {
+      de: 'ponto',
+      autor_id: equipeDo(1)[0],
+      texto: 'Olá, Ana! Aceitamos sim, desde que embrulhado em jornal ou caixa para proteger a equipe. 😊',
+      em: instante(-3, 14, 4),
+    },
+  ]);
+  // Mensagem nova, ainda sem resposta da equipe (para a demo do painel).
+  conversa(porEmail('bruno@email.com'), 1, [
+    {
+      de: 'cidadao',
+      texto: 'Bom dia! Vocês recebem isopor? Tenho bastante de uma mudança.',
+      em: instante(0, 9, 12),
+      lida: false,
+    },
+  ]);
+  // Pedido de Pix no chat: o detector marca, e a cidadã vê o aviso de golpe (casa com a denúncia DEN-K7Q2M).
+  conversa(porEmail('elisa@email.com'), 8, [
+    { de: 'cidadao', texto: 'Oi! Posso levar o vidro amanhã de manhã?', em: instante(-1, 10, 0) },
+    {
+      de: 'ponto',
+      autor_id: equipeDo(8)[0],
+      texto: 'Pode sim! Mas para agilizar, faz um Pix de R$ 5 para a chave (21) 99876-5432 antes de vir.',
+      em: instante(-1, 10, 20),
+    },
+  ]);
+
+  /* Fase 6: destinações (saída do estoque) e capacidade — rastreabilidade de ponta a ponta. */
+  const destinacoes = [];
+  const destinar = (pontoId, offset, destino, fracao, materiais) => {
+    const data = dia(offset);
+    const limite = Date.parse(`${data}T23:59:59`);
+    const ent = entradasDoPonto(coletas.filter((c) => c.ponto_id === pontoId)).filter(
+      (e) => Date.parse(e.em) <= limite,
+    );
+    const est = estoquePorMaterial(
+      ent,
+      destinacoes.filter((d) => d.ponto_id === pontoId),
+    );
+    const itens = materiais
+      .map((m) => ({ material: m, kg: Math.floor((est[m]?.estoque ?? 0) * fracao * 10) / 10 }))
+      .filter((i) => i.kg > 0);
+    if (!itens.length) return;
+    destinacoes.push({
+      id: destinacoes.length + 1,
+      ponto_id: pontoId,
+      ...destino,
+      itens,
+      data,
+      comprovante: null,
+      registrada_por: equipeDo(pontoId)[0],
+      em: `${data}T17:00:00.000Z`,
+    });
+  };
+  const COOPERATIVA = {
+    destino_nome: 'Cooperativa Recicla Juntos',
+    destino_tipo: 'cooperativa',
+    documento: '37190462000129',
+  };
+  destinar(1, -8, COOPERATIVA, 0.7, ['papel', 'plástico', 'vidro']);
+  destinar(4, -15, { destino_nome: 'Aparas Pinheiros', destino_tipo: 'aparista', documento: null }, 0.8, [
+    'papel',
+    'papelão',
+  ]);
+
+  // Capacidade: folgada no EcoPonto Centro; na Recicla Pinheiros, metal em alerta e vidro cheio (pausado).
+  const fatores = {
+    1: { papel: 0.4, plástico: 0.4, vidro: 0.4 },
+    4: { papel: 0.5, papelão: 0.5, metal: 0.92, vidro: 1 },
+  };
+  for (const p of pontos) {
+    p.chat = { respostas_rapidas: [...RESPOSTAS_PADRAO], mensagem_ausencia: MENSAGEM_AUSENCIA_PADRAO };
+    p.capacidade_status = {};
+    const f = fatores[p.id];
+    if (!f) continue;
+    const est = estoquePorMaterial(
+      entradasDoPonto(coletas.filter((c) => c.ponto_id === p.id)),
+      destinacoes.filter((d) => d.ponto_id === p.id),
+    );
+    for (const [m, fracao] of Object.entries(f)) {
+      const atual = est[m]?.estoque ?? 0;
+      if (atual < 1) continue;
+      // O que já está agendado ocupa espaço (reserva): a folga é calculada em cima disso.
+      const reservado = coletas
+        .filter((c) => c.ponto_id === p.id && ['solicitada', 'confirmada', 'em_conferencia'].includes(c.status))
+        .flatMap((c) => c.itens)
+        .filter((i) => i.material === m)
+        .reduce((t, i) => t + (i.kg_declarado || 0), 0);
+      // (alerta/cheio são calculados só sobre o estoque, para a demo mostrar o aviso)
+      const capacidade =
+        fracao >= 1
+          ? Math.floor(atual)
+          : fracao >= 0.9
+            ? Math.ceil(atual / fracao)
+            : Math.ceil((atual + reservado) / fracao);
+      p.regras_materiais = {
+        ...p.regras_materiais,
+        [m]: { ...(p.regras_materiais?.[m] || {}), capacidade_kg: capacidade },
+      };
+      const st = situacaoCapacidade(atual, capacidade).status;
+      p.capacidade_status[m] = st === 'sem_limite' ? 'ok' : st;
+    }
+  }
 
   /* Fase 5: fila de moderação variada (protocolos fixos para a demo). */
   const denuncias = [];
@@ -1061,7 +1182,10 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       avaliacao: avaliacoes.length,
       resgate: resgates.length,
       notif: notificacoes.length,
-      msg: 2,
+      msg: mensagens.length,
+      conversa: conversas.length,
+      convite: 0,
+      destinacao: destinacoes.length,
       membro: membros.length,
       organizacao: organizacoes.length,
       evento: coleta_eventos.length,
@@ -1086,7 +1210,10 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     sancoes,
     bloqueios: [],
     resgates,
-    chats,
+    conversas,
+    mensagens,
+    convites: [],
+    destinacoes,
     notificacoes,
     membros,
     organizacoes,

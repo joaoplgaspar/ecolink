@@ -58,7 +58,8 @@ describe('migrar', () => {
   it('cria coleções que faltam em estados muito antigos', () => {
     const s = migrar({ usuarios: [], pontos: [], coletas: [], seq: {} });
     expect(s.avaliacoes).toEqual([]);
-    expect(s.chats).toEqual({});
+    expect(s.conversas).toEqual([]); // o chat antigo (mapa vazio) vira conversas
+    expect(s.mensagens).toEqual([]);
     expect(s.notificacoes).toEqual([]);
   });
 
@@ -158,6 +159,28 @@ describe('migração v8 (denúncias e moderação)', () => {
     expect(s.sancoes).toEqual([]);
     expect(s.bloqueios).toEqual([]);
     expect(s.seq).toMatchObject({ denuncia: 0, sancao: 0, bloqueio: 0 });
-    expect(s.meta.schema_version).toBe(8);
+    expect(s.meta.schema_version).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('migração v9 (chat real, equipe, estoque)', () => {
+  it('converte o chat antigo em conversas e mensagens, sem perder o histórico', () => {
+    const s = legadoV2();
+    migrar(s);
+    expect(s.chats).toBeUndefined();
+    expect(s.conversas).toEqual([expect.objectContaining({ id: 1, usuario_id: 1, ponto_id: 1 })]);
+    expect(s.mensagens[0]).toMatchObject({
+      id: 4,
+      conversa_id: 1,
+      de: 'cidadao',
+      autor_id: 1,
+      texto: 'oi',
+      alertas: [],
+    });
+    expect(s.convites).toEqual([]);
+    expect(s.destinacoes).toEqual([]);
+    expect(s.pontos[0].chat.respostas_rapidas.length).toBeGreaterThan(0);
+    expect(s.seq.msg).toBeGreaterThanOrEqual(4);
+    expect(s.meta.schema_version).toBe(9);
   });
 });

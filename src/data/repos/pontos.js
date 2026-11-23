@@ -10,6 +10,7 @@ import { resumoHorario } from '../../domain/horarios';
 import { TIPOS_ORGANIZACAO } from '../../domain/organizacoes';
 import { chamar } from './_rede';
 import { reputacaoDoPonto } from './_reputacao';
+import { materiaisLotados } from './_estoque';
 
 /** O que o público vê de um ponto (sem campos internos de análise). */
 export function projetarPonto(estado, p) {
@@ -31,6 +32,7 @@ export function projetarPonto(estado, p) {
     fotos: p.fotos,
     status: p.status,
     ativo: recebendo(p),
+    materiais_lotados: materiaisLotados(estado, p),
     organizacao: org
       ? { nome: org.nome, tipo: TIPOS_ORGANIZACAO[org.tipo]?.rotulo, verificada: org.status === 'aprovada' }
       : null,

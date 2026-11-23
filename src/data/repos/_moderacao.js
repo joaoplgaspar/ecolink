@@ -106,10 +106,8 @@ export function aplicarSancao(estado, { alvo_tipo, alvo_id, tipo, denuncia, apli
     if (a) a.removida = { em: inicio, protocolo: sancao.protocolo };
   }
   if (alvo_tipo === 'mensagem') {
-    for (const msgs of Object.values(estado.chats)) {
-      const m = msgs.find((x) => x.id === sancao.alvo_id);
-      if (m) m.removida = { em: inicio, protocolo: sancao.protocolo };
-    }
+    const m = estado.mensagens.find((x) => x.id === sancao.alvo_id);
+    if (m) m.removida = { em: inicio, protocolo: sancao.protocolo };
   }
   return sancao;
 }
@@ -125,10 +123,8 @@ export function revogarSancao(estado, sancao, motivo = '') {
     if (a) delete a.removida;
   }
   if (sancao.alvo_tipo === 'mensagem') {
-    for (const msgs of Object.values(estado.chats)) {
-      const m = msgs.find((x) => x.id === sancao.alvo_id);
-      if (m) delete m.removida;
-    }
+    const m = estado.mensagens.find((x) => x.id === sancao.alvo_id);
+    if (m) delete m.removida;
   }
 }
 
