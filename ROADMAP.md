@@ -44,7 +44,7 @@
 | D5  | Sessão = só o id do usuário salvo; não expira                                                    | `AuthContext.jsx`                                     | Basta editar o id no DevTools para "virar" outra pessoa                                                         |
 | D6  | **Regras de negócio só na interface** (ex.: saldo da loja validado só no componente)             | `Rewards.jsx:30`, `db.js` → `resgates.create`         | Em um backend real, a regra tem que estar no servidor. Aqui, na camada de dados                                 |
 | D7  | Qualquer pessoa avalia qualquer ponto, **sem ter ido lá** — ✅ resolvido na Fase 4               | `PointDetail.jsx`                                     | Avaliações manipuláveis; nenhuma confiança                                                                      |
-| D8  | Não existe denúncia, bloqueio nem moderação                                                      | —                                                     | Requisito explícito do projeto                                                                                  |
+| D8  | Não existe denúncia, bloqueio nem moderação — ✅ resolvido na Fase 5                             | —                                                     | Requisito explícito do projeto                                                                                  |
 | D9  | O chat é uma resposta automática por palavra-chave                                               | `db.js` → `respostaAutomatica`                        | Com o lado do reciclador, vira conversa real entre os dois lados                                                |
 | D10 | Horário do ponto é texto livre (`"Seg-Sex 8h-18h"`)                                              | `seed.js`                                             | Impede agenda por horário, capacidade e "aberto agora"                                                          |
 | D11 | Dependência `"reciclaja-api": "file:../reciclaja-api"` aponta para uma pasta fora do repositório | `package.json`                                        | **`npm install` quebra em um clone limpo** (e pode quebrar o deploy). Não é usada em `src/`                     |
@@ -564,13 +564,17 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Alerta de revisão para pontos com média abaixo de 2,5 em 10+ avaliações (entra na fila da moderação na Fase 5).
 - ✅ _Aceite verificado:_ no navegador, a 3ª falta do Felipe (relógio da demonstração) **bloqueia o agendamento com aviso claro e prazo**; ciclo completo de avaliação bilateral com resposta do ponto em duas abas; 323 testes automatizados e um teste de mutação confirmando que eles pegam a remoção do bloqueio.
 
-### Fase 5 — Denúncias, moderação e admin _(G)_ [M]
+### Fase 5 — Denúncias, moderação e admin _(G)_ [M] — ✅ **concluída**
 
-- Denunciar ponto, cidadão, avaliação e mensagem; bloquear usuário.
-- Fila de moderação priorizada, tela de caso, sanções, recurso.
-- Contestação de pesagem → ajuste no extrato.
-- Painel admin: visão geral, aprovações, usuários/pontos, auditoria.
-- ✅ _Aceite:_ uma denúncia procedente suspende um ponto, que some do mapa; o cidadão acompanha o protocolo até a decisão.
+- ✅ Denunciar ponto, cidadão (só a equipe do ponto da entrega, sem conhecer o id dele), avaliação e mensagem do chat; categorias com gravidade, relato, até 3 provas privadas, protocolo e prazo de análise visível (**D8 resolvido**). Bloqueio imediato nos dois sentidos (cidadão → ponto; ponto → cidadão, com mensagem neutra).
+- ✅ Proteção de quem denuncia (o denunciado nunca recebe a identidade, nem por id) e anti-abuso (5 por dia, sem duplicada aberta, sem denunciar o próprio ponto; improcedentes em excesso reduzem a reputação).
+- ✅ Fila priorizada (gravidade, pessoas distintas, idade, prazo estourado), tela de caso com contexto e histórico, sanção sugerida pela **escala proporcional**, justificativa obrigatória, "fora da escala" auditado, banimento só pela administração e conflito de interesse bloqueado.
+- ✅ Efeitos: ponto suspenso some do mapa e as entregas em aberto são canceladas com aviso; suspensão preventiva com 3 denunciantes graves distintos; conta suspensa em modo restrito (entra, acompanha e recorre); avaliação/mensagem removida some das listas e da reputação; sanções vencem sozinhas no relógio real.
+- ✅ Recurso em 7 dias, uma vez, decidido por outra pessoa da moderação; reverter desfaz a medida.
+- ✅ Contestação de pesagem → manter ou ajustar; o ajuste entra no extrato como lançamento novo com a diferença (o original nunca muda).
+- ✅ Painel da plataforma: visão geral, fila e caso de denúncias, contestações, aprovações, usuários (agora em `/admin/usuarios`) e auditoria com filtros novos.
+- ✅ Reputação ligada às decisões: procedentes contra o cidadão (−15 por 6 meses, explicado em "Minha reputação") e contra o ponto (componente "conduta").
+- ✅ _Aceite verificado:_ no navegador, uma denúncia procedente **suspende a Coleta Vila Madalena, que some do mapa**, e a cidadã acompanha o protocolo de "Recebida" a "Em análise" e à decisão, em tempo real; o gestor recorre, quem decidiu é impedido de julgar o recurso e a administração reverte. São 355 testes automatizados e testes de mutação confirmando que eles pegam a remoção da regra do recurso e da restrição de conta.
 
 ### Fase 6 — Operação do ponto e chat real _(M)_ [S]
 

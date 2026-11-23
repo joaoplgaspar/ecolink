@@ -61,6 +61,19 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - 🏅 **Selos**: Parceiro verificado, Responde rápido, Muito bem avaliado, Reciclador exemplar, Sempre comparece
 - 🕵️ **Privacidade**: o ponto vê só a faixa e o número do cidadão ("Exemplar · 93"), nunca os detalhes. Ponto com média abaixo de 2,5 em 10+ avaliações entra em revisão da moderação
 
+**Denúncias, moderação e administração** (Fase 5 do [ROADMAP](./ROADMAP.md))
+
+- 🚩 **Denunciar** ponto, cidadão (só a equipe do ponto da entrega), avaliação e mensagem do chat: motivo com gravidade, relato, até 3 provas (fotos/PDF, só a moderação vê) e **protocolo com prazo de análise** (12 h para casos graves, 48 h médios, 72 h leves)
+- 🕶️ **Proteção de quem denuncia**: o denunciado vê a decisão e o motivo, **nunca quem denunciou**. Anti-abuso: limite de 5 por dia, sem duplicadas, sem denunciar o próprio ponto, e denúncias arquivadas em excesso reduzem a reputação de quem as faz
+- 🧭 **Fila priorizada**: gravidade, quantas pessoas diferentes denunciaram o mesmo alvo e idade; o que passou do prazo prometido sobe para o topo
+- ⚖️ **Tela de caso**: relato, provas, entrega envolvida, reputação e histórico das partes, outras denúncias contra o mesmo alvo e **sanção sugerida por uma escala pública** (advertência → 7 dias → 30 dias → banimento; gravidade alta começa um degrau acima). Fugir da escala exige justificativa e fica marcado na auditoria; banimento só pela administração; ninguém modera caso em que é parte
+- 📍 **Ponto suspenso some do mapa** e as entregas em aberto são canceladas com aviso a cada cidadão. Três pessoas diferentes com denúncia grave tiram o ponto do mapa **preventivamente**, até a decisão
+- 🔁 **Recurso** em até 7 dias (quem denunciou, se arquivada; quem foi denunciado, se procedente), decidido **por outra pessoa da moderação**; reverter desfaz a medida
+- 🚫 **Conta suspensa** continua entrando e acompanhando as entregas (e pode recorrer), mas não agenda, não avalia, não conversa nem resgata. Sanções vencem sozinhas
+- ✋ **Bloqueios imediatos**: o cidadão bloqueia um ponto (some das buscas); a equipe bloqueia um cidadão no seu ponto (com mensagem neutra, sem revelar o bloqueio)
+- ⚖️ **Contestação de pesagem**: em até 7 dias, uma vez; a moderação compara declarado × pesado e o histórico de quem pesou, e pode **ajustar** — a diferença entra no extrato como lançamento novo
+- 📊 **Visão geral da plataforma**: o que precisa de atenção (graves, fora do prazo, recursos, contestações, aprovações), saúde da rede e sanções em vigor (a administração revoga com motivo)
+
 **Diferenciais**
 
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
@@ -96,10 +109,11 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 | Cidadão    | `felipe@email.com`      | Reputação Regular: 2 faltas em 30 dias (mais uma bloqueia)         |
 | Parceiro   | `marcos@email.com`      | Gestor do EcoPonto Centro e da Recicla Pinheiros; também é cidadão |
 | Parceiro   | `paula@email.com`       | Operadora da Coleta Vila Madalena                                  |
+| Parceiro   | `sergio@email.com`      | Gestor da Coleta Vila Madalena e da Cooperativa Mooca              |
 | Parceiro   | `lucia@email.com`       | Gestora da ReciclaRio (CNPJ alfanumérico), com um ponto em análise |
 | Parceiro   | `rafael@email.com`      | Organização recém-cadastrada, aguardando aprovação                 |
-| Plataforma | `moderacao@ecolink.app` | Moderação (consulta usuários e auditoria)                          |
-| Plataforma | `admin@ecolink.app`     | Administração (também suspende e reativa contas)                   |
+| Plataforma | `moderacao@ecolink.app` | Moderação: fila de denúncias, casos, contestações e auditoria      |
+| Plataforma | `admin@ecolink.app`     | Administração: tudo da moderação + banimento, revogação e contas   |
 
 > A senha de demonstração é conhecida e já fica guardada como hash. Contas criadas pelo cadastro seguem a política de senha (mínimo 8 caracteres, sem senhas óbvias).
 
@@ -119,6 +133,10 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 5. Depois da pesagem, o Marcos **avalia o Diego**; o Diego vê a avaliação na hora e **avalia o ponto**. O Marcos responde pelo painel ("Avaliações recebidas → Sem resposta"), e a resposta aparece na página do EcoPonto Centro com o selo "entrega verificada".
 6. Entre como **Felipe** (`felipe@email.com`): ele tem **2 faltas** e já vê o aviso. Em "Minha reputação", tudo é explicado.
 7. Na tela de login, "Simular passagem do tempo" (+3 dias) mostra solicitações expirando e faltas sendo registradas: a 3ª falta do Felipe **bloqueia novos agendamentos por 7 dias**.
+8. **Ana** abre a Coleta Vila Madalena e usa "Denunciar ponto" (cobrança indevida): recebe o protocolo e acompanha em "Denúncias".
+9. **Moderação** (`moderacao@ecolink.app`): na fila, a denúncia grave e fora do prazo está no topo. Abre o caso da Ana, assume (a Ana vê "Em análise" na hora) e decide procedente com a medida sugerida. O ponto **some do mapa**.
+10. **Sérgio** (`sergio@email.com`) vê a faixa de suspensão, a decisão (sem saber quem denunciou) e recorre. A moderadora não pode julgar o recurso; a **administração** reverte e o ponto volta.
+11. Em "Contestações", a administração ajusta a pesagem contestada pela Gabriela: a diferença aparece no extrato dela.
 
 ---
 
