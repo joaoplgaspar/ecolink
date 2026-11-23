@@ -13,8 +13,8 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - Login / cadastro com **senha protegida por hash**, sessões que expiram e recuperação de senha
 - **Mapa interativo** (Leaflet + OpenStreetMap) com **busca por endereço**, **"usar minha localização"** e pontos ordenados por **distância**; filtro por cidade e material
 - Detalhe do ponto (materiais aceitos, horário, localização no mapa)
-- Agendar coleta (material, quantidade em kg, data)
-- Minhas coletas com status (**agendada → concluída → cancelada**)
+- Agendar entrega (materiais, dia e janela com vagas)
+- Minhas entregas com linha do tempo, código de entrega e comprovante
 - Perfil do usuário
 
 **Perfis e segurança** (Fase 1 do [ROADMAP](./ROADMAP.md))
@@ -39,6 +39,17 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - 🔒 Depois de aprovado, **nome e endereço ficam travados** (o ponto verificado não pode "mudar de lugar" sem nova análise); o operacional muda na hora
 - ⏯️ **"Recebendo / Pausado"**: qualquer pessoa da equipe pausa o recebimento; o cidadão vê "Não está recebendo"
 - 🕐 Para o cidadão: **"Aberto agora · fecha às 18h"**, filtro "Abertos agora", selo **parceiro verificado**, horários da semana e regras de cada material; o agendamento **recusa dia fechado (com o motivo, ex.: Natal) e quantidade acima do limite do ponto**
+
+**A jornada da entrega** (Fase 3 do [ROADMAP](./ROADMAP.md), o coração do projeto)
+
+- 🗓️ **Agendamento por janela com vagas reais**: vários materiais por entrega, dias e horários conforme a agenda do ponto (capacidade, antecedência, feriados) e as condições de cada material à vista
+- 📦 **Acompanhamento como num app de delivery**: solicitada → confirmada → em conferência → concluída, com **linha do tempo**, prazo de resposta do ponto e notificações
+- 🔑 **Código de entrega de 4 dígitos e QR**: só o cidadão vê; o ponto faz o check-in digitando o código ou lendo o QR pela câmera. Códigos errados repetidos bloqueiam o check-in
+- ⚖️ **Pesagem pelo ponto**: aprovação parcial, item trazido a mais e confirmação dupla quando o peso passa muito do declarado. **Quem gera EcoPontos é a balança do ponto, nunca o próprio cidadão**
+- 🧾 **Comprovante** para os dois lados e **extrato de EcoPontos** (livro-caixa: cada crédito e débito registrado, nada é editado)
+- 🛎️ **Painel de recebimentos** do parceiro: Novas (aviso sonoro), Hoje, Próximas e Finalizadas; aceitar, recusar ou cancelar com motivo
+- 🙋 **Entrega sem agendamento** pelo QR pessoal do perfil
+- ⏰ **Prazos automáticos**: solicitação sem resposta expira, falta vira "não compareceu" e um lembrete sai 24 h antes
 
 **Diferenciais**
 
@@ -89,7 +100,13 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 - **Caixa de e-mail** (`/demo/emails`): onde chegam os códigos de recuperação de senha e os avisos de segurança.
 - **Restaurar dados** de demonstração.
 
-**Dica para a banca:** abra duas janelas lado a lado, uma com a Ana e outra com o Marcos. Agende uma coleta no EcoPonto Centro com a Ana e veja a entrega aparecer no painel do Marcos na hora.
+**Roteiro rápido para a banca** (duas janelas lado a lado):
+
+1. Janela 1: **Ana** agenda uma entrega no EcoPonto Centro (vários materiais, escolhe a janela).
+2. Janela 2: **Marcos** vê a solicitação chegar em "Novas" (com aviso) e aceita. Na janela 1 aparecem o código e o QR.
+3. Entre como **Diego** (`diego@email.com`): ele tem uma entrega **hoje** no EcoPonto Centro. Mostre o código, e o Marcos faz o check-in, pesa e conclui. O comprovante e os EcoPontos aparecem para o Diego na hora.
+4. No perfil da Ana, "Mostrar meu QR" → o Marcos usa "Ler QR / código" para registrar uma entrega sem agendamento.
+5. Na tela de login, "Simular passagem do tempo" mostra solicitações expirando e faltas sendo registradas.
 
 ---
 

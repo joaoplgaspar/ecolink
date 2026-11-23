@@ -541,17 +541,18 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Seed com 4 organizações (uma em análise, uma com CNPJ alfanumérico) e um ponto aguardando aprovação.
 - ✅ _Aceite verificado:_ um parceiro novo, criado do zero no navegador, cadastrou a organização, foi aprovado, cadastrou um ponto com foto e alfinete e, depois da aprovação, a cidadã viu o ponto e agendou nele, respeitando os limites. São 251 testes automatizados; as telas novas foram conferidas sem rolagem horizontal a 390 px.
 
-### Fase 3 — Jornada da coleta de ponta a ponta _(G)_ [M] ⭐ **coração do projeto**
+### Fase 3 — Jornada da coleta de ponta a ponta _(G)_ [M] ⭐ **coração do projeto** — ✅ **concluída**
 
-- `domain/coletaMaquina.js` + `coleta_eventos` (§3).
-- Agendamento com **janelas e vagas reais** e **vários itens**.
-- **Painel de recebimentos** do parceiro com aceitar/recusar, alertas e pausar.
-- **Código de entrega e QR**; check-in; **pesagem por item** com aprovação parcial.
-- **Extrato de EcoPontos** substituindo o cálculo derivado; loja debitando do extrato (validação no repositório).
-- Linha do tempo para o cidadão; comprovante para os dois lados.
-- Entrega avulsa via QR do perfil.
-- Jobs do "relógio": expiração, no-show, lembretes.
-- ✅ _Aceite:_ **o cidadão não consegue mais concluir a própria coleta** (D1); os pontos só aparecem após a pesagem; todo o fluxo funciona com duas abas lado a lado.
+- ✅ `domain/coletaMaquina.js`: estados, transições e **quem pode cada uma** (cidadão, ponto, sistema, moderação); toda mudança vira evento em `coleta_eventos` e aparece na linha do tempo.
+- ✅ Agendamento com **vários itens**, **dias e janelas com vagas reais** (capacidade, antecedência mínima, dias fechados e feriados), limite por material e anti-spam (no máximo 3 entregas em aberto).
+- ✅ **Painel de recebimentos** do parceiro: Novas (com prazo de resposta, aviso sonoro e leitor de tela), Hoje, Próximas e Finalizadas; aceitar, recusar com motivo, cancelar com motivo, pausar.
+- ✅ **Código de entrega de 4 dígitos e QR**, mostrados só ao cidadão e nunca ao ponto. O check-in só vale no dia, e 5 códigos errados bloqueiam por 10 minutos. Também dá para ler o QR pela câmera (BarcodeDetector), com a opção de digitar.
+- ✅ **Pesagem por item** com aprovação parcial e motivo de recusa, item trazido a mais, **confirmação dupla quando o peso aferido passa muito do declarado** (fica registrado), comprovante para os dois lados.
+- ✅ **Extrato de EcoPontos** (livro-caixa só de inclusão) substitui o cálculo derivado; saldo, nível, ranking e loja vêm do extrato; o resgate debita e é validado no repositório.
+- ✅ **Entrega sem agendamento** pelo QR/código pessoal do perfil (renovável).
+- ✅ **Relógio**: solicitação sem resposta expira, entrega sem check-in até o fim do dia vira "não compareceu" e um lembrete sai 24 h antes. No modo demonstração, dá para **simular a passagem do tempo**.
+- ✅ Antifraude: **o cidadão não tem como concluir a própria coleta (D1 resolvido)**, ninguém opera a própria entrega (conflito de interesse) e o cancelamento tardio fica marcado para a reputação (Fase 4).
+- ✅ _Aceite verificado:_ teste de ponta a ponta com **duas abas lado a lado**: cidadã agenda → parceiro recebe na hora e aceita → código → check-in (código errado recusado) → pesagem com divergência → comprovante e extrato dos dois lados → entrega sem agendamento → cancelamento → simulação de prazos. São 295 testes automatizados e um teste de mutação confirmando que eles pegam falhas no check-in.
 
 ### Fase 4 — Confiança e reputação _(M)_ [M]
 
