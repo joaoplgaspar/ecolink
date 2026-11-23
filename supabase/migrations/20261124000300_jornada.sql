@@ -146,6 +146,13 @@ language sql stable security definer set search_path = '' as $$
   group by c.data, c.janela_inicio
 $$;
 
+-- Quantas entregas o ponto já registrou (número público da página do ponto).
+create or replace function public.total_coletas_do_ponto(p_ponto bigint) returns integer
+language sql stable security definer set search_path = '' as $$
+  select count(*)::int from public.coletas c join public.pontos p on p.id = c.ponto_id
+  where c.ponto_id = p_ponto and p.status in ('ativo', 'pausado')
+$$;
+
 -- Pontos em que a pessoa trabalha, com o papel e o resumo do dia (painel do parceiro).
 create or replace function public.meus_pontos() returns jsonb
 language sql stable security definer set search_path = '' as $$
@@ -411,7 +418,7 @@ begin
     select o into original from jsonb_array_elements(c.itens) o where o ->> 'material' = item ->> 'material' limit 1;
     declarado := coalesce((original ->> 'kg_declarado')::numeric, 0);
     if item ->> 'status' = 'aprovado' then
-      kg := round((item ->> 'kg_aferido')::numeric, 2);
+      kg := round((item ->> 'kg_aferido')::numeric, 1);
       if kg is null or kg <= 0 or kg > 500 then
         perform privado.erro(422, format('Informe o peso aferido de %s (até 500 kg).', item ->> 'material'));
       end if;
@@ -494,6 +501,15 @@ begin
   perform privado.auditar('perfil.trocado', 'usuario', auth.uid()::text, jsonb_build_object('perfil', p_perfil));
 end $$;
 
+-- Aceite (ou novo aceite) dos Termos de Uso — consentimento registrado no servidor.
+create or replace function public.aceitar_termos(p_versao integer) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if p_versao is null or p_versao < 1 then perform privado.erro(422, 'Versão dos termos inválida.'); end if;
+  update public.perfis set aceite_termos = jsonb_build_object('versao', p_versao, 'em', now()) where id = auth.uid();
+  perform privado.auditar('termos.aceitos', 'usuario', auth.uid()::text, jsonb_build_object('versao', p_versao));
+end $$;
+
 create or replace function public.marcar_notificacoes_lidas() returns void
 language sql security definer set search_path = '' as $$
   update public.notificacoes set lida = true where usuario_id = auth.uid() and not lida;
@@ -529,6 +545,7 @@ end $$;
 revoke execute on all functions in schema public from public, anon, authenticated;
 
 grant execute on function public.agenda_ocupacao(bigint, date, date) to anon, authenticated;
+grant execute on function public.total_coletas_do_ponto(bigint) to anon, authenticated;
 grant execute on function public.meus_pontos() to authenticated;
 grant execute on function public.recebimentos_do_ponto(bigint) to authenticated;
 grant execute on function public.coleta_do_ponto(bigint) to authenticated;
@@ -541,6 +558,7 @@ grant execute on function public.registrar_pesagem(bigint, jsonb, boolean) to au
 grant execute on function public.alterar_recebimento(bigint, boolean) to authenticated;
 grant execute on function public.trocar_perfil(text) to authenticated;
 grant execute on function public.marcar_notificacoes_lidas() to authenticated;
+grant execute on function public.aceitar_termos(integer) to authenticated;
 -- processar_prazos: só o servidor (service_role e o pg_cron), nunca o navegador.
 revoke execute on function public.processar_prazos() from public, anon, authenticated;
 

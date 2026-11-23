@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(56);
+select plan(61);
 
 -- --------------------------------------------------------------- ajudantes --
 
@@ -104,6 +104,8 @@ select throws_ok('select usuario_id from public.avaliacoes', '42501', null,
   '…mas não descobre QUEM avaliou (sem usuario_id)');
 select ok((select count(*) from public.agenda_ocupacao(1, current_date, current_date + 14)) >= 0,
   'anon: consulta a ocupação da agenda (sem dados pessoais)');
+select ok(public.total_coletas_do_ponto(1) > 0 and public.total_coletas_do_ponto(9) = 0,
+  'anon: total público de entregas (zero para ponto ainda em análise)');
 reset role;
 
 -- ============================================================ 3. cidadã Ana --
@@ -219,6 +221,23 @@ select is((select sum(valor)::int from public.extrato where usuario_id = pg_temp
 select ok((select pontos_creditados from public.coletas where id = 56) > 0, 'e é maior que zero (kg × fator do material)');
 select is((select count(*)::int from public.coleta_eventos where coleta_id = 56 and acao in ('checkin', 'concluir')), 2,
   'cada transição vira um evento na linha do tempo');
+
+-- ===================================================== 6. loja (resgates) --
+
+select pg_temp.como(10); -- João, saldo baixo
+select throws_ok('select public.resgatar(1)', 'PT422', null, 'resgate sem saldo é recusado (saldo calculado no servidor)');
+select throws_ok($$ insert into public.resgates (usuario_id, recompensa_id, nome, parceiro, custo, codigo)
+                    values (pg_temp.u(10), 1, 'x', 'x', 1, 'ECO-FAKE') $$, '42501', null,
+  'ninguém cria resgate direto na tabela');
+reset role;
+select pg_temp.como(4); -- Diego, acabou de ganhar EcoPontos
+insert into t select 'saldo_antes', (select sum(valor) from public.extrato where usuario_id = pg_temp.u(4))::text;
+select is((public.resgatar(1) ->> 'custo')::int, (select custo from public.recompensas where id = 1)::int,
+  'o custo do resgate vem do catálogo no banco');
+select is((select sum(valor)::int from public.extrato where usuario_id = pg_temp.u(4)),
+  (select valor::int from t where chave = 'saldo_antes') - (select custo from public.recompensas where id = 1),
+  'o resgate debita o saldo no extrato');
+reset role;
 
 -- ================================================== 6. conta nova e relógio --
 

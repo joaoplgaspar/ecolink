@@ -62,8 +62,8 @@ begin
     nullif(trim(new.raw_user_meta_data ->> 'telefone'), ''),
     nullif(trim(new.raw_user_meta_data ->> 'cidade'), ''),
     upper(substr(translate(encode(extensions.gen_random_bytes(12), 'base64'), '+/=01OIlo', ''), 1, 8)),
-    case when new.raw_user_meta_data ? 'termos'
-      then jsonb_build_object('versao', new.raw_user_meta_data ->> 'termos', 'em', now()) end
+    case when new.raw_user_meta_data ->> 'termos' ~ '^[0-9]{1,4}$'
+      then jsonb_build_object('versao', (new.raw_user_meta_data ->> 'termos')::int, 'em', now()) end
   );
   return new;
 end $$;
