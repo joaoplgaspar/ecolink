@@ -4,6 +4,8 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 
 > Projeto Integrador. Espelha o domínio da API **reciclaja-api** (usuários, pontos de coleta e coletas) e adiciona, no front, as mecânicas prometidas no projeto.
 
+**Para a banca:** [roteiro de apresentação](./docs/apresentacao.md) · [arquitetura e diagramas](./docs/arquitetura.md) · [decisões (ADRs)](./docs/adr/) · [roadmap](./ROADMAP.md) · [vídeo da demonstração](./docs/video/ecolink-demo.webm)
+
 ---
 
 ## 🧩 Funcionalidades
@@ -83,6 +85,14 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 - 🚚 **Destinação com rastreabilidade de ponta a ponta**: cada saída para cooperativa/indústria consome primeiro o material que chegou antes (FIFO) — o cidadão vê **"Para onde foi seu material"** na entrega e é avisado quando ele segue para a reciclagem
 - 📊 **Relatórios**: kg por mês e por material (gráfico com dica e tabela), participação de cada material, atendimentos, taxa de faltas, tempo de resposta, destinado e CO₂ evitado, com **exportação CSV** no padrão brasileiro (";" e vírgula decimal, protegido contra fórmulas)
 
+**Acessibilidade, LGPD e prova** (Fase 7 do [ROADMAP](./ROADMAP.md))
+
+- ♿ **WCAG 2.1 AA verificado**: zero violações do axe em todas as telas principais dos três perfis (no CI), **Lighthouse 100 em acessibilidade**, contraste ≥ 4,5:1, "Pular para o conteúdo", foco visível, janelas com foco preso e Esc, gráficos com alternativa em tabela, alvos de toque de 44 px e respeito a "reduzir movimento"
+- 🔐 **LGPD**: "Baixar meus dados" (JSON, sem senhas, tokens ou códigos) e "Excluir minha conta" (com senha + EXCLUIR), que **anonimiza** os dados pessoais e preserva o livro-caixa e o histórico de que outras pessoas dependem
+- 👋 **Boas-vindas por perfil** (3 passos no primeiro acesso) e página de **Ajuda** com perguntas frequentes e glossário
+- ⚡ **Desempenho**: cada tela é baixada sob demanda (o JS inicial caiu de 853 KB para 240 KB); Lighthouse 96–100 em desempenho
+- 🎬 **Prova**: E2E da jornada completa no CI e um **vídeo de backup** gravado automaticamente (`npm run e2e:video`)
+
 **Diferenciais**
 
 - 🏆 **Gamificação** — EcoPontos por kg reciclado, níveis (Bronze→Platina), conquistas e **dashboard de impacto** (CO₂, água, energia, árvores)
@@ -160,17 +170,19 @@ npm install     # instala as dependências
 npm run dev     # sobe em http://localhost:5173
 ```
 
-| Comando            | O que faz                                    |
-| ------------------ | -------------------------------------------- |
-| `npm run dev`      | servidor de desenvolvimento                  |
-| `npm run build`    | build de produção (depois `npm run preview`) |
-| `npm test`         | testes automatizados (Vitest)                |
-| `npm run coverage` | testes + relatório de cobertura              |
-| `npm run lint`     | análise estática (ESLint)                    |
-| `npm run format`   | formata o código (Prettier)                  |
-| `npm run check`    | tudo acima, como no CI                       |
+| Comando             | O que faz                                                               |
+| ------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`       | servidor de desenvolvimento                                             |
+| `npm run build`     | build de produção (depois `npm run preview`)                            |
+| `npm test`          | testes automatizados (Vitest)                                           |
+| `npm run coverage`  | testes + relatório de cobertura                                         |
+| `npm run lint`      | análise estática (ESLint)                                               |
+| `npm run format`    | formata o código (Prettier)                                             |
+| `npm run check`     | tudo acima, como no CI                                                  |
+| `npm run e2e`       | testes de ponta a ponta no navegador (Playwright + axe), contra o build |
+| `npm run e2e:video` | grava o vídeo de backup da demonstração em `test-results/`              |
 
-O **GitHub Actions** (`.github/workflows/ci.yml`) roda lint, formatação, testes e build a cada push e pull request.
+O **GitHub Actions** (`.github/workflows/ci.yml`) roda lint, formatação, testes e build a cada push e pull request e, em seguida, os testes de ponta a ponta. Para rodar os E2E na primeira vez: `npx playwright install chromium`.
 
 ---
 
@@ -208,10 +220,12 @@ src/
 │   ├── auth/                # login, cadastro, recuperação de senha, painel demo
 │   ├── cidadao/pages/       # área do cliente
 │   ├── parceiro/pages/      # seja parceiro, cadastro da organização, assistente de ponto, painel
-│   ├── admin/pages/         # usuários, aprovações e auditoria
-│   └── shared/pages/        # chat, perfil (segurança), termos, caixa de e-mail demo
+│   ├── admin/pages/         # visão geral, denúncias, contestações, aprovações, usuários, auditoria
+│   └── shared/pages/        # chat, perfil (segurança, LGPD), denúncias, convite, ajuda, termos
 ├── components/              # UI reutilizável, mapa, ícones
 └── utils/                   # datas, formatação, geolocalização
+e2e/                         # testes de ponta a ponta (Playwright) e o vídeo da demo
+docs/                        # arquitetura, ADRs, roteiro da banca e vídeo de backup
 ```
 
 Os testes ficam ao lado do código (`*.test.js`). O planejamento das próximas fases está em [`ROADMAP.md`](./ROADMAP.md).

@@ -586,14 +586,16 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Painel do parceiro em abas (Recebimentos, Conversas, Estoque e destinação, Equipe, Relatórios, Avaliações), com a aba na URL; pontos suspensos continuam visíveis para a equipe.
 - ✅ _Aceite verificado:_ no navegador, os 4,9 kg de plástico pesados na entrega do Diego aparecem no estoque do EcoPonto Centro; a destinação para a Cooperativa Recicla Juntos registra que veio dessa entrega e o Diego vê "4,9 kg seguiram para Cooperativa Recicla Juntos". São 391 testes automatizados, com testes de mutação na regra do convite (e-mail) e na capacidade.
 
-### Fase 7 — Polimento, acessibilidade e prova _(M)_ [M]
+### Fase 7 — Polimento, acessibilidade e prova _(M)_ [M] — ✅ **concluída**
 
-- Auditoria de acessibilidade (axe + teclado + leitor de tela).
-- Revisão de microcopy, estados vazios e erros; onboarding por papel.
-- E2E da jornada completa no CI.
-- LGPD: exportar dados e excluir conta.
-- README, diagramas, ADRs, vídeo de backup da demo.
-- ✅ _Aceite:_ E2E verde; Lighthouse ≥ 90 em Acessibilidade e Boas práticas.
+- ✅ Auditoria de acessibilidade com axe (WCAG 2.1 A/AA) em todas as telas dos três perfis: contraste corrigido nos tokens (`--faint`, novo `--acao` para botões com texto branco), rótulos em todos os campos, nomes acessíveis coerentes com o texto visível, gráfico navegável pelo teclado (com tabela como alternativa), conquistas bloqueadas legíveis. Hoje: **zero violações**, verificado no CI.
+- ✅ Teclado e leitor de tela: "Pular para o conteúdo", foco visível, janela modal com foco preso, Esc e foco devolvido; `prefers-reduced-motion` respeitado (CSS e animações); alvos de toque de 44 px.
+- ✅ Desempenho: telas carregadas sob demanda e bibliotecas em arquivos próprios (JS inicial de 853 KB para 240 KB); `robots.txt`; atalhos do PWA ("Agendar", "Entregas", "Painel do parceiro").
+- ✅ LGPD: exportar os próprios dados (JSON sem segredos) e excluir a conta por anonimização, com reautenticação e lista do que impede/do que acontece.
+- ✅ Boas-vindas por perfil (3 passos, salvas na conta) e página de Ajuda com FAQ e glossário; estados vazios sempre com um próximo passo.
+- ✅ E2E no repositório (`e2e/`, Playwright): jornada completa com 4 perfis, axe nos três perfis, teclado, LGPD, boas-vindas e celular — também no CI. Vídeo de backup gravado pelo próprio teste (`npm run e2e:video`, cópia em `docs/video/`).
+- ✅ Documentação: [arquitetura com diagramas](./docs/arquitetura.md) (camadas, máquina de estados, sequência da entrega, moderação, STRIDE), [7 ADRs](./docs/adr/) e [roteiro da banca](./docs/apresentacao.md).
+- ✅ _Aceite verificado:_ E2E verde (11 testes); Lighthouse no build de produção: **acessibilidade 100** e **boas práticas 100** em todas as páginas auditadas (96 na página com mapa, por causa dos blocos do mapa sem internet no ambiente de teste), desempenho 96–100. São 396 testes unitários e de repositório.
 
 ### Fase 8 — Extensões _(G)_ [C]
 
