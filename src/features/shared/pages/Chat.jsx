@@ -13,7 +13,7 @@ export default function Chat() {
   const { user } = useAuth();
   const nav = useNavigate();
 
-  const contatosQ = useQuery(() => Promise.all([pontos.listar({ ativo: true }), chat.ultimas(user.id)]), [user.id]);
+  const contatosQ = useQuery(() => Promise.all([pontos.listar({ ativo: true }), chat.ultimas()]), [user.id]);
   const [contatos, ultimas] = contatosQ.data || [[], {}];
 
   return (
@@ -82,14 +82,11 @@ export default function Chat() {
 }
 
 function Conversa({ pontoId, usuarioId, onVoltar }) {
-  const q = useQuery(
-    () => Promise.all([pontos.obter(pontoId), chat.mensagens(usuarioId, pontoId)]),
-    [pontoId, usuarioId],
-  );
+  const q = useQuery(() => Promise.all([pontos.obter(pontoId), chat.mensagens(pontoId)]), [pontoId, usuarioId]);
   const [texto, setTexto] = useState('');
   // Mensagem "otimista": aparece na hora, antes de a resposta da "rede" chegar.
   const [pendente, setPendente] = useState(null);
-  const enviar = useMutation((t) => chat.enviar(usuarioId, pontoId, t));
+  const enviar = useMutation((t) => chat.enviar(pontoId, t));
   const bodyRef = useRef(null);
 
   const [ponto, mensagens] = q.data || [null, []];

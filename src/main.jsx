@@ -2,7 +2,15 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app/App.jsx';
 import { AuthProvider } from './app/AuthContext.jsx';
+import { limparSessaoAntiga } from './data/sessaoCliente';
+import { auth } from './data/repos';
 import './index.css';
+
+// Segurança ao abrir o app:
+// 1. apaga a "sessão" insegura da versão anterior (era só o id do usuário);
+// 2. calcula o hash de senhas que ainda estejam em texto (dados de versões antigas).
+limparSessaoAntiga();
+auth.protegerSenhasLegadas().catch(() => {});
 
 // StrictMode propositalmente omitido: o react-leaflet não lida bem com o
 // duplo-mount do StrictMode em dev (erro "Map container already initialized").

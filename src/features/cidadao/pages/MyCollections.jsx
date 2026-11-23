@@ -21,7 +21,7 @@ export default function MyCollections() {
   const [filtro, setFiltro] = useState('');
   const [msg, setMsg] = useState(null);
 
-  const q = useQuery(() => coletas.listar({ usuario_id: user.id, status: filtro || undefined }), [user.id, filtro]);
+  const q = useQuery(() => coletas.minhas({ status: filtro || undefined }), [user.id, filtro]);
   const lista = q.data || [];
 
   // Uma única "ação em andamento" por vez: evita cliques duplos e ações conflitantes.

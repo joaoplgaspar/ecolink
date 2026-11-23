@@ -1,36 +1,61 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Recycle, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
-import { MensagemErro } from '@/components/ui.jsx';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { Recycle, Mail, LogIn, Loader2, Info, Clock } from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
-
-const DEMO = [
-  { nome: 'Ana', email: 'ana@email.com' },
-  { nome: 'Bruno', email: 'bruno@email.com' },
-  { nome: 'Carla', email: 'carla@email.com' },
-];
+import { MensagemErro } from '@/components/ui.jsx';
+import CampoSenha from '@/components/CampoSenha.jsx';
+import PainelDemo from '@/features/auth/components/PainelDemo.jsx';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user, aviso, limparAviso } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [lembrar, setLembrar] = useState(false);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [bloqueadoAte, setBloqueadoAte] = useState(null);
+  const [restante, setRestante] = useState(0);
 
-  async function entrar(em, sen) {
+  // Contagem regressiva do bloqueio por excesso de tentativas.
+  useEffect(() => {
+    if (!bloqueadoAte) return undefined;
+    const tick = () => {
+      const s = Math.max(0, Math.ceil((bloqueadoAte - Date.now()) / 1000));
+      setRestante(s);
+      if (s === 0) {
+        setBloqueadoAte(null);
+        setErro('');
+      }
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [bloqueadoAte]);
+
+  if (user) return <Navigate to={location.state?.de || '/'} replace />;
+
+  async function entrar(em, sen, opcoes = { lembrar }) {
     setErro('');
     setEnviando(true);
-    const r = await login(em, sen);
+    const r = await login(em, sen, opcoes);
     setEnviando(false);
-    if (r.ok) nav('/');
-    else setErro(r.erro);
+    if (r.ok) {
+      limparAviso();
+      nav(location.state?.de || '/', { replace: true });
+      return;
+    }
+    setErro(r.erro);
+    if (r.status === 429 && r.detalhes?.segundos) setBloqueadoAte(Date.now() + r.detalhes.segundos * 1000);
   }
 
   function submit(e) {
     e.preventDefault();
     entrar(email.trim(), senha);
   }
+
+  const bloqueado = restante > 0;
 
   return (
     <div className="auth-wrap">
@@ -53,14 +78,22 @@ export default function Login() {
             </button>
           </div>
 
+          {aviso && (
+            <div className="aviso mb-2" role="status">
+              <Info size={17} style={{ flex: 'none' }} /> {aviso}
+            </div>
+          )}
+
           <form onSubmit={submit}>
             <div className="field">
-              <label>E-mail</label>
+              <label htmlFor="login-email">E-mail</label>
               <div className="input-icon">
                 <Mail />
                 <input
+                  id="login-email"
                   className="input"
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="voce@email.com"
@@ -68,45 +101,38 @@ export default function Login() {
                 />
               </div>
             </div>
-            <div className="field">
-              <label>Senha</label>
-              <div className="input-icon">
-                <Lock />
-                <input
-                  className="input"
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••"
-                  required
-                />
-              </div>
+            <CampoSenha valor={senha} aoMudar={setSenha} />
+            <div className="row between wrap mb-2" style={{ gap: 8 }}>
+              <label className="row small" style={{ gap: 7, cursor: 'pointer' }}>
+                <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} /> Manter
+                conectado neste dispositivo
+              </label>
+              <Link to="/recuperar-senha" className="small" style={{ color: 'var(--green-700)', fontWeight: 600 }}>
+                Esqueci minha senha
+              </Link>
             </div>
-            <MensagemErro erro={erro} style={{ marginBottom: 10 }} />
-            <button className="btn btn-primary btn-block" type="submit" disabled={enviando}>
+            {bloqueado ? (
+              <div className="aviso mb-2" role="alert">
+                <Clock size={17} style={{ flex: 'none' }} /> Muitas tentativas. Por segurança, aguarde {restante} s para
+                tentar de novo.
+              </div>
+            ) : (
+              <MensagemErro erro={erro} style={{ marginBottom: 10 }} />
+            )}
+            <button className="btn btn-primary btn-block" type="submit" disabled={enviando || bloqueado}>
               {enviando ? <Loader2 size={18} className="spin" /> : <LogIn size={18} />} Entrar
             </button>
           </form>
 
-          <div className="divider" />
-          <p className="small muted center mb-1">Entrar rápido com uma conta de teste:</p>
-          <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-            {DEMO.map((d) => (
-              <button
-                key={d.email}
-                className="btn btn-sm"
-                type="button"
-                disabled={enviando}
-                onClick={() => entrar(d.email, 'senha123')}
-              >
-                {d.nome}
-              </button>
-            ))}
-          </div>
-          <p className="small faint center mt-2">
-            Senha de todas as contas de teste: <b>senha123</b>
-          </p>
+          <PainelDemo
+            aoEntrar={(emailDemo, senhaDemo) => entrar(emailDemo, senhaDemo, { lembrar: false })}
+            ocupado={enviando}
+          />
         </div>
+
+        <p className="small faint center mt-2">
+          <Link to="/termos">Termos de Uso</Link> · <Link to="/privacidade">Privacidade</Link>
+        </p>
       </div>
     </div>
   );

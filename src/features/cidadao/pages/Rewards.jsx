@@ -30,11 +30,11 @@ const ICONS = { ShoppingBag, CupSoda, Percent, Bus, Trees, Sprout, Coffee, Trash
 
 export default function Rewards() {
   const { user } = useAuth();
-  const q = useQuery(() => Promise.all([estatisticas.doUsuario(user.id), resgates.listar(user.id)]), [user.id]);
+  const q = useQuery(() => Promise.all([estatisticas.minhas(), resgates.listar()]), [user.id]);
   const [view, setView] = useState('loja');
   const [categoria, setCategoria] = useState('');
   const [msg, setMsg] = useState(null);
-  const resgate = useMutation((recompensaId) => resgates.resgatar(user.id, recompensaId));
+  const resgate = useMutation((recompensaId) => resgates.resgatar(recompensaId));
 
   if (q.loading) return <Carregando linhas={3} altura={140} rotulo="Carregando loja…" />;
   if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;

@@ -13,7 +13,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const { data } = useQuery(() => notificacoes.listar(user.id), [user.id]);
+  const { data } = useQuery(() => notificacoes.listar(), [user.id]);
   const lista = data || [];
   const naoLidas = lista.filter((n) => !n.lida).length;
 
@@ -29,7 +29,7 @@ export default function NotificationBell() {
     const abrir = !open;
     setOpen(abrir);
     // Marca como lidas em segundo plano; se falhar, o contador só continua visível.
-    if (abrir && naoLidas) notificacoes.marcarTodasLidas(user.id).catch(() => {});
+    if (abrir && naoLidas) notificacoes.marcarTodasLidas().catch(() => {});
   }
 
   return (

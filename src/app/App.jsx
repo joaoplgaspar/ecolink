@@ -1,9 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './ProtectedRoute.jsx';
+import ProtectedRoute, { RequirePerfil } from './ProtectedRoute.jsx';
 import Layout from './layouts/Layout.jsx';
+import { useAuth } from './AuthContext.jsx';
+import { PERFIS } from '@/domain/permissoes';
 
 import Login from '@/features/auth/pages/Login.jsx';
 import Register from '@/features/auth/pages/Register.jsx';
+import RecuperarSenha from '@/features/auth/pages/RecuperarSenha.jsx';
+import Documento from '@/features/shared/pages/Documento.jsx';
+import CaixaEmails from '@/features/shared/pages/CaixaEmails.jsx';
+
 import Dashboard from '@/features/cidadao/pages/Dashboard.jsx';
 import Points from '@/features/cidadao/pages/Points.jsx';
 import PointDetail from '@/features/cidadao/pages/PointDetail.jsx';
@@ -15,12 +21,33 @@ import Ranking from '@/features/cidadao/pages/Ranking.jsx';
 import Chat from '@/features/shared/pages/Chat.jsx';
 import Profile from '@/features/shared/pages/Profile.jsx';
 
+import PainelParceiro from '@/features/parceiro/pages/PainelParceiro.jsx';
+import Usuarios from '@/features/admin/pages/Usuarios.jsx';
+import Auditoria from '@/features/admin/pages/Auditoria.jsx';
+
+/** "/" leva cada perfil à sua página inicial. */
+function Inicio() {
+  const { perfil } = useAuth();
+  if (perfil === 'cidadao') return <Dashboard />;
+  return <Navigate to={PERFIS[perfil]?.inicio || '/perfil'} replace />;
+}
+
+const cidadao = (el) => <RequirePerfil perfil="cidadao">{el}</RequirePerfil>;
+const parceiro = (el) => <RequirePerfil perfil="parceiro">{el}</RequirePerfil>;
+const plataforma = (el) => <RequirePerfil perfil="admin">{el}</RequirePerfil>;
+
 export default function App() {
   return (
     <Routes>
+      {/* Públicas */}
       <Route path="/login" element={<Login />} />
       <Route path="/cadastro" element={<Register />} />
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+      <Route path="/termos" element={<Documento tipo="termos" />} />
+      <Route path="/privacidade" element={<Documento tipo="privacidade" />} />
+      <Route path="/demo/emails" element={<CaixaEmails />} />
 
+      {/* Privadas */}
       <Route
         element={
           <ProtectedRoute>
@@ -28,17 +55,26 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/pontos" element={<Points />} />
-        <Route path="/pontos/:id" element={<PointDetail />} />
-        <Route path="/agendar/:pontoId" element={<ScheduleCollection />} />
-        <Route path="/coletas" element={<MyCollections />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/chat/:pontoId" element={<Chat />} />
-        <Route path="/loja" element={<Rewards />} />
-        <Route path="/educacao" element={<Education />} />
-        <Route path="/ranking" element={<Ranking />} />
+        <Route path="/" element={<Inicio />} />
         <Route path="/perfil" element={<Profile />} />
+
+        {/* Cidadão */}
+        <Route path="/pontos" element={cidadao(<Points />)} />
+        <Route path="/pontos/:id" element={cidadao(<PointDetail />)} />
+        <Route path="/agendar/:pontoId" element={cidadao(<ScheduleCollection />)} />
+        <Route path="/coletas" element={cidadao(<MyCollections />)} />
+        <Route path="/chat" element={cidadao(<Chat />)} />
+        <Route path="/chat/:pontoId" element={cidadao(<Chat />)} />
+        <Route path="/loja" element={cidadao(<Rewards />)} />
+        <Route path="/educacao" element={cidadao(<Education />)} />
+        <Route path="/ranking" element={cidadao(<Ranking />)} />
+
+        {/* Parceiro */}
+        <Route path="/parceiro" element={parceiro(<PainelParceiro />)} />
+
+        {/* Plataforma */}
+        <Route path="/admin" element={plataforma(<Usuarios />)} />
+        <Route path="/admin/auditoria" element={plataforma(<Auditoria />)} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,11 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Recycle, Scale, Globe, Pencil, LogOut, RotateCcw, Award, Mail, Calendar, Loader2 } from 'lucide-react';
+import {
+  Leaf,
+  Recycle,
+  Scale,
+  Globe,
+  Pencil,
+  LogOut,
+  Award,
+  Mail,
+  Calendar,
+  Loader2,
+  ShieldCheck,
+  KeyRound,
+  MonitorSmartphone,
+  CheckCircle2,
+  BadgeCheck,
+} from 'lucide-react';
 import { useAuth } from '@/app/AuthContext.jsx';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
-import { estatisticas, demo } from '@/data/repos';
-import { formatDate, nf } from '@/utils/format';
+import { estatisticas, auth, usuarios } from '@/data/repos';
+import { PAPEIS, PERFIS } from '@/domain/permissoes';
+import { formatDate, nf, relativeTime } from '@/utils/format';
 import {
   Avatar,
   LevelChip,
@@ -17,47 +34,16 @@ import {
   MensagemErro,
 } from '@/components/ui.jsx';
 import { AchievementIcon, LevelIcon } from '@/components/icons.jsx';
+import CampoSenha from '@/components/CampoSenha.jsx';
 
 export default function Profile() {
-  const { user, updateUser, logout } = useAuth();
+  const { user, perfil, logout } = useAuth();
   const nav = useNavigate();
-  const q = useQuery(() => estatisticas.doUsuario(user.id), [user.id]);
 
-  const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({ nome: user.nome, telefone: user.telefone || '', cidade: user.cidade || '' });
-  const salvarPerfil = useMutation((dados) => updateUser(dados));
-  const restaurar = useMutation(() => demo.restaurar());
-
-  async function salvar(e) {
-    e.preventDefault();
-    const r = await salvarPerfil.mutate(form);
-    if (r.ok) setEditando(false);
-  }
-  function sair() {
-    logout();
+  async function sair() {
+    await logout();
     nav('/login');
   }
-  async function resetar() {
-    if (!window.confirm('Restaurar todos os dados de demonstração? Isso apaga coletas, conversas e contas criadas.'))
-      return;
-    const r = await restaurar.mutate();
-    if (r.ok) {
-      logout();
-      nav('/login');
-    }
-  }
-
-  if (q.loading)
-    return (
-      <>
-        <div className="page-head">
-          <h1>Meu perfil</h1>
-        </div>
-        <Carregando linhas={3} altura={130} />
-      </>
-    );
-  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
-  const stats = q.data;
 
   return (
     <div>
@@ -79,20 +65,58 @@ export default function Profile() {
               </div>
             </div>
           </div>
+          <div>
+            {user.papeis.map((p) => (
+              <span key={p} className="chip-papel">
+                {PAPEIS[p]?.rotulo || p}
+              </span>
+            ))}
+          </div>
+        </div>
+        {perfil !== 'cidadao' && (
+          <p className="small faint mt-2">
+            Você está usando o perfil <strong>{PERFIS[perfil]?.rotulo}</strong>.
+          </p>
+        )}
+      </div>
+
+      {perfil === 'cidadao' && <ResumoCidadao />}
+      <DadosConta />
+      <Seguranca />
+
+      <div className="row wrap" style={{ gap: 10 }}>
+        <button className="btn btn-danger" onClick={sair}>
+          <LogOut size={17} /> Sair da conta
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ResumoCidadao() {
+  const q = useQuery(() => estatisticas.minhas(), []);
+  if (q.loading) return <Carregando linhas={2} altura={110} />;
+  if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
+  const stats = q.data;
+  return (
+    <>
+      <div className="card card-pad mb-3">
+        <div className="row between mb-1">
+          <span className="small muted row" style={{ gap: 5 }}>
+            {nf(stats.ecopontos)} EcoPontos acumulados
+          </span>
           <LevelChip nivel={stats.nivel.atual} />
         </div>
-
         {stats.nivel.proximo && (
-          <div className="mt-3">
+          <>
             <div className="row between mb-1">
               <span className="small muted row" style={{ gap: 5 }}>
-                {nf(stats.ecopontos)} EcoPontos · próximo: <LevelIcon nome={stats.nivel.proximo.nome} />{' '}
-                {stats.nivel.proximo.nome}
+                Próximo: <LevelIcon nome={stats.nivel.proximo.nome} /> {stats.nivel.proximo.nome}
               </span>
               <span className="small faint">faltam {nf(stats.nivel.faltam)}</span>
             </div>
             <ProgressBar value={stats.nivel.progresso} />
-          </div>
+          </>
         )}
       </div>
 
@@ -125,79 +149,238 @@ export default function Profile() {
           ))}
         </div>
       </div>
+    </>
+  );
+}
 
-      <div className="card card-pad mb-3">
-        <div className="row between mb-2">
-          <h3>Dados da conta</h3>
-          {!editando && (
-            <button className="btn btn-sm" onClick={() => setEditando(true)}>
-              <Pencil size={15} /> Editar
-            </button>
-          )}
-        </div>
+function DadosConta() {
+  const { user, recarregar } = useAuth();
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({ nome: user.nome, telefone: user.telefone || '', cidade: user.cidade || '' });
+  const salvar = useMutation(async (dados) => {
+    await usuarios.atualizar(dados);
+    await recarregar();
+  });
 
-        {editando ? (
-          <form onSubmit={salvar}>
-            <div className="field">
-              <label>Nome</label>
-              <input
-                className="input"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                required
-              />
-            </div>
-            <div className="grid grid-2" style={{ gap: 12 }}>
-              <div className="field">
-                <label>Telefone</label>
-                <input
-                  className="input"
-                  value={form.telefone}
-                  onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>Cidade</label>
-                <input
-                  className="input"
-                  value={form.cidade}
-                  onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-                />
-              </div>
-            </div>
-            <MensagemErro erro={salvarPerfil.error} style={{ marginBottom: 10 }} />
-            <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-primary" type="submit" disabled={salvarPerfil.pending}>
-                {salvarPerfil.pending && <Loader2 size={16} className="spin" />} Salvar
-              </button>
-              <button className="btn btn-ghost" type="button" onClick={() => setEditando(false)}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="col" style={{ gap: 6 }}>
-            <div className="row between">
-              <span className="muted">Telefone</span>
-              <span>{user.telefone || '—'}</span>
-            </div>
-            <div className="row between">
-              <span className="muted">Cidade</span>
-              <span>{user.cidade || '—'}</span>
-            </div>
-          </div>
+  async function enviar(e) {
+    e.preventDefault();
+    const r = await salvar.mutate(form);
+    if (r.ok) setEditando(false);
+  }
+
+  return (
+    <div className="card card-pad mb-3">
+      <div className="row between mb-2">
+        <h3>Dados da conta</h3>
+        {!editando && (
+          <button className="btn btn-sm" onClick={() => setEditando(true)}>
+            <Pencil size={15} /> Editar
+          </button>
         )}
       </div>
 
-      <div className="row wrap" style={{ gap: 10 }}>
-        <button className="btn btn-danger" onClick={sair}>
-          <LogOut size={17} /> Sair da conta
-        </button>
-        <button className="btn btn-ghost" onClick={resetar} disabled={restaurar.pending}>
-          {restaurar.pending ? <Loader2 size={17} className="spin" /> : <RotateCcw size={17} />} Restaurar dados de
-          demonstração
+      {editando ? (
+        <form onSubmit={enviar}>
+          <div className="field">
+            <label htmlFor="perfil-nome">Nome</label>
+            <input
+              id="perfil-nome"
+              className="input"
+              value={form.nome}
+              maxLength={80}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-2" style={{ gap: 12 }}>
+            <div className="field">
+              <label htmlFor="perfil-tel">Telefone</label>
+              <input
+                id="perfil-tel"
+                className="input"
+                value={form.telefone}
+                maxLength={20}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="perfil-cidade">Cidade</label>
+              <input
+                id="perfil-cidade"
+                className="input"
+                value={form.cidade}
+                maxLength={60}
+                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+              />
+            </div>
+          </div>
+          <p className="hint mb-2">E-mail e papéis não podem ser alterados por aqui.</p>
+          <MensagemErro erro={salvar.error} style={{ marginBottom: 10 }} />
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn btn-primary" type="submit" disabled={salvar.pending}>
+              {salvar.pending && <Loader2 size={16} className="spin" />} Salvar
+            </button>
+            <button className="btn btn-ghost" type="button" onClick={() => setEditando(false)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="col" style={{ gap: 6 }}>
+          <div className="row between">
+            <span className="muted">Telefone</span>
+            <span>{user.telefone || '—'}</span>
+          </div>
+          <div className="row between">
+            <span className="muted">Cidade</span>
+            <span>{user.cidade || '—'}</span>
+          </div>
+          <div className="row between">
+            <span className="muted">Termos aceitos</span>
+            <span className="row" style={{ gap: 5 }}>
+              <BadgeCheck size={15} color="var(--green-600)" /> versão {user.aceite_termos?.versao} em{' '}
+              {formatDate(user.aceite_termos?.em)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Seguranca() {
+  return (
+    <div className="card card-pad mb-3">
+      <h3 className="row mb-2" style={{ gap: 8 }}>
+        <ShieldCheck size={18} color="var(--green-600)" /> Segurança
+      </h3>
+      <TrocarSenha />
+      <div className="divider" />
+      <Sessoes />
+    </div>
+  );
+}
+
+function TrocarSenha() {
+  const { user } = useAuth();
+  const [aberto, setAberto] = useState(false);
+  const [atual, setAtual] = useState('');
+  const [nova, setNova] = useState('');
+  const [ok, setOk] = useState(false);
+  const trocar = useMutation(() => auth.trocarSenha(atual, nova));
+
+  async function enviar(e) {
+    e.preventDefault();
+    const r = await trocar.mutate();
+    if (r.ok) {
+      setOk(true);
+      setAberto(false);
+      setAtual('');
+      setNova('');
+    }
+  }
+
+  if (!aberto) {
+    return (
+      <div className="row between wrap" style={{ gap: 10 }}>
+        <div>
+          <strong className="row" style={{ gap: 6 }}>
+            <KeyRound size={16} /> Senha
+          </strong>
+          <p className="small muted">
+            {ok ? (
+              <span className="row" style={{ gap: 5, color: 'var(--green-700)' }} role="status">
+                <CheckCircle2 size={15} /> Senha alterada. As outras sessões foram encerradas.
+              </span>
+            ) : (
+              'Guardada com criptografia (hash PBKDF2): nem a equipe ECOLINK consegue ver.'
+            )}
+          </p>
+        </div>
+        <button className="btn btn-sm" onClick={() => setAberto(true)}>
+          Alterar senha
         </button>
       </div>
+    );
+  }
+
+  return (
+    <form onSubmit={enviar}>
+      <strong className="row mb-2" style={{ gap: 6 }}>
+        <KeyRound size={16} /> Alterar senha
+      </strong>
+      <CampoSenha rotulo="Senha atual" valor={atual} aoMudar={setAtual} />
+      <CampoSenha rotulo="Nova senha" valor={nova} aoMudar={setNova} nova contexto={user} />
+      <p className="hint mb-2">
+        Por segurança, ao trocar a senha encerramos as sessões abertas em outros dispositivos.
+      </p>
+      <MensagemErro erro={trocar.error} style={{ marginBottom: 10 }} />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn btn-primary" type="submit" disabled={trocar.pending}>
+          {trocar.pending && <Loader2 size={16} className="spin" />} Salvar nova senha
+        </button>
+        <button className="btn btn-ghost" type="button" onClick={() => setAberto(false)}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Sessoes() {
+  const q = useQuery(() => auth.listarSessoes(), []);
+  const encerrar = useMutation((id) => auth.encerrarSessao(id));
+  const encerrarOutras = useMutation(() => auth.encerrarOutrasSessoes());
+  const lista = q.data || [];
+  const outras = lista.filter((s) => !s.atual).length;
+
+  return (
+    <div>
+      <div className="row between wrap mb-2" style={{ gap: 10 }}>
+        <strong className="row" style={{ gap: 6 }}>
+          <MonitorSmartphone size={16} /> Onde você está conectado
+        </strong>
+        {outras > 0 && (
+          <button
+            className="btn btn-sm btn-danger"
+            disabled={encerrarOutras.pending}
+            onClick={() => encerrarOutras.mutate()}
+          >
+            Sair dos outros dispositivos ({outras})
+          </button>
+        )}
+      </div>
+      <MensagemErro erro={encerrar.error || encerrarOutras.error} style={{ marginBottom: 8 }} />
+      {q.loading ? (
+        <Carregando linhas={2} altura={44} rotulo="Carregando sessões…" />
+      ) : !q.data ? (
+        <ErroCarregar erro={q.error} onTentar={q.refetch} />
+      ) : (
+        <ul className="col" style={{ gap: 8, listStyle: 'none', padding: 0, margin: 0 }}>
+          {lista.map((s) => (
+            <li key={s.id} className="row between" style={{ gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                  {s.dispositivo} {s.atual && <span className="chip-papel">este dispositivo</span>}
+                </div>
+                <div className="small faint">
+                  Perfil {PERFIS[s.perfil]?.rotulo} · ativo {relativeTime(s.ultimo_uso)} · desde{' '}
+                  {formatDate(s.criada_em)}
+                </div>
+              </div>
+              {!s.atual && (
+                <button
+                  className="btn btn-sm btn-ghost"
+                  disabled={encerrar.pending}
+                  onClick={() => encerrar.mutate(s.id)}
+                >
+                  Encerrar
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

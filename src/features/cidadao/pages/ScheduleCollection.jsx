@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CalendarPlus, Recycle, CircleHelp, Loader2, PauseCircle } from 'lucide-react';
-import { useAuth } from '@/app/AuthContext.jsx';
 import { pontos, coletas } from '@/data/repos';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
@@ -42,7 +41,6 @@ export default function ScheduleCollection() {
 }
 
 function FormAgendamento({ ponto }) {
-  const { user } = useAuth();
   const nav = useNavigate();
 
   const hoje = isoDia(new Date());
@@ -57,7 +55,6 @@ function FormAgendamento({ ponto }) {
   async function submit(e) {
     e.preventDefault();
     const r = await agendar.mutate({
-      usuario_id: user.id,
       ponto_id: ponto.id,
       material,
       quantidade_kg: kg,

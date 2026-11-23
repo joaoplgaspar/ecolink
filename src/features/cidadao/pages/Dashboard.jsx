@@ -36,11 +36,7 @@ const DICAS = [
 export default function Dashboard() {
   const { user } = useAuth();
   const q = useQuery(
-    () =>
-      Promise.all([
-        estatisticas.doUsuario(user.id),
-        coletas.listar({ usuario_id: user.id, status: 'agendada', ordem: 'asc' }),
-      ]),
+    () => Promise.all([estatisticas.minhas(), coletas.minhas({ status: 'agendada', ordem: 'asc' })]),
     [user.id],
   );
 

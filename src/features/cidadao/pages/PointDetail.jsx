@@ -28,10 +28,7 @@ import { stagger, item } from '@/utils/anim';
 export default function PointDetail() {
   const { id } = useParams();
   const { user } = useAuth();
-  const q = useQuery(
-    () => Promise.all([pontos.obter(id), avaliacoes.listar(id), avaliacoes.minha(id, user.id)]),
-    [id, user.id],
-  );
+  const q = useQuery(() => Promise.all([pontos.obter(id), avaliacoes.listar(id), avaliacoes.minha(id)]), [id, user.id]);
 
   const voltar = (
     <Link to="/pontos" className="btn btn-sm btn-ghost mb-2">
@@ -142,7 +139,7 @@ export default function PointDetail() {
         </h3>
 
         {/* Só é montado depois que os dados chegam, então já nasce com a avaliação salva. */}
-        <FormAvaliacao pontoId={ponto.id} usuarioId={user.id} minha={minha} />
+        <FormAvaliacao pontoId={ponto.id} minha={minha} />
 
         {lista.length === 0 ? (
           <p className="muted small center" style={{ padding: '10px 0' }}>
@@ -174,7 +171,7 @@ export default function PointDetail() {
   );
 }
 
-function FormAvaliacao({ pontoId, usuarioId, minha }) {
+function FormAvaliacao({ pontoId, minha }) {
   const [nota, setNota] = useState(minha?.nota || 0);
   const [comentario, setComentario] = useState(minha?.comentario || '');
   const [salvo, setSalvo] = useState(false);
@@ -183,7 +180,7 @@ function FormAvaliacao({ pontoId, usuarioId, minha }) {
   async function enviar(e) {
     e.preventDefault();
     if (!nota) return;
-    const r = await salvar.mutate({ ponto_id: pontoId, usuario_id: usuarioId, nota, comentario });
+    const r = await salvar.mutate({ ponto_id: pontoId, nota, comentario });
     if (r.ok) {
       setSalvo(true);
       setTimeout(() => setSalvo(false), 2500);
