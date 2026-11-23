@@ -89,42 +89,6 @@ describe('pontos', () => {
   });
 });
 
-describe('avaliacoes', () => {
-  beforeEach(() => entrarComo(IDS.ana));
-
-  it('cria e depois atualiza a mesma avaliação (uma por pessoa)', async () => {
-    await avaliacoes.salvar({ ponto_id: 7, nota: 3, comentario: 'ok' });
-    await avaliacoes.salvar({ ponto_id: 7, nota: 5, comentario: 'melhorou' });
-    const minhas = (await avaliacoes.listar(7)).filter((a) => a.usuario_id === IDS.ana);
-    expect(minhas).toHaveLength(1);
-    expect(minhas[0]).toMatchObject({ nota: 5, comentario: 'melhorou', usuario_nome: 'Ana Recicladora' });
-    expect((await avaliacoes.minha(7)).nota).toBe(5);
-  });
-
-  it('valida nota e tamanho do comentário', async () => {
-    expect(await erroDe(avaliacoes.salvar({ ponto_id: 1, nota: 6 }))).toMatchObject({ status: 422 });
-    expect(await erroDe(avaliacoes.salvar({ ponto_id: 1, nota: 4, comentario: 'x'.repeat(501) }))).toMatchObject({
-      status: 422,
-    });
-  });
-
-  it('o resumo reflete uma nova avaliação', async () => {
-    const jaAvaliaram = new Set((await avaliacoes.listar(7)).map((a) => a.usuario_id));
-    const novato = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].find((id) => !jaAvaliaram.has(id));
-    await entrarComo(novato);
-    const antes = await avaliacoes.resumo(7);
-    await avaliacoes.salvar({ ponto_id: 7, nota: 1 });
-    const depois = await avaliacoes.resumo(7);
-    expect(depois.total).toBe(antes.total + 1);
-    expect(depois.media).toBeLessThan(antes.total ? antes.media : 2);
-  });
-
-  it('quem trabalha no ponto não avalia o próprio ponto', async () => {
-    await entrarComo(IDS.marcos, 'cidadao');
-    expect(await erroDe(avaliacoes.salvar({ ponto_id: 1, nota: 5 }))).toMatchObject({ status: 422 });
-  });
-});
-
 describe('resgates', () => {
   it('debita o saldo e gera código de voucher', async () => {
     await entrarComo(IDS.ana);

@@ -9,6 +9,7 @@ import { filtrarPontos, resumoAvaliacoes, visivelAoPublico, recebendo } from '..
 import { resumoHorario } from '../../domain/horarios';
 import { TIPOS_ORGANIZACAO } from '../../domain/organizacoes';
 import { chamar } from './_rede';
+import { reputacaoDoPonto } from './_reputacao';
 
 /** O que o público vê de um ponto (sem campos internos de análise). */
 export function projetarPonto(estado, p) {
@@ -33,7 +34,14 @@ export function projetarPonto(estado, p) {
     organizacao: org
       ? { nome: org.nome, tipo: TIPOS_ORGANIZACAO[org.tipo]?.rotulo, verificada: org.status === 'aprovada' }
       : null,
-    avaliacao: resumoAvaliacoes(estado.avaliacoes.filter((a) => a.ponto_id === p.id)),
+    avaliacao: resumoAvaliacoes(estado.avaliacoes.filter((a) => a.ponto_id === p.id && a.verificada)),
+    reputacao: (({ score, selos, nota, total_avaliacoes, tempo_resposta_horas }) => ({
+      score,
+      selos,
+      nota,
+      total_avaliacoes,
+      tempo_resposta_horas,
+    }))(reputacaoDoPonto(estado, p.id)),
   };
 }
 

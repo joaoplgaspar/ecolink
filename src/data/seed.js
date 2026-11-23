@@ -16,6 +16,7 @@ import { gradeCom, SEMANA, fechadoNoDia } from '../domain/horarios';
 import { janelasDoDia, dataHora, prazoDeResposta } from '../domain/agenda';
 import { montarComprovante } from '../domain/comprovante';
 import { nomeReduzido } from '../utils/format';
+import { TAGS_PONTO, TAGS_CIDADAO } from '../domain/avaliacoes';
 import { REGRAS_PADRAO } from '../domain/pontos';
 import { documentosExigidos } from '../domain/organizacoes';
 
@@ -354,7 +355,7 @@ const AGENDADAS = [
   ['diego@email.com', 0, 1, 'confirmada'],
   ['ana@email.com', 2, 2, 'confirmada'],
   ['bruno@email.com', 3, 1, 'solicitada'],
-  ['felipe@email.com', 1, 1, 'solicitada'],
+  ['felipe@email.com', 1, 1, 'confirmada'],
   ['ana@email.com', 6, 4, 'solicitada'],
   ['gabriela@email.com', 1, 2, 'confirmada'],
   ['carla@email.com', 1, 3, 'confirmada'],
@@ -620,21 +621,24 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
   // Histórico menos feliz, para a linha do tempo e (na Fase 4) a reputação.
   const felipe = cidadaos.find((u) => u.email === 'felipe@email.com');
   const pontoFelipe = pontoPorId(4);
-  const faltou = novaColeta(felipe, pontoFelipe, diaAbertoAntes(pontoFelipe, -9));
-  faltou.criada_em = maisMin(dataHora(faltou.data, '08:00').toISOString(), -2 * 24 * 60);
-  faltou.codigo_entrega = codigoEntrega();
-  ev(faltou, 'solicitar', null, 'solicitada', 'cidadao', felipe.id, faltou.criada_em);
-  ev(faltou, 'aceitar', 'solicitada', 'confirmada', 'ponto', equipeDo(4)[0], maisMin(faltou.criada_em, 120));
-  ev(
-    faltou,
-    'marcar_nao_compareceu',
-    'confirmada',
-    'nao_compareceu',
-    'sistema',
-    null,
-    dataHora(faltou.data, '23:59').toISOString(),
-  );
-  rascunhos.push(faltou);
+  // Felipe tem 2 faltas nos últimos 30 dias: mais uma bloqueia novos agendamentos (Fase 4).
+  for (const offset of [-9, -20]) {
+    const faltou = novaColeta(felipe, pontoFelipe, diaAbertoAntes(pontoFelipe, offset));
+    faltou.criada_em = maisMin(dataHora(faltou.data, '08:00').toISOString(), -2 * 24 * 60);
+    faltou.confirmada_em = maisMin(faltou.criada_em, 120);
+    ev(faltou, 'solicitar', null, 'solicitada', 'cidadao', felipe.id, faltou.criada_em);
+    ev(faltou, 'aceitar', 'solicitada', 'confirmada', 'ponto', equipeDo(4)[0], faltou.confirmada_em);
+    ev(
+      faltou,
+      'marcar_nao_compareceu',
+      'confirmada',
+      'nao_compareceu',
+      'sistema',
+      null,
+      dataHora(faltou.data, '23:59').toISOString(),
+    );
+    rascunhos.push(faltou);
+  }
 
   const elisa = cidadaos.find((u) => u.email === 'elisa@email.com');
   const pontoElisa = pontoPorId(5);
@@ -684,28 +688,66 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     if (u.papeis.includes('cidadao')) u.codigo_pessoal = Array.from({ length: 8 }, () => escolher(ALFA)).join('');
   }
 
-  /* Avaliações: só de quem já concluiu coleta naquele ponto (avaliação "verificada"). */
+  /* Avaliações VERIFICADAS: cada uma ligada a uma entrega concluída (Fase 4). */
   const avaliacoes = [];
-  const pares = new Map(); // "usuario:ponto" → data da última coleta concluída
+  // Uma avaliação por ENTREGA concluída (cerca de metade das pessoas avalia). A entrega
+  // mais recente de cada cidadão fica sem avaliação — dá para avaliar na demo.
+  const maisRecente = new Map(); // usuario → última entrega concluída
   for (const c of coletas) {
     if (c.status !== 'concluida') continue;
-    const chave = `${c.usuario_id}:${c.ponto_id}`;
-    if (!pares.has(chave) || pares.get(chave) < c.data) pares.set(chave, c.data);
+    if (!maisRecente.has(c.usuario_id) || maisRecente.get(c.usuario_id).concluida_em < c.concluida_em)
+      maisRecente.set(c.usuario_id, c);
   }
-  for (const [chave, ultima] of pares) {
-    if (rnd() > 0.6) continue;
-    const [usuarioId, pontoId] = chave.split(':').map(Number);
+  for (const c of coletas) {
+    if (c.status !== 'concluida' || maisRecente.get(c.usuario_id) === c) continue;
+    if (rnd() > 0.55) continue;
     const nota = escolher([5, 5, 5, 4, 4, 3]);
-    const u = usuarios.find((x) => x.id === usuarioId);
-    const quando = new Date(`${ultima}T18:00:00`);
+    const u = usuarios.find((x) => x.id === c.usuario_id);
+    const quando = maisMin(c.concluida_em, 60 * 5);
+    const tags = nota >= 4 ? [escolher(TAGS_PONTO.positivas)] : [escolher(TAGS_PONTO.negativas)];
     avaliacoes.push({
       id: avaliacoes.length + 1,
-      ponto_id: pontoId,
-      usuario_id: usuarioId,
-      usuario_nome: u.nome,
+      ponto_id: c.ponto_id,
+      usuario_id: c.usuario_id,
+      usuario_nome: nomeReduzido(u.nome),
+      coleta_id: c.id,
+      verificada: true,
       nota,
+      tags,
       comentario: escolher(COMENTARIOS[nota]),
-      em: quando.toISOString(),
+      resposta: null,
+      em: quando,
+      criada_em: quando,
+    });
+  }
+  // A gestão do EcoPonto Centro responde às avaliações dele.
+  for (const a of avaliacoes.filter((x) => x.ponto_id === 1)) {
+    a.resposta = {
+      texto:
+        a.nota >= 4
+          ? 'Obrigado pela visita e pela separação caprichada! Volte sempre. 🌱'
+          : 'Obrigado pelo retorno! Já reforçamos a equipe aos sábados.',
+      autor_id: equipeDo(1)[0],
+      em: maisMin(a.em, 120),
+    };
+  }
+
+  /* O ponto também avalia o cidadão depois da conferência (privado entre os dois e usado na reputação). */
+  const avaliacoes_cidadao = [];
+  for (const c of coletas.filter((x) => x.status === 'concluida' && x.operador_pesagem_id)) {
+    if (rnd() > 0.75) continue;
+    const nota = c.usuario_id === felipe.id ? 3 : escolher([5, 5, 5, 4]);
+    avaliacoes_cidadao.push({
+      id: avaliacoes_cidadao.length + 1,
+      coleta_id: c.id,
+      ponto_id: c.ponto_id,
+      cidadao_id: c.usuario_id,
+      autor_id: c.operador_pesagem_id,
+      nota,
+      tags: nota >= 4 ? [escolher(TAGS_CIDADAO.positivas)] : ['Atrasou'],
+      comentario: '',
+      em: maisMin(c.concluida_em, 10),
+      criada_em: maisMin(c.concluida_em, 10),
     });
   }
 
@@ -809,6 +851,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       membro: membros.length,
       organizacao: organizacoes.length,
       evento: coleta_eventos.length,
+      avaliacao_cidadao: avaliacoes_cidadao.length,
       extrato: extrato.length,
       sessao: 0,
       auditoria: 0,
@@ -821,6 +864,7 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     coleta_eventos,
     extrato,
     avaliacoes,
+    avaliacoes_cidadao,
     resgates,
     chats,
     notificacoes,

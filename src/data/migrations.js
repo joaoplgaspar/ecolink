@@ -11,7 +11,7 @@ import { REGRAS_PADRAO } from '../domain/pontos';
 import { pontosDaColeta } from '../domain/gamificacao';
 import { novoCodigoColeta, novoCodigoEntrega, novoCodigoPessoal } from '../domain/codigos';
 
-export const VERSAO_ATUAL = 6;
+export const VERSAO_ATUAL = 7;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -29,6 +29,7 @@ const SEQUENCIAS = {
   organizacoes: 'organizacao',
   extrato: 'extrato',
   coleta_eventos: 'evento',
+  avaliacoes_cidadao: 'avaliacao_cidadao',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -192,6 +193,26 @@ export const MIGRACOES = [
       }
       s.seq.coleta = Math.max(s.seq.coleta || 0, maxId(s.coletas));
       s.seq.evento = Math.max(s.seq.evento || 0, maxId(s.coleta_eventos));
+    },
+  },
+  {
+    para: 7,
+    descricao: 'Avaliações verificadas (ligadas à entrega), resposta do ponto e avaliação do cidadão pelo ponto',
+    aplicar(s) {
+      s.avaliacoes_cidadao = s.avaliacoes_cidadao || [];
+      for (const a of s.avaliacoes) {
+        if ('verificada' in a) continue;
+        // Avaliação antiga vira "verificada" só se a pessoa tiver entrega concluída no ponto.
+        const coleta = s.coletas
+          .filter((c) => c.usuario_id === a.usuario_id && c.ponto_id === a.ponto_id && c.status === 'concluida')
+          .sort((x, y) => (x.data < y.data ? 1 : -1))[0];
+        a.coleta_id = coleta?.id ?? null;
+        a.verificada = Boolean(coleta);
+        a.tags = a.tags || [];
+        a.resposta = a.resposta ?? null;
+        a.criada_em = a.criada_em || a.em;
+      }
+      s.seq.avaliacao_cidadao = Math.max(s.seq.avaliacao_cidadao || 0, maxId(s.avaliacoes_cidadao));
     },
   },
 ];

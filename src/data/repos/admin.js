@@ -7,6 +7,7 @@ import { chamarAutenticado, agoraISO, proximoId } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { publico } from './usuarios';
 import { registrarNotificacao } from './notificacoes';
+import { resumoParaPonto } from './_reputacao';
 import { projetarPonto } from './pontos';
 import { TIPOS_ORGANIZACAO } from '../../domain/organizacoes';
 import { problemasDoPonto } from '../../domain/pontos';
@@ -26,6 +27,7 @@ export function listarUsuarios({ busca = '' } = {}) {
         sessoes_ativas: s.sessoes.filter(
           (x) => x.usuario_id === u.id && !x.revogada_em && Date.parse(x.expira_em) > Date.now(),
         ).length,
+        reputacao: u.papeis.includes('cidadao') ? resumoParaPonto(s, u.id) : null,
       }));
   });
 }

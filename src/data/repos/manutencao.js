@@ -11,6 +11,7 @@ import { fimDoDia, dataHora } from '../../domain/agenda';
 import { chamar } from './_rede';
 import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, notificarEquipe, quando } from './_coleta';
+import { situacaoDeFaltas, FALTAS_PARA_BLOQUEIO } from '../../domain/reputacao';
 
 function pendencias(estado, agora) {
   const t = agora.getTime();
@@ -61,6 +62,24 @@ export function processarPrazos({ agora = new Date() } = {}) {
           icone: '📭',
           texto: `Não registramos sua entrega de ${quando(c)}. Faltas seguidas reduzem sua reputação: cancele quando não puder ir.`,
         });
+        // Reputação (Fase 4): avisa na 2ª falta; na 3ª em 30 dias, bloqueia por 7 dias.
+        const { faltas, bloqueado_ate } = situacaoDeFaltas(
+          s.coletas.filter((x) => x.usuario_id === c.usuario_id),
+          agora,
+        );
+        if (bloqueado_ate) {
+          registrarNotificacao(s, c.usuario_id, {
+            tipo: 'lembrete',
+            icone: '⛔',
+            texto: `Você faltou a ${faltas} entregas em 30 dias. Novos agendamentos ficam bloqueados até ${new Date(bloqueado_ate).toLocaleDateString('pt-BR')}.`,
+          });
+        } else if (faltas === FALTAS_PARA_BLOQUEIO - 1) {
+          registrarNotificacao(s, c.usuario_id, {
+            tipo: 'lembrete',
+            icone: '⚠️',
+            texto: `Atenção: ${faltas} faltas em 30 dias. Mais uma bloqueia novos agendamentos por 7 dias.`,
+          });
+        }
       }
       for (const c0 of p.lembrar) {
         const c = pegar(c0);

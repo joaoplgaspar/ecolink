@@ -31,6 +31,8 @@ import { divergencias, problemasDaPesagem } from '../../domain/antifraude';
 import { novoCodigoEntrega, novoCodigoColeta, lerQr, codigosIguais } from '../../domain/codigos';
 import { montarComprovante } from '../../domain/comprovante';
 import { mudarStatus, registrarEvento, lancar, quando } from './_coleta';
+import { resumoParaPonto, reputacaoDoPonto as calcularReputacaoDoPonto } from './_reputacao';
+import { TAGS_CIDADAO, podeAvaliar, podeEditar, problemasDaAvaliacao } from '../../domain/avaliacoes';
 
 import { nomeReduzido } from '../../utils/format';
 export { nomeReduzido };
@@ -90,6 +92,9 @@ function paraPonto(estado, c, { detalhe = false } = {}) {
     pontos_creditados: c.pontos_creditados,
     estimativa: estimativaDaColeta(c),
     acoes: acoesDisponiveis(c, 'ponto'),
+    reputacao_cidadao: resumoParaPonto(estado, c.usuario_id),
+    avaliado_pelo_ponto: (estado.avaliacoes_cidadao || []).some((a) => a.coleta_id === c.id),
+    pode_avaliar_cidadao: podeAvaliar(c) && !(estado.avaliacoes_cidadao || []).some((a) => a.coleta_id === c.id),
     codigo_bloqueado: Boolean(c.codigo_bloqueado_ate && Date.parse(c.codigo_bloqueado_ate) > Date.now()),
   };
   if (detalhe) {
@@ -715,5 +720,88 @@ export function excluirRascunho(id) {
       auditar(s, { ator_id: ator.id, acao: 'ponto.rascunho_excluido', recurso_tipo: 'ponto', recurso_id: p.id });
     });
     await Promise.all(fotos.map((f) => removerBlob(f.ref)));
+  });
+}
+
+/* ------------------------- avaliações e reputação (Fase 4) ------------------------- */
+
+/**
+ * A equipe do ponto avalia o CIDADÃO de uma entrega conferida. A avaliação é
+ * vista pelo próprio cidadão (transparência) e entra na reputação dele.
+ */
+export function avaliarCidadao({ coleta_id, nota, tags = [], comentario = '' }) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = buscarParaOperar(s, ator, coleta_id);
+      const problemas = problemasDaAvaliacao({ nota, tags, comentario }, TAGS_CIDADAO);
+      if (problemas.length) throw invalido(problemas[0]);
+      const coment = String(comentario || '')
+        .trim()
+        .slice(0, 500);
+      const existente = s.avaliacoes_cidadao.find((a) => a.coleta_id === c.id);
+      if (existente) {
+        if (!podeEditar(existente)) throw new ErroApi(409, 'O prazo para editar esta avaliação (7 dias) já passou.');
+        Object.assign(existente, { nota, tags, comentario: coment, autor_id: ator.id, em: agoraISO() });
+        return existente;
+      }
+      if (!podeAvaliar(c)) throw new ErroApi(409, 'Só dá para avaliar até 14 dias depois da conferência.');
+      const nova = {
+        id: proximoId(s, 'avaliacao_cidadao'),
+        coleta_id: c.id,
+        ponto_id: c.ponto_id,
+        cidadao_id: c.usuario_id,
+        autor_id: ator.id,
+        nota,
+        tags,
+        comentario: coment,
+        em: agoraISO(),
+        criada_em: agoraISO(),
+      };
+      s.avaliacoes_cidadao.push(nova);
+      const ponto = s.pontos.find((p) => p.id === c.ponto_id);
+      registrarNotificacao(s, c.usuario_id, {
+        tipo: 'avaliacao',
+        icone: '⭐',
+        texto: `${ponto.nome} avaliou sua entrega ${c.codigo}. Veja em "Minha reputação".`,
+      });
+      auditar(s, {
+        ator_id: ator.id,
+        acao: 'avaliacao.cidadao',
+        recurso_tipo: 'coleta',
+        recurso_id: c.id,
+        detalhes: { nota },
+      });
+      return nova;
+    }),
+  );
+}
+
+/** Avaliações recebidas pelo ponto, para a equipe ler e responder. */
+export function avaliacoesDoPonto(pontoId) {
+  return chamarAutenticado((ator) => {
+    const s = ler();
+    exigir(ator, 'avaliacao.responder', { ponto_id: Number(pontoId) }, 'Só a equipe do ponto vê este painel.');
+    return s.avaliacoes
+      .filter((a) => a.ponto_id === Number(pontoId))
+      .sort((a, b) => (a.em < b.em ? 1 : -1))
+      .map((a) => ({
+        id: a.id,
+        usuario_nome: a.usuario_nome,
+        nota: a.nota,
+        tags: a.tags || [],
+        comentario: a.comentario,
+        em: a.em,
+        verificada: Boolean(a.verificada),
+        resposta: a.resposta ? { texto: a.resposta.texto, em: a.resposta.em } : null,
+      }));
+  });
+}
+
+/** Reputação completa do ponto (com o alerta de revisão), para a equipe. */
+export function reputacaoDoPonto(pontoId) {
+  return chamarAutenticado((ator) => {
+    const s = ler();
+    exigir(ator, 'avaliacao.responder', { ponto_id: Number(pontoId) }, 'Só a equipe do ponto vê este painel.');
+    return calcularReputacaoDoPonto(s, Number(pontoId));
   });
 }

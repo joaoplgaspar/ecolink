@@ -25,6 +25,7 @@ import { chamar, chamarAutenticado, proximoId, agoraISO } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, registrarEvento, notificarEquipe, quando } from './_coleta';
+import { reputacaoDoCidadao } from './_reputacao';
 
 export const KG_MAXIMO = 500;
 export const MAX_ITENS = 5;
@@ -163,13 +164,25 @@ export function solicitar({ ponto_id, data, janela_inicio, itens = [] }) {
       if (problema) throw invalido(problema, 'janela');
       const janela = janelasDoDia(ponto, data).find((j) => j.inicio === janela_inicio);
 
-      // Anti-spam
+      // Reputação (Fase 4): bloqueio por faltas e limite de entregas em aberto.
+      const rep = reputacaoDoCidadao(s, ator.id);
+      if (rep.restricoes.bloqueado_ate) {
+        throw new ErroApi(
+          403,
+          `Novos agendamentos estão bloqueados até ${new Date(rep.restricoes.bloqueado_ate).toLocaleDateString('pt-BR')} por ${rep.restricoes.faltas_recentes} faltas nos últimos 30 dias. Veja "Minha reputação".`,
+          { codigo: 'bloqueio_faltas', bloqueado_ate: rep.restricoes.bloqueado_ate },
+        );
+      }
+      const limite = Math.min(MAX_ATIVAS, rep.restricoes.max_ativas);
       const ativas = s.coletas.filter((c) => c.usuario_id === ator.id && STATUS_ATIVOS.includes(c.status)).length;
-      if (ativas >= MAX_ATIVAS)
+      if (ativas >= limite) {
         throw new ErroApi(
           429,
-          `Você já tem ${MAX_ATIVAS} entregas em aberto. Conclua ou cancele uma antes de agendar outra.`,
+          limite < MAX_ATIVAS
+            ? `Com reputação ${rep.faixa.rotulo}, você pode ter ${limite} entrega em aberto por vez. Conclua ou cancele a atual.`
+            : `Você já tem ${limite} entregas em aberto. Conclua ou cancele uma antes de agendar outra.`,
         );
+      }
 
       const agora = new Date();
       const c = {
@@ -203,7 +216,8 @@ export function solicitar({ ponto_id, data, janela_inicio, itens = [] }) {
         em: c.criada_em,
       });
 
-      if (ponto.regras?.aceite_automatico) {
+      // Aceite automático só para quem não está com reputação Restrita.
+      if (ponto.regras?.aceite_automatico && rep.restricoes.aceite_automatico) {
         mudarStatus(s, c, 'aceitar', { ator: 'sistema' });
         c.codigo_entrega = novoCodigoEntrega();
         c.confirmada_em = agoraISO();

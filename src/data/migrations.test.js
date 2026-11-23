@@ -133,3 +133,19 @@ describe('migração v6 (coletas com itens e extrato)', () => {
     expect(s.usuarios[0].codigo_pessoal).toMatch(/^[A-Z2-9]{8}$/);
   });
 });
+
+describe('migração v7 (avaliações verificadas)', () => {
+  it('avaliação antiga só vira verificada se houver entrega concluída no ponto', () => {
+    const s = legadoV2();
+    s.avaliacoes.push({ id: 4, ponto_id: 2, usuario_id: 1, nota: 2, em: '2026-06-01' });
+    migrar(s);
+    expect(s.avaliacoes.find((a) => a.id === 3)).toMatchObject({
+      verificada: true,
+      coleta_id: 1,
+      tags: [],
+      resposta: null,
+    });
+    expect(s.avaliacoes.find((a) => a.id === 4)).toMatchObject({ verificada: false, coleta_id: null });
+    expect(s.avaliacoes_cidadao).toEqual([]);
+  });
+});
