@@ -10,12 +10,24 @@ Front end (React + Vite) da plataforma **ECOLINK**, que conecta pessoas a **pont
 
 **MVP (núcleo, fiel à API)**
 
-- Login / cadastro de usuário (autenticação simbólica)
+- Login / cadastro com **senha protegida por hash**, sessões que expiram e recuperação de senha
 - **Mapa interativo** (Leaflet + OpenStreetMap) com **busca por endereço**, **"usar minha localização"** e pontos ordenados por **distância**; filtro por cidade e material
 - Detalhe do ponto (materiais aceitos, horário, localização no mapa)
 - Agendar coleta (material, quantidade em kg, data)
 - Minhas coletas com status (**agendada → concluída → cancelada**)
 - Perfil do usuário
+
+**Perfis e segurança** (Fase 1 do [ROADMAP](./ROADMAP.md))
+
+- 👥 **Três perfis**: **Cidadão**, **Parceiro** (gestor/operador de ponto de coleta) e **Plataforma** (moderação/administração), cada um com seu menu e sua cor. Quem tem mais de um alterna pelo seletor "Usar como".
+- 🔐 **Senhas com hash PBKDF2** (600 mil iterações, sal por usuário), política de senha com medidor de força e bloqueio de senhas óbvias
+- 🚫 **Bloqueio progressivo** após 5 tentativas erradas (30 s → 1 min → 5 min → 15 min), sem revelar quais e-mails existem
+- ⏱️ **Sessões** com token aleatório (só o hash fica salvo), expiração após 7 dias sem uso e **30 min de inatividade** nos perfis parceiro/plataforma; lista de dispositivos conectados e "sair dos outros dispositivos"
+- 🔑 **Recuperação de senha** por código de 6 dígitos (válido por 15 min, uso único, máx. 5 tentativas)
+- 🛡️ **Permissões na camada de dados** (`src/domain/permissoes.js`): a tela esconde botões, mas quem bloqueia é o repositório, inclusive conflito de interesse (gestor não agenda nem avalia o próprio ponto)
+- 🕵️ **Minimização de dados**: o ponto vê só "Ana R.", nunca telefone ou e-mail
+- 📜 **Termos e privacidade (LGPD)** com aceite versionado; **log de auditoria**, incluindo tentativas negadas
+- 🧑‍⚖️ **Plataforma**: lista de usuários, suspensão de contas (encerra as sessões na hora) e auditoria
 
 **Diferenciais**
 
@@ -42,18 +54,29 @@ Ainda não há banco de dados real: tudo fica salvo **no navegador** (`localStor
 - **Transações atômicas**: se algo falha no meio, nada é gravado.
 - **Migrações versionadas** (`src/data/migrations.js`): dados salvos por versões antigas do app são atualizados, não perdidos.
 - **Sincronização entre abas**: abra o app em duas abas, mude algo em uma e veja a outra atualizar sozinha.
-- **Seed com datas relativas a hoje** (`src/data/seed.js`): 10 usuários, 8 pontos e cerca de 60 coletas nos últimos 60 dias. É determinístico: "Restaurar dados" sempre gera a mesma estrutura.
+- **Seed com datas relativas a hoje** (`src/data/seed.js`): 10 cidadãos, equipe de pontos e da plataforma, 8 pontos e cerca de 60 coletas nos últimos 60 dias. É determinístico: "Restaurar dados" sempre gera a mesma estrutura.
+- **Sessão por aba**: cada aba tem a própria sessão, então dá para ter o cidadão numa janela e o reciclador na outra ao mesmo tempo. "Manter conectado" guarda a sessão para novas abas.
 
-> Contas de teste: `ana@email.com`, `bruno@email.com`, `carla@email.com` (e mais 7) — senha **`senha123`**.
-> No Perfil há um botão **"Restaurar dados de demonstração"** para zerar tudo.
+### Contas de demonstração (senha de todas: `senha123`)
 
-**Simular rede lenta ou instável** (no console do navegador, depois recarregue):
+| Perfil     | E-mail                  | Quem é                                                             |
+| ---------- | ----------------------- | ------------------------------------------------------------------ |
+| Cidadão    | `ana@email.com`         | Cidadã com histórico completo (+ Bruno, Carla e mais 7)            |
+| Parceiro   | `marcos@email.com`      | Gestor do EcoPonto Centro e da Recicla Pinheiros; também é cidadão |
+| Parceiro   | `paula@email.com`       | Operadora da Coleta Vila Madalena                                  |
+| Plataforma | `moderacao@ecolink.app` | Moderação (consulta usuários e auditoria)                          |
+| Plataforma | `admin@ecolink.app`     | Administração (também suspende e reativa contas)                   |
 
-```js
-localStorage.setItem('ecolink:dev', JSON.stringify({ latenciaMin: 800, latenciaMax: 1500 })); // rede lenta
-localStorage.setItem('ecolink:dev', JSON.stringify({ taxaFalha: 0.3 })); // 30% das chamadas falham
-localStorage.removeItem('ecolink:dev'); // volta ao normal
-```
+> A senha de demonstração é conhecida e já fica guardada como hash. Contas criadas pelo cadastro seguem a política de senha (mínimo 8 caracteres, sem senhas óbvias).
+
+### Modo demonstração (tela de login)
+
+- **Entrar com um clique** em qualquer conta acima.
+- **Simular rede**: normal, lenta ou instável (30% das chamadas falham), para mostrar os estados de carregando, erro e "tentar de novo".
+- **Caixa de e-mail** (`/demo/emails`): onde chegam os códigos de recuperação de senha e os avisos de segurança.
+- **Restaurar dados** de demonstração.
+
+**Dica para a banca:** abra duas janelas lado a lado, uma com a Ana e outra com o Marcos. Agende uma coleta no EcoPonto Centro com a Ana e veja a entrega aparecer no painel do Marcos na hora.
 
 ---
 
@@ -99,19 +122,22 @@ src/
 ├── main.jsx                 # entrada
 ├── index.css                # tema (paleta "eco")
 ├── app/                     # rotas, sessão (AuthContext), layout
-├── domain/                  # REGRAS PURAS, sem React — gamificação, materiais, pontos
+├── domain/                  # REGRAS PURAS, sem React — gamificação, permissões, senhas, termos…
 ├── data/
 │   ├── storage.js           # armazenamento: cache, transações, abas, recuperação
 │   ├── migrations.js        # versões do formato dos dados
 │   ├── seed.js              # dados de demonstração (relativos a hoje)
 │   ├── config.js            # latência/falhas simuladas
 │   ├── erros.js             # ErroApi (status no estilo HTTP)
-│   └── repos/               # "API": usuarios, pontos, coletas, avaliacoes, resgates, chat…
+│   ├── sessaoCliente.js     # onde o navegador guarda o token (por aba)
+│   └── repos/               # "API": auth, usuarios, pontos, coletas, parceiro, admin…
 ├── hooks/                   # useQuery, useMutation, useDbVersion
 ├── features/
-│   ├── auth/pages/          # login e cadastro
+│   ├── auth/                # login, cadastro, recuperação de senha, painel demo
 │   ├── cidadao/pages/       # área do cliente
-│   └── shared/pages/        # chat e perfil
+│   ├── parceiro/pages/      # painel do ponto de coleta
+│   ├── admin/pages/         # usuários e auditoria
+│   └── shared/pages/        # chat, perfil (segurança), termos, caixa de e-mail demo
 ├── components/              # UI reutilizável, mapa, ícones
 └── utils/                   # datas, formatação, geolocalização
 ```

@@ -520,14 +520,16 @@ O `localStorage` tem cerca de 5 MB. Por isso:
 - ✅ Extra: validações movidas para os repositórios (saldo da loja, data passada, material aceito, lista branca de campos do perfil), parte de D6; transações atômicas; recuperação de dados corrompidos; a sessão não cai por falha passageira de rede; coletas concluídas não podem ser apagadas.
 - ✅ _Aceite verificado:_ `npm ci && npm run check` passam num clone limpo (76 testes, cerca de 95% de cobertura em `domain/` e `data/`); teste de ponta a ponta no navegador confirmou a migração v2→v3 e a atualização automática de uma segunda aba.
 
-### Fase 1 — Identidade, papéis e segurança base _(M)_ [M]
+### Fase 1 — Identidade, papéis e segurança base _(M)_ [M] — ✅ **concluída**
 
-- Hash de senha, sessão com token e expiração, bloqueio por tentativas (D4, D5).
-- `papeis[]`, seletor de perfil, `RequireRole`, página 403 (D3).
-- `domain/permissoes.js` aplicado nos repositórios (D6).
-- Termos/privacidade com aceite versionado; auditoria básica.
-- Painel demo com seletor de contas; "restaurar dados" sai do perfil (D13).
-- ✅ _Aceite:_ nenhuma senha legível no storage; cidadão não acessa `/parceiro` nem por URL nem chamando o repositório.
+- ✅ Hash de senha (PBKDF2-SHA256, 600 mil iterações, sal por usuário), sessão com token aleatório guardado só como hash, expiração deslizante de 7 dias e 30 min de inatividade nos perfis parceiro/plataforma, bloqueio progressivo por tentativas (D4, D5).
+- ✅ `papeis[]` (cidadão, gestor, operador, moderador, admin), seletor de perfil "Usar como", `RequirePerfil` e página 403 que oferece a troca quando a pessoa tem o perfil (D3).
+- ✅ `domain/permissoes.js` aplicado nos repositórios: o "dono" vem da sessão (como `auth.uid()` no Supabase), nunca de um id enviado pela tela; conflito de interesse bloqueado (D6).
+- ✅ Termos e privacidade com aceite versionado (contas migradas aceitam no próximo acesso); log de auditoria, incluindo tentativas negadas (403).
+- ✅ Painel de demonstração no login (contas por perfil, simulador de rede, caixa de e-mail, restaurar dados); "restaurar" saiu do perfil (D13).
+- ✅ Extras: recuperação de senha por código; troca de senha com reautenticação; "sair dos outros dispositivos"; suspensão de contas pela administração (encerra as sessões na hora); sessão por aba para a demo com dois perfis; o perfil padrão prioriza o profissional e o app reabre no último perfil usado.
+- ✅ Prévia da Fase 3: o painel do parceiro já lista as entregas dos seus pontos, só de leitura e com dados mínimos do cidadão ("Ana R.").
+- ✅ _Aceite verificado:_ nenhuma senha legível no storage (testado também com dados migrados da v3); cidadão recebe 403 em `/parceiro` e `/admin`, pela URL e chamando o repositório. São 170 testes automatizados, e um teste de ponta a ponta no navegador cobriu 14 cenários com vários perfis em abas simultâneas.
 
 ### Fase 2 — Onboarding do parceiro e cadastro de pontos _(G)_ [M]
 
