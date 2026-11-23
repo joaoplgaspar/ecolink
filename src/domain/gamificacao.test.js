@@ -1,21 +1,36 @@
 import { describe, it, expect } from 'vitest';
-import { pontosDaColeta, nivelPor, calcularEstatisticas, calcularRanking, impactoDe } from './gamificacao';
+import {
+  pontosDaColeta,
+  estimativaDaColeta,
+  kgRecebidos,
+  nivelPor,
+  calcularEstatisticas,
+  calcularRanking,
+  impactoDe,
+} from './gamificacao';
 
-const coleta = (material, kg, status = 'concluida', usuario_id = 1) => ({
+const item = (material, kg_declarado, kg_aferido = null, status = 'aprovado') => ({
   material,
-  quantidade_kg: kg,
+  kg_declarado,
+  kg_aferido,
   status,
-  usuario_id,
 });
+const coleta = (status, itens, usuario_id = 1) => ({ status, itens, usuario_id });
+const L = (usuario_id, tipo, valor) => ({ usuario_id, tipo, valor });
 
-describe('pontosDaColeta', () => {
-  it('multiplica kg pelo fator do material e arredonda', () => {
-    expect(pontosDaColeta(coleta('papel', 5.5))).toBe(44); // 5,5 × 8
-    expect(pontosDaColeta(coleta('pilhas', 0.3))).toBe(8); // 0,3 × 25 = 7,5 → 8
+describe('pontos de uma coleta', () => {
+  it('só itens APROVADOS, pelo peso AFERIDO pelo ponto', () => {
+    const c = coleta('concluida', [item('papel', 5, 5.5), item('vidro', 3, 2, 'rejeitado'), item('pilhas', 0.3, 0.3)]);
+    expect(pontosDaColeta(c)).toBe(52); // 5,5×8 + 0,3×25 = 44 + 7,5 = 51,5 → 52
+    expect(kgRecebidos(c)).toBe(5.8);
   });
 
-  it('usa fator padrão para material desconhecido', () => {
-    expect(pontosDaColeta(coleta('madeira', 2))).toBe(16);
+  it('estimativa usa o peso declarado', () => {
+    expect(estimativaDaColeta(coleta('solicitada', [item('metal', 2), item('papel', 1)]))).toBe(32);
+  });
+
+  it('material desconhecido usa fator padrão', () => {
+    expect(pontosDaColeta(coleta('concluida', [item('madeira', 2, 2)]))).toBe(16);
   });
 });
 
@@ -39,34 +54,43 @@ describe('nivelPor', () => {
 });
 
 describe('calcularEstatisticas', () => {
-  it('considera só coletas concluídas para pontos, kg e materiais', () => {
+  it('kg e materiais vêm das coletas concluídas; EcoPontos vêm do extrato', () => {
     const s = calcularEstatisticas({
       coletas: [
-        coleta('papel', 5),
-        coleta('vidro', 2),
-        coleta('metal', 10, 'agendada'),
-        coleta('plástico', 3, 'cancelada'),
+        coleta('concluida', [item('papel', 5, 5), item('vidro', 2, 2)]),
+        coleta('confirmada', [item('metal', 10)]),
+        coleta('solicitada', [item('metal', 1)]),
+        coleta('cancelada', [item('plástico', 3)]),
       ],
+      extrato: [L(1, 'credito_coleta', 52), L(1, 'resgate', -30)],
     });
-    expect(s).toMatchObject({ ecopontos: 52, totalKg: 7, concluidas: 2, agendadas: 1, materiaisDistintos: 2 });
+    expect(s).toMatchObject({
+      ecopontos: 52,
+      saldo: 22,
+      gastos: 30,
+      totalKg: 7,
+      concluidas: 1,
+      agendadas: 2,
+      materiaisDistintos: 2,
+    });
   });
 
-  it('saldo = ganhos − resgates, mas o nível usa o total acumulado', () => {
-    const s = calcularEstatisticas({ coletas: [coleta('papel', 20)], resgates: [{ custo: 100 }] });
-    expect(s.ecopontos).toBe(160);
-    expect(s.saldo).toBe(60);
+  it('nível usa o acumulado (resgatar não rebaixa)', () => {
+    const s = calcularEstatisticas({ extrato: [L(1, 'credito_coleta', 160), L(1, 'resgate', -100)] });
     expect(s.nivel.atual.nome).toBe('Prata');
+    expect(s.saldo).toBe(60);
   });
 
-  it('desbloqueia conquistas e não expõe funções (o resultado precisa ser serializável)', () => {
-    const s = calcularEstatisticas({ coletas: [coleta('papel', 1)] });
-    const primeira = s.conquistas.find((c) => c.slug === 'primeira');
-    expect(primeira.unlocked).toBe(true);
-    expect(s.conquistas.find((c) => c.slug === 'fiel').unlocked).toBe(false);
+  it('conquistas serializáveis e coerentes', () => {
+    const s = calcularEstatisticas({
+      coletas: [coleta('concluida', [item('papel', 1, 1)])],
+      extrato: [L(1, 'credito_coleta', 8)],
+    });
+    expect(s.conquistas.find((c) => c.slug === 'primeira').unlocked).toBe(true);
     expect(() => structuredClone(s)).not.toThrow();
   });
 
-  it('funciona sem nenhuma coleta', () => {
+  it('funciona sem dados', () => {
     expect(calcularEstatisticas({})).toMatchObject({ ecopontos: 0, saldo: 0, totalKg: 0 });
   });
 });
@@ -78,18 +102,22 @@ describe('impactoDe', () => {
 });
 
 describe('calcularRanking', () => {
-  it('ordena por EcoPontos e desempata pelo nome', () => {
+  it('ordena por acumulado no extrato (resgates não contam) e desempata pelo nome', () => {
     const usuarios = [
       { id: 1, nome: 'Bia', cidade: 'SP' },
       { id: 2, nome: 'Ana', cidade: 'SP' },
       { id: 3, nome: 'Caio', cidade: 'RJ' },
     ];
-    const coletas = [
-      coleta('papel', 1, 'concluida', 1),
-      coleta('papel', 1, 'concluida', 2),
-      coleta('metal', 5, 'concluida', 3),
-      coleta('metal', 50, 'agendada', 1),
+    const extrato = [
+      L(1, 'credito_coleta', 8),
+      L(2, 'credito_coleta', 8),
+      L(3, 'credito_coleta', 60),
+      L(3, 'resgate', -50),
     ];
-    expect(calcularRanking({ usuarios, coletas }).map((r) => r.nome)).toEqual(['Caio', 'Ana', 'Bia']);
+    expect(calcularRanking({ usuarios, extrato }).map((r) => `${r.nome}:${r.ecopontos}`)).toEqual([
+      'Caio:60',
+      'Ana:8',
+      'Bia:8',
+    ]);
   });
 });

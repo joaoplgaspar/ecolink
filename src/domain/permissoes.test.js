@@ -61,6 +61,10 @@ describe('matriz de permissões (ROADMAP §2.1)', () => {
     ['admin não suspende a si mesmo', ADMIN, 'usuario.alterar_status', { id: 14 }, false],
     ['admin não usa a loja', ADMIN, 'resgate.criar', {}, false],
     ['cidadão vê a própria conta', ANA, 'usuario.ver', { id: 1 }, true],
+    ['equipe opera coleta do seu ponto', MARCOS_PARCEIRO, 'coleta.operar', { ponto_id: 1, usuario_id: 2 }, true],
+    ['equipe não opera coleta de outro ponto', MARCOS_PARCEIRO, 'coleta.operar', { ponto_id: 2, usuario_id: 2 }, false],
+    ['ninguém opera (pesa) a própria coleta', MARCOS_PARCEIRO, 'coleta.operar', { ponto_id: 1, usuario_id: 11 }, false],
+    ['cidadão não opera coletas', ANA, 'coleta.operar', { ponto_id: 1, usuario_id: 2 }, false],
     ['cidadão não vê conta alheia', ANA, 'usuario.ver', { id: 2 }, false],
     [
       'responsável gerencia a própria organização',

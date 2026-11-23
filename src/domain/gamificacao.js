@@ -5,6 +5,8 @@
 // futuramente, no back end.
 
 import { getMaterial } from './materiais';
+import { acumuladoDe, saldoDe, gastoDe } from './extrato';
+import { STATUS_ATIVOS } from './coletaMaquina';
 
 export const NIVEIS = [
   { nome: 'Bronze', min: 0, cor: '#a86b2d' },
@@ -37,10 +39,22 @@ export const CONQUISTAS = [
 
 const arred = (n, casas = 1) => Math.round(n * 10 ** casas) / 10 ** casas;
 
-/** EcoPontos que uma coleta rende (kg × fator do material). */
-export function pontosDaColeta(coleta) {
-  return Math.round(coleta.quantidade_kg * getMaterial(coleta.material).fator);
+/** Itens que contam: na coleta concluída, só os APROVADOS na pesagem. */
+export const itensAprovados = (coleta) => (coleta.itens || []).filter((i) => i.status === 'aprovado');
+
+/** kg efetivamente recebidos (aferidos e aprovados). */
+export const kgRecebidos = (coleta) => arred(itensAprovados(coleta).reduce((t, i) => t + (i.kg_aferido || 0), 0));
+
+/** EcoPontos de itens: Σ kg × fator do material (arredondado no total). */
+export function pontosDosItens(itens, campo = 'kg_aferido') {
+  return Math.round(itens.reduce((t, i) => t + (i[campo] || 0) * getMaterial(i.material).fator, 0));
 }
+
+/** EcoPontos que uma coleta concluída rendeu (só itens aprovados, peso aferido pelo ponto). */
+export const pontosDaColeta = (coleta) => pontosDosItens(itensAprovados(coleta));
+
+/** Estimativa antes da entrega (peso declarado pelo cidadão). */
+export const estimativaDaColeta = (coleta) => pontosDosItens(coleta.itens || [], 'kg_declarado');
 
 /** Nível atual, próximo nível e progresso (0–100) para uma pontuação. */
 export function nivelPor(pontos) {
@@ -73,49 +87,40 @@ export function impactoDe(totalKg) {
 }
 
 /**
- * Estatísticas de um usuário a partir das coletas e resgates DELE.
+ * Estatísticas de um usuário a partir das coletas e do EXTRATO dele.
  *
- * EcoPontos: você GANHA concluindo coletas e GASTA na loja.
- * Saldo = ganhos − resgates. Nível, ranking e conquistas usam o total
- * acumulado (vitalício), que não diminui ao resgatar.
+ * EcoPontos vêm do extrato (livro-caixa): saldo = soma de todos os lançamentos;
+ * acumulado (nível, ranking, conquistas) = ganhos, sem descontar resgates.
+ * kg e impacto vêm só do que o ponto PESOU e APROVOU.
  */
-export function calcularEstatisticas({ coletas = [], resgates = [] }) {
-  const concluidas = coletas.filter((c) => c.status === 'concluida');
-  const agendadas = coletas.filter((c) => c.status === 'agendada');
+export function calcularEstatisticas({ coletas = [], extrato = [] }) {
+  const concluidas = coletas.filter((c) => c.status === 'concluida' || c.status === 'ajustada');
+  const ativas = coletas.filter((c) => STATUS_ATIVOS.includes(c.status));
+  const totalKg = arred(concluidas.reduce((t, c) => t + kgRecebidos(c), 0));
+  const materiaisDistintos = new Set(concluidas.flatMap((c) => itensAprovados(c).map((i) => i.material))).size;
+  const ecopontos = acumuladoDe(extrato);
 
-  const ecopontos = concluidas.reduce((soma, c) => soma + pontosDaColeta(c), 0);
-  const totalKg = concluidas.reduce((soma, c) => soma + c.quantidade_kg, 0);
-  const materiaisDistintos = new Set(concluidas.map((c) => c.material)).size;
-  const gastos = resgates.reduce((soma, r) => soma + r.custo, 0);
-
-  const base = {
-    ecopontos,
-    totalKg: arred(totalKg),
-    concluidas: concluidas.length,
-    agendadas: agendadas.length,
-    materiaisDistintos,
-  };
-
+  const base = { ecopontos, totalKg, concluidas: concluidas.length, agendadas: ativas.length, materiaisDistintos };
   return {
     ...base,
-    gastos,
-    saldo: ecopontos - gastos,
+    gastos: gastoDe(extrato),
+    saldo: saldoDe(extrato),
     nivel: nivelPor(ecopontos),
     impacto: impactoDe(totalKg),
     conquistas: CONQUISTAS.map(({ teste, ...c }) => ({ ...c, unlocked: teste(base) })),
   };
 }
 
-/** Ranking de usuários por EcoPontos acumulados (decrescente; empate → nome). */
-export function calcularRanking({ usuarios = [], coletas = [] }) {
-  const pontosPorUsuario = new Map();
-  for (const c of coletas) {
-    if (c.status !== 'concluida') continue;
-    pontosPorUsuario.set(c.usuario_id, (pontosPorUsuario.get(c.usuario_id) || 0) + pontosDaColeta(c));
+/** Ranking por EcoPontos acumulados no extrato (decrescente; empate → nome). */
+export function calcularRanking({ usuarios = [], extrato = [] }) {
+  const porUsuario = new Map();
+  for (const l of extrato) {
+    if (l.tipo === 'resgate') continue;
+    porUsuario.set(l.usuario_id, (porUsuario.get(l.usuario_id) || 0) + l.valor);
   }
   return usuarios
     .map((u) => {
-      const ecopontos = pontosPorUsuario.get(u.id) || 0;
+      const ecopontos = porUsuario.get(u.id) || 0;
       return { id: u.id, nome: u.nome, cidade: u.cidade, ecopontos, nivel: nivelPor(ecopontos).atual };
     })
     .sort((a, b) => b.ecopontos - a.ecopontos || a.nome.localeCompare(b.nome, 'pt-BR'));

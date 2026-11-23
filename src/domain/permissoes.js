@@ -77,6 +77,8 @@ const REGRAS = {
     (comoCidadao(a) && r.usuario_id === a.id) || (comoParceiro(a) && membroDo(a, r.ponto_id)) || comoPlataforma(a),
   'coleta.gerenciar_propria': (a, r) => comoCidadao(a) && r.usuario_id === a.id,
   'coleta.listar_do_ponto': (a, r) => (comoParceiro(a) && membroDo(a, r.ponto_id)) || comoPlataforma(a),
+  // Operar (aceitar, recusar, check-in, pesar): equipe do ponto — e nunca a própria coleta.
+  'coleta.operar': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id) && r.usuario_id !== a.id,
 
   // Cidadão
   'avaliacao.salvar': (a) => comoCidadao(a),
