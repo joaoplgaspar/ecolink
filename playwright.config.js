@@ -29,9 +29,9 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 860 } },
-      testIgnore: /celular/,
+      testIgnore: [/celular/, /supabase\//],
     },
-    { name: 'celular', use: { ...devices['Pixel 7'] }, testMatch: /celular/ },
+    { name: 'celular', use: { ...devices['Pixel 7'] }, testMatch: /celular/, testIgnore: /supabase\// },
   ],
   webServer: {
     command: `npm run build && npx vite preview --port ${PORTA} --strictPort`,

@@ -108,64 +108,85 @@ export default function PainelDemo({ aoEntrar, ocupado }) {
           ))}
 
           <div className="divider" />
-          <div className="small muted row mb-1" style={{ gap: 6, fontWeight: 700 }}>
-            <Wifi size={15} /> Simular rede
-          </div>
-          <div className="seg mb-2" role="group" aria-label="Simular rede">
-            {REDES.map((r) => (
-              <button
-                key={r.chave}
-                type="button"
-                className={rede === r.chave ? 'active' : ''}
-                aria-pressed={rede === r.chave}
-                onClick={() => mudarRede(r)}
-              >
-                {r.rotulo}
-              </button>
-            ))}
-          </div>
-
-          <div className="small muted row mb-1" style={{ gap: 6, fontWeight: 700 }}>
-            <Hourglass size={15} /> Simular passagem do tempo (prazos das entregas)
-          </div>
-          <div className="row wrap mb-2" style={{ gap: 6 }}>
-            {[
-              [2, '+2 horas'],
-              [24, '+1 dia'],
-              [72, '+3 dias'],
-            ].map(([h, rotulo]) => (
-              <button key={h} type="button" className="btn btn-sm" disabled={tempo.pending} onClick={() => simular(h)}>
-                {rotulo}
-              </button>
-            ))}
-          </div>
-          {resultadoTempo && (
-            <p className="small mb-2" role="status" style={{ color: 'var(--green-700)' }}>
-              {resultadoTempo}
+          {demo.online ? (
+            // Modo Supabase: o banco é real e compartilhado — nada de "simular" rede ou tempo.
+            <p className="small muted mb-0">
+              Conectado ao banco on-line (Supabase). Os prazos das entregas correm no servidor; para recomeçar a
+              demonstração, quem administra o projeto roda <code>supabase db reset</code>.
             </p>
+          ) : (
+            <FerramentasLocais
+              rede={rede}
+              mudarRede={mudarRede}
+              tempo={tempo}
+              simular={simular}
+              resultadoTempo={resultadoTempo}
+              restaurar={restaurar}
+              restaurarDados={restaurarDados}
+              restaurado={restaurado}
+            />
           )}
-
-          <div className="row wrap" style={{ gap: 8 }}>
-            <Link to="/demo/emails" target="_blank" className="btn btn-sm btn-ghost">
-              <Inbox size={15} /> Caixa de e-mail
-            </Link>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={restaurarDados}
-              disabled={restaurar.pending}
-            >
-              {restaurar.pending ? <Loader2 size={15} className="spin" /> : <RotateCcw size={15} />} Restaurar dados
-            </button>
-          </div>
-          {restaurado && (
-            <p className="small mt-1" role="status" style={{ color: 'var(--green-700)' }}>
-              Dados restaurados.
-            </p>
-          )}
-          <MensagemErro erro={restaurar.error} style={{ marginTop: 6 }} />
         </div>
       )}
     </div>
+  );
+}
+
+/** Ferramentas que só existem com os dados no dispositivo (modo local). */
+function FerramentasLocais({ rede, mudarRede, tempo, simular, resultadoTempo, restaurar, restaurarDados, restaurado }) {
+  return (
+    <>
+      <div className="small muted row mb-1" style={{ gap: 6, fontWeight: 700 }}>
+        <Wifi size={15} /> Simular rede
+      </div>
+      <div className="seg mb-2" role="group" aria-label="Simular rede">
+        {REDES.map((r) => (
+          <button
+            key={r.chave}
+            type="button"
+            className={rede === r.chave ? 'active' : ''}
+            aria-pressed={rede === r.chave}
+            onClick={() => mudarRede(r)}
+          >
+            {r.rotulo}
+          </button>
+        ))}
+      </div>
+
+      <div className="small muted row mb-1" style={{ gap: 6, fontWeight: 700 }}>
+        <Hourglass size={15} /> Simular passagem do tempo (prazos das entregas)
+      </div>
+      <div className="row wrap mb-2" style={{ gap: 6 }}>
+        {[
+          [2, '+2 horas'],
+          [24, '+1 dia'],
+          [72, '+3 dias'],
+        ].map(([h, rotulo]) => (
+          <button key={h} type="button" className="btn btn-sm" disabled={tempo.pending} onClick={() => simular(h)}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
+      {resultadoTempo && (
+        <p className="small mb-2" role="status" style={{ color: 'var(--green-700)' }}>
+          {resultadoTempo}
+        </p>
+      )}
+
+      <div className="row wrap" style={{ gap: 8 }}>
+        <Link to="/demo/emails" target="_blank" className="btn btn-sm btn-ghost">
+          <Inbox size={15} /> Caixa de e-mail
+        </Link>
+        <button type="button" className="btn btn-sm btn-ghost" onClick={restaurarDados} disabled={restaurar.pending}>
+          {restaurar.pending ? <Loader2 size={15} className="spin" /> : <RotateCcw size={15} />} Restaurar dados
+        </button>
+      </div>
+      {restaurado && (
+        <p className="small mt-1" role="status" style={{ color: 'var(--green-700)' }}>
+          Dados restaurados.
+        </p>
+      )}
+      <MensagemErro erro={restaurar.error} style={{ marginTop: 6 }} />
+    </>
   );
 }

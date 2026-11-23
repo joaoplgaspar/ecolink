@@ -18,9 +18,12 @@
     "e2e": "playwright test",
     "e2e:video": "E2E_VIDEO=1 playwright test --project=desktop video-demo",
     "test:banco": "bash scripts/testar-banco.sh",
+    "dev:supabase": "vite --mode supabase",
+    "e2e:supabase": "playwright test --config playwright.supabase.config.js",
     "seed:supabase": "vite-node scripts/gerar-seed-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.119.2",
     "framer-motion": "^12.40.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.18.0",

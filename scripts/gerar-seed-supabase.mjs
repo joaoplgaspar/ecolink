@@ -8,6 +8,7 @@
 import { writeFileSync } from 'node:fs';
 import { makeSeed } from '../src/data/seed.js';
 import { isoDia } from '../src/utils/datas.js';
+import { RECOMPENSAS } from '../src/data/recompensas.js';
 
 const AGORA = new Date();
 const s = makeSeed({ agora: AGORA });
@@ -83,6 +84,15 @@ for (const e of s.coleta_eventos)
   (${e.id}, ${e.coleta_id}, ${lit(e.acao)}, ${lit(e.de)}, ${lit(e.para)}, ${lit(e.ator)},
    ${e.ator_id ? `'${uuid(e.ator_id)}'` : 'null'}, ${lit(e.motivo)}, ${instante(e.em)});`);
 
+// Catálogo da loja (o custo que vale é este, no banco) e resgates já feitos.
+for (const r of RECOMPENSAS)
+  sql(
+    `insert into public.recompensas (id, nome, parceiro, custo) values (${r.id}, ${lit(r.nome)}, ${lit(r.parceiro)}, ${r.custo});`,
+  );
+for (const r of s.resgates || [])
+  sql(`insert into public.resgates (id, usuario_id, recompensa_id, nome, parceiro, custo, codigo, em) values
+  (${r.id}, '${uuid(r.usuario_id)}', ${r.recompensa_id}, ${lit(r.nome)}, ${lit(r.parceiro)}, ${r.custo}, ${lit(r.codigo)}, ${instante(r.em)});`);
+
 for (const l of s.extrato)
   sql(`insert into public.extrato (id, usuario_id, tipo, valor, referencia_tipo, referencia_id, descricao, criado_por, em) values
   (${l.id}, '${uuid(l.usuario_id)}', ${lit(l.tipo)}, ${l.valor}, ${lit(l.referencia_tipo)}, ${l.referencia_id ?? 'null'},
@@ -100,7 +110,7 @@ for (const n of s.notificacoes)
 
 // Sequências depois dos ids explícitos.
 sql('do $$ begin');
-for (const t of ['organizacoes', 'pontos', 'membros', 'coletas', 'coleta_eventos', 'extrato', 'avaliacoes'])
+for (const t of ['organizacoes', 'pontos', 'membros', 'coletas', 'coleta_eventos', 'extrato', 'avaliacoes', 'resgates'])
   sql(`  perform setval(pg_get_serial_sequence('public.${t}', 'id'), coalesce((select max(id) from public.${t}), 1));`);
 sql('end $$;');
 sql('commit;');

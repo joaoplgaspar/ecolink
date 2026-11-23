@@ -28,6 +28,9 @@ import { TERMOS } from '../../domain/termos';
 import { chamar, chamarAutenticado, proximoId, agoraISO, texto } from './_rede';
 import { hashDoToken, montarAtor, auditar, VALIDADE_MS } from './_sessao';
 import { publico } from './usuarios';
+import { mascararEmail, descreverDispositivo } from '../../domain/dispositivo';
+
+export { mascararEmail, descreverDispositivo };
 
 export const MAX_TENTATIVAS = 5;
 /** Espera após cada bloqueio consecutivo: 30 s, 1 min, 5 min, 15 min… */
@@ -43,41 +46,6 @@ const normalizarEmail = (email) =>
     .toLowerCase();
 const buscarPorEmail = (estado, email) => estado.usuarios.find((u) => u.email.toLowerCase() === normalizarEmail(email));
 const agora = () => Date.now();
-
-/** "ana@email.com" → "a**@email.com" (para logs, sem expor o e-mail inteiro). */
-export function mascararEmail(email) {
-  const [nome, dominio] = normalizarEmail(email).split('@');
-  if (!dominio) return '***';
-  return `${nome[0] || '*'}${'*'.repeat(Math.max(2, nome.length - 1))}@${dominio}`;
-}
-
-/** Descrição amigável do dispositivo, para a lista "sessões ativas". */
-export function descreverDispositivo(ua = globalThis.navigator?.userAgent || '') {
-  const navegador = /Edg\//.test(ua)
-    ? 'Edge'
-    : /OPR\//.test(ua)
-      ? 'Opera'
-      : /Chrome\//.test(ua)
-        ? 'Chrome'
-        : /Firefox\//.test(ua)
-          ? 'Firefox'
-          : /Safari\//.test(ua)
-            ? 'Safari'
-            : null;
-  const sistema = /Android/.test(ua)
-    ? 'Android'
-    : /iPhone|iPad/.test(ua)
-      ? 'iOS'
-      : /Windows/.test(ua)
-        ? 'Windows'
-        : /Mac OS X/.test(ua)
-          ? 'macOS'
-          : /Linux/.test(ua)
-            ? 'Linux'
-            : null;
-  if (!navegador && !sistema) return 'Dispositivo desconhecido';
-  return [navegador || 'Navegador', sistema && `no ${sistema}`].filter(Boolean).join(' ');
-}
 
 /** O que a interface recebe sobre a sessão (nada de hashes ou tokens). */
 function sessaoPublica(estado, usuario, sessao) {
