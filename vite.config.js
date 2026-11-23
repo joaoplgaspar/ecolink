@@ -8,7 +8,10 @@ import fonteDeDados from './scripts/vite-fonte-dados.js';
 // VITE_FONTE_DADOS=supabase troca o "banco" local pelo Supabase (ver docs/supabase.md).
 export default defineConfig(({ mode }) => {
   const fonte = loadEnv(mode, process.cwd(), 'VITE_').VITE_FONTE_DADOS || 'local';
+  // Página publicada (VITE_ROTEADOR=hash): caminhos relativos, porque ela não fica na raiz do domínio.
+  const publicado = loadEnv(mode, process.cwd(), 'VITE_').VITE_ROTEADOR === 'hash';
   return {
+    base: publicado ? './' : '/',
     plugins: [react(), fonteDeDados(fonte)],
     resolve: {
       // "@/..." aponta para "src/..." — evita imports como "../../../data/repos".

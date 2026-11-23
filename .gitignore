@@ -10,3 +10,4 @@ test-results
 playwright-report
 dist-supabase
 .env
+dist-publicar

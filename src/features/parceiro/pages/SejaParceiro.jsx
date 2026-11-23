@@ -10,6 +10,7 @@ import { mensagemDeErro } from '@/data/erros';
 import { MensagemErro } from '@/components/ui.jsx';
 import CampoSenha from '@/components/CampoSenha.jsx';
 import { problemasDaSenha } from '@/domain/senhas';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 const PASSOS = [
   { icone: UserPlus, titulo: 'Crie sua conta', texto: 'Com o e-mail da pessoa responsável pela organização.' },
@@ -195,11 +196,11 @@ export default function SejaParceiro() {
                   />
                   <span>
                     Li e aceito os{' '}
-                    <Link to="/termos" target="_blank">
+                    <Link to="/termos" {...NOVA_ABA}>
                       Termos de Uso
                     </Link>{' '}
                     e a{' '}
-                    <Link to="/privacidade" target="_blank">
+                    <Link to="/privacidade" {...NOVA_ABA}>
                       Política de Privacidade
                     </Link>
                     .

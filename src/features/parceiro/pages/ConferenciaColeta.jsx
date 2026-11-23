@@ -36,6 +36,7 @@ import { ChipReputacao, FormAvaliacao } from '@/components/Reputacao.jsx';
 import { TAGS_CIDADAO } from '@/domain/avaliacoes';
 import { BotaoDenunciar } from '@/components/Denunciar.jsx';
 import { bloqueios } from '@/data/repos';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 export default function ConferenciaColeta() {
   const { id } = useParams();
@@ -397,6 +398,7 @@ function AvaliarCidadao({ coleta }) {
  * quem denunciou) ou bloquear neste ponto (efeito imediato, só aqui).
  */
 function ProblemasComEntrega({ coleta }) {
+  const confirmar = useConfirmar();
   const [feito, setFeito] = useState(false);
   const bloquear = useMutation(() => bloqueios.bloquear({ alvo_tipo: 'usuario', coleta_id: coleta.id }));
   return (
@@ -430,8 +432,13 @@ function ProblemasComEntrega({ coleta }) {
             className="btn btn-ghost btn-sm"
             disabled={bloquear.pending}
             onClick={async () => {
-              if (!window.confirm(`Bloquear ${coleta.cidadao} neste ponto? A pessoa não poderá mais agendar aqui.`))
-                return;
+              const ok = await confirmar({
+                titulo: `Bloquear ${coleta.cidadao} neste ponto?`,
+                texto: 'A pessoa não poderá mais agendar entregas aqui.',
+                acao: 'Bloquear',
+                perigo: true,
+              });
+              if (!ok) return;
               const r = await bloquear.mutate();
               if (r.ok) setFeito(true);
             }}

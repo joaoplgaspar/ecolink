@@ -4,7 +4,7 @@
 //
 //   npm run e2e:supabase   (precisa de `supabase start` + `supabase db reset`; ver docs/supabase.md)
 import { test, expect } from '@playwright/test';
-import { entrar, novaAba } from '../ajuda.js';
+import { entrar, novaAba, confirmar } from '../ajuda.js';
 
 test('jornada da entrega no Supabase, com cidadã e ponto em abas separadas', async ({ page, context }) => {
   const ana = page;
@@ -65,6 +65,7 @@ test('jornada da entrega no Supabase, com cidadã e ponto em abas separadas', as
   await test.step('loja: o resgate é uma função do banco (custo do catálogo, saldo recalculado)', async () => {
     await diego.goto('/loja');
     await diego.getByRole('button', { name: 'Resgatar' }).first().click();
+    await confirmar(diego, 'Resgatar');
     await expect(diego.getByText(/Resgatado!/)).toBeVisible();
     await expect(diego.getByText(/código ECO-[A-Z0-9]{4}-[A-Z0-9]{4}/)).toBeVisible();
   });

@@ -10,6 +10,8 @@ import { getConfig, setConfig } from '@/data/config';
 import { useQuery } from '@/hooks/useQuery';
 import { useMutation } from '@/hooks/useMutation';
 import { MensagemErro } from '@/components/ui.jsx';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 const REDES = [
   { chave: 'normal', rotulo: 'Normal', config: { latenciaMin: 120, latenciaMax: 380, taxaFalha: 0 } },
@@ -25,6 +27,7 @@ function redeAtual() {
 }
 
 export default function PainelDemo({ aoEntrar, ocupado }) {
+  const confirmar = useConfirmar();
   const [aberto, setAberto] = useState(true);
   const [rede, setRede] = useState(redeAtual);
   const q = useQuery(() => demo.contas(), []);
@@ -51,8 +54,13 @@ export default function PainelDemo({ aoEntrar, ocupado }) {
   }
 
   async function restaurarDados() {
-    if (!window.confirm('Restaurar todos os dados de demonstração? Isso apaga coletas, contas criadas e sessões.'))
-      return;
+    const ok = await confirmar({
+      titulo: 'Restaurar os dados de demonstração?',
+      texto: 'Isso apaga entregas, contas criadas e sessões deste navegador e recria os dados de exemplo.',
+      acao: 'Restaurar dados',
+      perigo: true,
+    });
+    if (!ok) return;
     const r = await restaurar.mutate();
     if (r.ok) setRestaurado(true);
   }
@@ -174,7 +182,7 @@ function FerramentasLocais({ rede, mudarRede, tempo, simular, resultadoTempo, re
       )}
 
       <div className="row wrap" style={{ gap: 8 }}>
-        <Link to="/demo/emails" target="_blank" className="btn btn-sm btn-ghost">
+        <Link to="/demo/emails" {...NOVA_ABA} className="btn btn-sm btn-ghost">
           <Inbox size={15} /> Caixa de e-mail
         </Link>
         <button type="button" className="btn btn-sm btn-ghost" onClick={restaurarDados} disabled={restaurar.pending}>

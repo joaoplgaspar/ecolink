@@ -13,6 +13,7 @@ import { mensagemDeErro } from '@/data/erros';
 import { PERFIS } from '@/domain/permissoes';
 import { precisaAceitarTermos, TERMOS } from '@/domain/termos';
 import { formatDate } from '@/utils/format';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 export default function ProtectedRoute({ children }) {
   const { user, carregando, erroSessao, tentarDeNovo } = useAuth();
@@ -65,11 +66,11 @@ function AceiteTermos() {
           </h1>
           <p className="muted mt-1">
             Para continuar usando o ECOLINK, leia e aceite os{' '}
-            <Link to="/termos" target="_blank">
+            <Link to="/termos" {...NOVA_ABA}>
               Termos de Uso
             </Link>{' '}
             e a{' '}
-            <Link to="/privacidade" target="_blank">
+            <Link to="/privacidade" {...NOVA_ABA}>
               Política de Privacidade
             </Link>{' '}
             (versão {TERMOS.versao}, de {formatDate(TERMOS.publicado_em)}).

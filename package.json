@@ -20,6 +20,7 @@
     "test:banco": "bash scripts/testar-banco.sh",
     "dev:supabase": "vite --mode supabase",
     "build:supabase": "vite build --mode supabase --outDir dist-supabase",
+    "build:publicar": "VITE_ROTEADOR=hash vite build --outDir dist-publicar",
     "e2e:supabase": "playwright test --config playwright.supabase.config.js",
     "seed:supabase": "vite-node scripts/gerar-seed-supabase.mjs"
   },

@@ -31,6 +31,7 @@ import {
 } from '@/components/Reputacao.jsx';
 import { mapaExternoUrl } from '@/utils/maplink';
 import { stagger, item } from '@/utils/anim';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 export default function PointDetail() {
   const { id } = useParams();
@@ -201,6 +202,7 @@ export default function PointDetail() {
 
 /** Bloquear: o ponto some das buscas da pessoa e ela não agenda ali (até desbloquear). */
 function Bloqueio({ pontoId, bloqueio }) {
+  const confirmar = useConfirmar();
   const acao = useMutation(() =>
     bloqueio ? bloqueios.desbloquear(bloqueio.id) : bloqueios.bloquear({ alvo_tipo: 'ponto', alvo_id: pontoId }),
   );
@@ -210,8 +212,16 @@ function Bloqueio({ pontoId, bloqueio }) {
         type="button"
         className="btn btn-ghost btn-sm"
         disabled={acao.pending}
-        onClick={() => {
-          if (bloqueio || window.confirm('Bloquear este ponto? Ele some das suas buscas até você desbloquear.'))
+        onClick={async () => {
+          if (
+            bloqueio ||
+            (await confirmar({
+              titulo: 'Bloquear este ponto?',
+              texto: 'Ele some das suas buscas até você desbloquear.',
+              acao: 'Bloquear',
+              perigo: true,
+            }))
+          )
             acao.mutate();
         }}
       >

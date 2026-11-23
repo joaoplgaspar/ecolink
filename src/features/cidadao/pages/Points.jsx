@@ -8,6 +8,7 @@ import { statusFuncionamento } from '@/domain/horarios';
 import { PointCard, MaterialTag, EmptyState, Carregando, ErroCarregar } from '@/components/ui.jsx';
 import MapView from '@/components/MapView.jsx';
 import { haversineKm, geocode, getCurrentLocation } from '@/utils/geo';
+import { PUBLICADO } from '@/utils/ambiente';
 
 export default function Points() {
   const nav = useNavigate();
@@ -15,7 +16,8 @@ export default function Points() {
   const [material, setMaterial] = useState('');
   const [apenasAtivos, setApenasAtivos] = useState(false);
   const [abertosAgora, setAbertosAgora] = useState(false);
-  const [view, setView] = useState('mapa');
+  // Publicado num iframe protegido, o mapa fica sem as imagens das ruas: abre na lista.
+  const [view, setView] = useState(PUBLICADO ? 'lista' : 'mapa');
 
   const [endereco, setEndereco] = useState('');
   const [userLocation, setUserLocation] = useState(null);

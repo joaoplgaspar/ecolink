@@ -1,11 +1,16 @@
 import ReactDOM from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, HashRouter } from 'react-router-dom';
 import App from './app/App.jsx';
 import { AuthProvider } from './app/AuthContext.jsx';
+import { ConfirmacaoProvider } from './components/Confirmacao.jsx';
 import { limparSessaoAntiga } from './data/sessaoCliente';
 import { auth, manutencao } from './data/repos';
+import { PUBLICADO } from './utils/ambiente';
 import './index.css';
+
+// Página publicada num iframe protegido: rotas no "#" (só o arquivo index.html existe lá).
+const Roteador = PUBLICADO ? HashRouter : BrowserRouter;
 
 // Segurança ao abrir o app:
 // 1. apaga a "sessão" insegura da versão anterior (era só o id do usuário);
@@ -24,17 +29,19 @@ setInterval(processarPrazos, 60_000);
 ReactDOM.createRoot(document.getElementById('root')).render(
   // reducedMotion="user": quem ativou "reduzir movimento" no sistema não vê animações.
   <MotionConfig reducedMotion="user">
-    <BrowserRouter>
+    <Roteador>
       <AuthProvider>
-        <App />
+        <ConfirmacaoProvider>
+          <App />
+        </ConfirmacaoProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Roteador>
   </MotionConfig>,
 );
 
 // PWA: registra o service worker apenas na build de produção
 // (evita interferir no hot-reload do servidor de desenvolvimento).
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator && import.meta.env.PROD && !PUBLICADO) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });

@@ -15,6 +15,7 @@ import { Carregando, ErroCarregar, EmptyState, MensagemErro } from '@/components
 import { ChipReputacao } from '@/components/Reputacao.jsx';
 import { StatusColeta, quandoTexto, resumoItens } from '@/components/Coleta.jsx';
 import LeitorQr from '@/components/LeitorQr.jsx';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 const ABAS = [
   { chave: 'novas', rotulo: 'Novas' },
@@ -41,6 +42,7 @@ function bip() {
 }
 
 export default function Recebimentos({ ponto }) {
+  const confirmar = useConfirmar();
   const nav = useNavigate();
   const q = useQuery(() => parceiro.recebimentos(ponto.id), [ponto.id]);
   const [aba, setAba] = useState(null);
@@ -69,7 +71,13 @@ export default function Recebimentos({ ponto }) {
       try {
         const r = await parceiro.lerCodigo(ponto.id, texto);
         if (r.tipo === 'coleta') return nav(`/parceiro/coletas/${r.coleta.id}`);
-        if (window.confirm(`Registrar uma entrega SEM agendamento de ${r.cidadao}?`)) {
+        if (
+          await confirmar({
+            titulo: `Entrega sem agendamento de ${r.cidadao}?`,
+            texto: 'Você registra e pesa o material agora, no balcão.',
+            acao: 'Registrar entrega',
+          })
+        ) {
           const c = await parceiro.iniciarAvulsa(ponto.id, r.codigo);
           nav(`/parceiro/coletas/${c.id}`);
         }
@@ -77,7 +85,7 @@ export default function Recebimentos({ ponto }) {
         setErroLeitura(mensagemDeErro(e));
       }
     },
-    [ponto.id, nav],
+    [ponto.id, nav, confirmar],
   );
 
   return (

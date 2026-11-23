@@ -26,6 +26,7 @@ import { RECOMPENSAS, CATEGORIAS } from '@/data/recompensas';
 import { nf, formatDate } from '@/utils/format';
 import { EmptyState, Carregando, ErroCarregar, MensagemErro } from '@/components/ui.jsx';
 import { stagger, item } from '@/utils/anim';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 const ICONS = { ShoppingBag, CupSoda, Percent, Bus, Trees, Sprout, Coffee, Trash2 };
 
@@ -36,6 +37,7 @@ export default function Rewards() {
   const [categoria, setCategoria] = useState('');
   const [msg, setMsg] = useState(null);
   const resgate = useMutation((recompensaId) => resgates.resgatar(recompensaId));
+  const confirmar = useConfirmar();
 
   if (q.loading) return <Carregando linhas={3} altura={140} rotulo="Carregando loja…" />;
   if (!q.data) return <ErroCarregar erro={q.error} onTentar={q.refetch} />;
@@ -46,7 +48,12 @@ export default function Rewards() {
 
   async function resgatar(r) {
     if (saldo < r.custo) return;
-    if (!window.confirm(`Trocar ${r.custo} EcoPontos por "${r.nome}"?`)) return;
+    const ok = await confirmar({
+      titulo: `Trocar ${r.custo} EcoPontos?`,
+      texto: `Você recebe "${r.nome}" (${r.parceiro}) e um código para usar.`,
+      acao: 'Resgatar',
+    });
+    if (!ok) return;
     setMsg(null);
     // O saldo é conferido de novo no repositório — a tela é só a primeira barreira.
     const res = await resgate.mutate(r.id);

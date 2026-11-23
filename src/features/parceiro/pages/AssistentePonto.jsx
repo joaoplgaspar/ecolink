@@ -22,6 +22,7 @@ import CampoArquivo from '@/components/CampoArquivo.jsx';
 import MapaAlfinete from '@/components/MapaAlfinete.jsx';
 import EditorHorarios from '@/components/EditorHorarios.jsx';
 import PontoInfo from '@/components/PontoInfo.jsx';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 const ETAPAS = [...ETAPAS_PONTO, { chave: 'revisao', rotulo: 'Revisão' }];
 const CAMPOS_ETAPA = {
@@ -33,6 +34,7 @@ const CAMPOS_ETAPA = {
 };
 
 export default function AssistentePonto() {
+  const confirmar = useConfirmar();
   const { id } = useParams();
   const nav = useNavigate();
   const [ponto, setPonto] = useState(null); // como está salvo
@@ -97,7 +99,13 @@ export default function AssistentePonto() {
   }
 
   async function excluirRascunho() {
-    if (!window.confirm('Excluir este rascunho? As fotos enviadas também serão apagadas.')) return;
+    const ok = await confirmar({
+      titulo: 'Excluir este rascunho?',
+      texto: 'As fotos enviadas também serão apagadas.',
+      acao: 'Excluir rascunho',
+      perigo: true,
+    });
+    if (!ok) return;
     const r = await excluir.mutate();
     if (r.ok) nav('/parceiro', { replace: true });
   }

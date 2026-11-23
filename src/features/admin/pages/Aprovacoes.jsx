@@ -25,6 +25,7 @@ import { Carregando, ErroCarregar, EmptyState, MensagemErro } from '@/components
 import PontoInfo from '@/components/PontoInfo.jsx';
 import MapView from '@/components/MapView.jsx';
 import { VerDocumento } from '@/features/parceiro/pages/CadastroOrganizacao.jsx';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 export default function Aprovacoes() {
   const { user, perfil, sessao } = useAuth();
@@ -76,6 +77,7 @@ export default function Aprovacoes() {
 
 /** Botões Aprovar / Pedir ajustes (com motivo obrigatório). */
 function Decisao({ decidir, podeDecidir, nome }) {
+  const confirmar = useConfirmar();
   const [ajustando, setAjustando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const acao = useMutation((dados) => decidir(dados));
@@ -114,7 +116,13 @@ function Decisao({ decidir, podeDecidir, nome }) {
           <button
             className="btn btn-primary"
             disabled={acao.pending}
-            onClick={() => window.confirm(`Aprovar ${nome}?`) && acao.mutate({ aprovar: true })}
+            onClick={async () =>
+              (await confirmar({
+                titulo: `Aprovar ${nome}?`,
+                texto: 'O parceiro é avisado e passa a aparecer para os cidadãos.',
+                acao: 'Aprovar',
+              })) && acao.mutate({ aprovar: true })
+            }
             aria-label={`Aprovar ${nome}`}
           >
             {acao.pending ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />} Aprovar

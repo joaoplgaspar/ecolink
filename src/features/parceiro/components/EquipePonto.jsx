@@ -10,6 +10,8 @@ import { useMutation } from '@/hooks/useMutation';
 import { Carregando, ErroCarregar, MensagemErro, Avatar } from '@/components/ui.jsx';
 import { PAPEIS_EQUIPE, VALIDADE_CONVITE_DIAS } from '@/domain/equipe';
 import { formatDate } from '@/utils/format';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 const TOM_CONVITE = { pendente: 'alerta', aceito: 'ok', cancelado: 'neutro', expirado: 'neutro' };
 
@@ -61,6 +63,7 @@ export default function EquipePonto({ ponto }) {
 }
 
 function Membro({ m, gerenciavel }) {
+  const confirmar = useConfirmar();
   const papel = useMutation((p) => equipe.alterarPapel(m.id, p));
   const remover = useMutation(() => equipe.remover(m.id));
   return (
@@ -97,8 +100,16 @@ function Membro({ m, gerenciavel }) {
             className="btn btn-ghost btn-sm icon-btn"
             aria-label={`Remover ${m.nome} da equipe`}
             disabled={remover.pending}
-            onClick={() => {
-              if (window.confirm(`Remover ${m.nome} da equipe? O acesso ao ponto acaba na hora.`)) remover.mutate();
+            onClick={async () => {
+              if (
+                await confirmar({
+                  titulo: `Remover ${m.nome} da equipe?`,
+                  texto: 'O acesso ao ponto acaba na hora.',
+                  acao: 'Remover',
+                  perigo: true,
+                })
+              )
+                remover.mutate();
             }}
           >
             <Trash2 size={15} />
@@ -162,7 +173,7 @@ function Convidar({ pontoId }) {
       {enviado && (
         <p className="small row wrap" style={{ gap: 6, color: 'var(--green-700)' }} role="status">
           <Mail size={14} /> Convite enviado para {enviado.email}. Na demonstração, ele chega na{' '}
-          <Link to="/demo/emails" target="_blank">
+          <Link to="/demo/emails" {...NOVA_ABA}>
             caixa de e-mail
           </Link>
           .

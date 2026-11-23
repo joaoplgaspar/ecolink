@@ -8,6 +8,7 @@ import { auth } from '@/data/repos';
 import { useMutation } from '@/hooks/useMutation';
 import { MensagemErro } from '@/components/ui.jsx';
 import CampoSenha from '@/components/CampoSenha.jsx';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 export default function RecuperarSenha() {
   const nav = useNavigate();
@@ -79,7 +80,7 @@ export default function RecuperarSenha() {
               </div>
               <p className="small faint mb-2">
                 Demonstração: o "e-mail" chega na{' '}
-                <Link to="/demo/emails" target="_blank">
+                <Link to="/demo/emails" {...NOVA_ABA}>
                   <Inbox size={13} /> caixa de e-mail simulada
                 </Link>
                 .

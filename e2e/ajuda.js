@@ -10,6 +10,7 @@ export async function restaurar(page) {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByRole('button', { name: /Restaurar dados/ }).click();
+  await confirmar(page, 'Restaurar dados');
   await expect(page.getByText('Dados restaurados.')).toBeVisible();
 }
 
@@ -33,4 +34,9 @@ export async function novaAba(context) {
   const p = await context.newPage();
   p.on('dialog', (d) => d.accept());
   return p;
+}
+
+/** Confirma na janela de confirmação do app (no lugar do confirm() do navegador). */
+export async function confirmar(page, acao) {
+  await page.getByRole('dialog').getByRole('button', { name: acao, exact: true }).click();
 }

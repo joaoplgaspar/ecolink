@@ -44,6 +44,7 @@ import {
 } from '@/components/ui.jsx';
 import { AchievementIcon, LevelIcon } from '@/components/icons.jsx';
 import CampoSenha from '@/components/CampoSenha.jsx';
+import { useConfirmar } from '@/components/Confirmacao.jsx';
 
 export default function Profile() {
   const { user, perfil, logout } = useAuth();
@@ -453,6 +454,7 @@ function Sessoes() {
 
 /** QR pessoal: para entregar SEM agendamento — o ponto lê e registra na hora. */
 function CodigoPessoal() {
+  const confirmar = useConfirmar();
   const q = useQuery(() => coletas.meuCodigoPessoal(), []);
   const renovar = useMutation(() => coletas.renovarCodigoPessoal());
   const [visivel, setVisivel] = useState(false);
@@ -482,7 +484,13 @@ function CodigoPessoal() {
             <button
               className="btn btn-sm btn-ghost mt-1"
               disabled={renovar.pending}
-              onClick={() => window.confirm('Gerar um novo código? O atual deixa de valer.') && renovar.mutate()}
+              onClick={async () =>
+                (await confirmar({
+                  titulo: 'Gerar um novo código?',
+                  texto: 'O código atual deixa de valer. Use se alguém fotografou seu QR.',
+                  acao: 'Gerar novo código',
+                })) && renovar.mutate()
+              }
             >
               <RefreshCw size={14} /> Gerar novo código
             </button>

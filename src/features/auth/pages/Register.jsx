@@ -5,6 +5,7 @@ import { useAuth } from '@/app/AuthContext.jsx';
 import { MensagemErro } from '@/components/ui.jsx';
 import CampoSenha from '@/components/CampoSenha.jsx';
 import { problemasDaSenha } from '@/domain/senhas';
+import { NOVA_ABA } from '@/utils/ambiente';
 
 export default function Register() {
   const { register, user } = useAuth();
@@ -121,11 +122,11 @@ export default function Register() {
               />
               <span>
                 Li e aceito os{' '}
-                <Link to="/termos" target="_blank">
+                <Link to="/termos" {...NOVA_ABA}>
                   Termos de Uso
                 </Link>{' '}
                 e a{' '}
-                <Link to="/privacidade" target="_blank">
+                <Link to="/privacidade" {...NOVA_ABA}>
                   Política de Privacidade
                 </Link>
                 .

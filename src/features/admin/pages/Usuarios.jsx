@@ -11,8 +11,11 @@ import { pode } from '@/domain/permissoes';
 import { Carregando, ErroCarregar, MensagemErro, Avatar } from '@/components/ui.jsx';
 import { ChipReputacao } from '@/components/Reputacao.jsx';
 import { formatDate } from '@/utils/format';
+import { useConfirmar, usePedirTexto } from '@/components/Confirmacao.jsx';
 
 export default function Usuarios() {
+  const confirmar = useConfirmar();
+  const pedirTexto = usePedirTexto();
   const { user, perfil, sessao } = useAuth();
   const [busca, setBusca] = useState('');
   const q = useQuery(() => admin.listarUsuarios({ busca }), [busca]);
@@ -22,10 +25,17 @@ export default function Usuarios() {
 
   async function alternar(u) {
     if (u.status === 'ativo') {
-      const motivo = window.prompt(`Motivo da suspensão de ${u.nome} (fica registrado na auditoria):`);
+      const motivo = await pedirTexto({
+        titulo: `Suspender ${u.nome}?`,
+        texto: 'As sessões da conta são encerradas na hora. O motivo fica registrado na auditoria.',
+        rotulo: 'Motivo da suspensão',
+        minimo: 5,
+        acao: 'Suspender conta',
+        perigo: true,
+      });
       if (!motivo?.trim()) return;
       await alterar.mutate({ id: u.id, status: 'suspenso', motivo });
-    } else if (window.confirm(`Reativar a conta de ${u.nome}?`)) {
+    } else if (await confirmar({ titulo: `Reativar a conta de ${u.nome}?`, acao: 'Reativar' })) {
       await alterar.mutate({ id: u.id, status: 'ativo' });
     }
   }
