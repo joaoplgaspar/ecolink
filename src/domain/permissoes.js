@@ -82,6 +82,7 @@ const REGRAS = {
 
   // Cidadão
   'avaliacao.salvar': (a) => comoCidadao(a),
+  'avaliacao.responder': (a, r) => comoParceiro(a) && membroDo(a, r.ponto_id),
   'resgate.criar': (a) => comoCidadao(a),
   'resgate.ver': (a, r) => comoCidadao(a) && r.usuario_id === a.id,
   'chat.usar': (a) => comoCidadao(a),
