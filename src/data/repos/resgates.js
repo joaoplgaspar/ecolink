@@ -11,6 +11,7 @@ import { chamarAutenticado, agoraISO, proximoId } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 import { lancar } from './_coleta';
+import { exigirSemRestricao } from './_moderacao';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O e 1/I, que confundem
 
@@ -33,6 +34,7 @@ export function resgatar(recompensaId) {
   return chamarAutenticado((ator) =>
     transacao((s) => {
       exigir(ator, 'resgate.criar', {}, 'Entre no perfil Cidadão para usar a loja.');
+      exigirSemRestricao(s, ator.id, 'resgatar recompensas (os EcoPontos ficam congelados durante a suspensão)');
       const recompensa = RECOMPENSAS.find((r) => r.id === Number(recompensaId));
       if (!recompensa) throw naoEncontrado('Recompensa');
 

@@ -26,6 +26,9 @@ import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, registrarEvento, notificarEquipe, quando } from './_coleta';
 import { reputacaoDoCidadao } from './_reputacao';
+import { exigirSemRestricao, notificarModeracao } from './_moderacao';
+import { cidadaoBloqueouPonto, pontoBloqueouCidadao } from './bloqueios';
+import { podeContestar, MOTIVOS_CONTESTACAO, PRAZO_CONTESTAR_DIAS } from '../../domain/denuncias';
 
 export const KG_MAXIMO = 500;
 export const MAX_ITENS = 5;
@@ -80,6 +83,16 @@ function paraCidadao(estado, c, { detalhe = false } = {}) {
       regras_materiais: ponto.regras_materiais,
     };
     r.comprovante = c.comprovante || null;
+    r.pode_contestar = podeContestar(c);
+    r.contestacao = c.contestacao
+      ? {
+          motivo: c.contestacao.motivo,
+          detalhe: c.contestacao.detalhe,
+          em: c.contestacao.em,
+          resultado: c.contestacao.resultado || null,
+          diferenca: c.contestacao.diferenca ?? null,
+        }
+      : null;
     r.eventos = estado.coleta_eventos
       .filter((e) => e.coleta_id === c.id)
       .map((e) => ({
@@ -138,6 +151,17 @@ export function solicitar({ ponto_id, data, janela_inicio, itens = [] }) {
       const ponto = s.pontos.find((p) => p.id === Number(ponto_id));
       if (!ponto || !visivelAoPublico(ponto)) throw naoEncontrado('Ponto de coleta');
       if (!recebendo(ponto)) throw invalido('Este ponto não está recebendo materiais no momento.');
+      // Moderação (Fase 5): conta suspensa e bloqueios.
+      exigirSemRestricao(s, ator.id, 'agendar entregas');
+      if (cidadaoBloqueouPonto(s, ator.id, ponto.id))
+        throw new ErroApi(409, 'Você bloqueou este ponto. Desbloqueie em "Perfil → Bloqueios" para agendar aqui.');
+      // Mensagem neutra: não revela o bloqueio feito pelo ponto.
+      if (pontoBloqueouCidadao(s, ponto.id, ator.id))
+        throw new ErroApi(
+          403,
+          'Este ponto não está disponível para os seus agendamentos. Escolha outro ponto próximo.',
+          { acao: 'coleta.agendar' },
+        );
 
       // Itens
       if (!Array.isArray(itens) || !itens.length) throw invalido('Adicione pelo menos um material.', 'itens');
@@ -347,6 +371,45 @@ export function renovarCodigoPessoal() {
       u.codigo_pessoal = novo;
       auditar(s, { ator_id: u.id, acao: 'codigo_pessoal.renovado', recurso_tipo: 'usuario', recurso_id: u.id });
       return { codigo: novo, qr: qrPessoal(novo) };
+    }),
+  );
+}
+
+/* ------------------------- contestação (Fase 5) ------------------------- */
+
+/**
+ * O cidadão contesta a pesagem (até 7 dias depois, uma vez). A entrega fica
+ * "Em contestação" e vai para a moderação, que mantém ou ajusta.
+ */
+export function contestar(id, { motivo, detalhe = '' }) {
+  return chamarAutenticado((ator) =>
+    transacao((s) => {
+      const c = s.coletas.find((x) => x.id === Number(id));
+      if (!c) throw naoEncontrado('Entrega');
+      exigir(ator, 'coleta.gerenciar_propria', c, 'Só quem fez a entrega pode contestar a pesagem.');
+      if (!MOTIVOS_CONTESTACAO.includes(motivo)) throw invalido('Escolha o motivo da contestação.', 'motivo');
+      const d = String(detalhe ?? '').trim();
+      if (d.length < 10) throw invalido('Conte o que aconteceu (pelo menos 10 caracteres).', 'detalhe');
+      if (d.length > 1000) throw invalido('O relato deve ter no máximo 1000 caracteres.', 'detalhe');
+      if (!podeContestar(c))
+        throw new ErroApi(
+          409,
+          `Só dá para contestar uma vez, em até ${PRAZO_CONTESTAR_DIAS} dias depois da conferência.`,
+        );
+      mudarStatus(s, c, 'contestar', { ator: 'cidadao', ator_id: ator.id, motivo });
+      c.contestacao = { motivo, detalhe: d, em: agoraISO() };
+      notificarModeracao(s, {
+        tipo: 'moderacao',
+        icone: '⚖️',
+        texto: `Contestação de pesagem na entrega ${c.codigo}.`,
+      });
+      notificarEquipe(s, c.ponto_id, {
+        tipo: 'coleta',
+        icone: '⚖️',
+        texto: `A pesagem da entrega ${c.codigo} foi contestada. A moderação vai analisar.`,
+      });
+      auditar(s, { ator_id: ator.id, acao: 'coleta.contestada', recurso_tipo: 'coleta', recurso_id: c.id });
+      return paraCidadao(s, c, { detalhe: true });
     }),
   );
 }

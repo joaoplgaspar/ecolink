@@ -12,6 +12,8 @@ import { chamar } from './_rede';
 import { registrarNotificacao } from './notificacoes';
 import { mudarStatus, notificarEquipe, quando } from './_coleta';
 import { situacaoDeFaltas, FALTAS_PARA_BLOQUEIO } from '../../domain/reputacao';
+import { SANCOES } from '../../domain/denuncias';
+import { encerrarSancoesVencidas } from './_moderacao';
 
 function pendencias(estado, agora) {
   const t = agora.getTime();
@@ -25,6 +27,16 @@ function pendencias(estado, agora) {
       const ate = dataHora(c.data, c.janela_inicio).getTime() - t;
       return ate > 0 && ate <= 24 * 3600_000;
     }),
+    // Fase 5: sanções com prazo que já venceram (ponto volta ao mapa; conta volta ao normal).
+    // Sempre no relógio REAL: a "simulação de tempo" da demo vale só para as entregas.
+    sancoes: (estado.sancoes || []).filter(
+      (x) =>
+        !x.encerrada_em &&
+        !x.revogada_em &&
+        x.fim !== null &&
+        SANCOES[x.tipo]?.restringe &&
+        Date.parse(x.fim) <= Date.now(),
+    ),
   };
 }
 
@@ -32,12 +44,18 @@ function pendencias(estado, agora) {
 export function processarPrazos({ agora = new Date() } = {}) {
   return chamar(() => {
     const p = pendencias(ler(), agora);
-    const total = { expiradas: p.expirar.length, nao_compareceu: p.faltou.length, lembretes: p.lembrar.length };
-    if (!total.expiradas && !total.nao_compareceu && !total.lembretes) return total;
+    const total = {
+      expiradas: p.expirar.length,
+      nao_compareceu: p.faltou.length,
+      lembretes: p.lembrar.length,
+      sancoes_encerradas: p.sancoes.length,
+    };
+    if (!total.expiradas && !total.nao_compareceu && !total.lembretes && !total.sancoes_encerradas) return total;
 
     transacao((s) => {
       const em = agora.toISOString();
       const pegar = (c) => s.coletas.find((x) => x.id === c.id);
+      if (p.sancoes.length) encerrarSancoesVencidas(s, new Date());
       for (const c0 of p.expirar) {
         const c = pegar(c0);
         mudarStatus(s, c, 'expirar', { ator: 'sistema', em });

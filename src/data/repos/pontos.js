@@ -34,7 +34,7 @@ export function projetarPonto(estado, p) {
     organizacao: org
       ? { nome: org.nome, tipo: TIPOS_ORGANIZACAO[org.tipo]?.rotulo, verificada: org.status === 'aprovada' }
       : null,
-    avaliacao: resumoAvaliacoes(estado.avaliacoes.filter((a) => a.ponto_id === p.id && a.verificada)),
+    avaliacao: resumoAvaliacoes(estado.avaliacoes.filter((a) => a.ponto_id === p.id && a.verificada && !a.removida)),
     reputacao: (({ score, selos, nota, total_avaliacoes, tempo_resposta_horas }) => ({
       score,
       selos,

@@ -149,3 +149,15 @@ describe('migração v7 (avaliações verificadas)', () => {
     expect(s.avaliacoes_cidadao).toEqual([]);
   });
 });
+
+describe('migração v8 (denúncias e moderação)', () => {
+  it('cria denúncias, sanções e bloqueios vazios, com sequências', () => {
+    const s = legadoV2();
+    migrar(s);
+    expect(s.denuncias).toEqual([]);
+    expect(s.sancoes).toEqual([]);
+    expect(s.bloqueios).toEqual([]);
+    expect(s.seq).toMatchObject({ denuncia: 0, sancao: 0, bloqueio: 0 });
+    expect(s.meta.schema_version).toBe(8);
+  });
+});

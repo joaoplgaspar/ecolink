@@ -11,7 +11,7 @@ import { REGRAS_PADRAO } from '../domain/pontos';
 import { pontosDaColeta } from '../domain/gamificacao';
 import { novoCodigoColeta, novoCodigoEntrega, novoCodigoPessoal } from '../domain/codigos';
 
-export const VERSAO_ATUAL = 7;
+export const VERSAO_ATUAL = 8;
 
 /** Coleção → chave da sequência de ids (state.seq). */
 const SEQUENCIAS = {
@@ -30,6 +30,9 @@ const SEQUENCIAS = {
   extrato: 'extrato',
   coleta_eventos: 'evento',
   avaliacoes_cidadao: 'avaliacao_cidadao',
+  denuncias: 'denuncia',
+  sancoes: 'sancao',
+  bloqueios: 'bloqueio',
 };
 
 const maxId = (lista = []) => lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
@@ -213,6 +216,21 @@ export const MIGRACOES = [
         a.criada_em = a.criada_em || a.em;
       }
       s.seq.avaliacao_cidadao = Math.max(s.seq.avaliacao_cidadao || 0, maxId(s.avaliacoes_cidadao));
+    },
+  },
+  {
+    para: 8,
+    descricao: 'Denúncias, sanções da moderação, bloqueios entre usuários e contestação de pesagem',
+    aplicar(s) {
+      s.denuncias = s.denuncias || [];
+      s.sancoes = s.sancoes || [];
+      s.bloqueios = s.bloqueios || [];
+      for (const [colecao, chave] of Object.entries({
+        denuncias: 'denuncia',
+        sancoes: 'sancao',
+        bloqueios: 'bloqueio',
+      }))
+        s.seq[chave] = Math.max(s.seq[chave] || 0, maxId(s[colecao]));
     },
   },
 ];

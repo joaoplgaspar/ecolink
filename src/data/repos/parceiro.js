@@ -58,8 +58,11 @@ export function meusPontos() {
             hoje: doPonto.filter((c) => ['confirmada', 'em_conferencia'].includes(c.status) && c.data === hoje).length,
             proximas: doPonto.filter((c) => c.status === 'confirmada' && c.data > hoje).length,
             recebidas_kg:
-              Math.round(doPonto.filter((c) => c.status === 'concluida').reduce((t, c) => t + kgRecebidos(c), 0) * 10) /
-              10,
+              Math.round(
+                doPonto
+                  .filter((c) => ['concluida', 'contestada', 'ajustada'].includes(c.status))
+                  .reduce((t, c) => t + kgRecebidos(c), 0) * 10,
+              ) / 10,
           },
         };
       });
@@ -782,7 +785,7 @@ export function avaliacoesDoPonto(pontoId) {
     const s = ler();
     exigir(ator, 'avaliacao.responder', { ponto_id: Number(pontoId) }, 'Só a equipe do ponto vê este painel.');
     return s.avaliacoes
-      .filter((a) => a.ponto_id === Number(pontoId))
+      .filter((a) => a.ponto_id === Number(pontoId) && !a.removida)
       .sort((a, b) => (a.em < b.em ? 1 : -1))
       .map((a) => ({
         id: a.id,

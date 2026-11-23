@@ -17,6 +17,7 @@ import { janelasDoDia, dataHora, prazoDeResposta } from '../domain/agenda';
 import { montarComprovante } from '../domain/comprovante';
 import { nomeReduzido } from '../utils/format';
 import { TAGS_PONTO, TAGS_CIDADAO } from '../domain/avaliacoes';
+import { categoriaDe, prazoDeAnalise, fimDaSancao } from '../domain/denuncias';
 import { REGRAS_PADRAO } from '../domain/pontos';
 import { documentosExigidos } from '../domain/organizacoes';
 
@@ -838,6 +839,219 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     ],
   };
 
+  /* Fase 5: fila de moderação variada (protocolos fixos para a demo). */
+  const denuncias = [];
+  const sancoes = [];
+  const renata = porEmail('moderacao@ecolink.app');
+  const denunciar = ({
+    protocolo,
+    autor,
+    perfil = 'cidadao',
+    alvo_tipo,
+    alvo_id,
+    ponto_id,
+    denunciado_id = null,
+    categoria,
+    descricao,
+    criada_em,
+    coleta_id = null,
+  }) => {
+    const cat = categoriaDe(alvo_tipo, categoria);
+    const d = {
+      id: denuncias.length + 1,
+      protocolo,
+      autor_id: autor.id,
+      autor_perfil: perfil,
+      alvo_tipo,
+      alvo_id,
+      alvo_rotulo:
+        alvo_tipo === 'ponto' ? pontoPorId(alvo_id).nome : nomeReduzido(usuarios.find((u) => u.id === alvo_id).nome),
+      ponto_id,
+      denunciado_id,
+      trecho: null,
+      categoria,
+      categoria_rotulo: cat.rotulo,
+      gravidade: cat.gravidade,
+      descricao,
+      coleta_id,
+      evidencias: [],
+      status: 'aberta',
+      criada_em,
+      moderador_id: null,
+      decisao: null,
+      decidida_em: null,
+      recurso: null,
+      eventos: [{ tipo: 'criada', texto: 'Denúncia recebida.', publico: true, ator_id: autor.id, em: criada_em }],
+    };
+    d.prazo = prazoDeAnalise(d);
+    denuncias.push(d);
+    return d;
+  };
+  const agoraMenos = (horas) => new Date(agora.getTime() - horas * 3600_000).toISOString();
+
+  // 1) GRAVE e com prazo estourado (alta: 12 h): cobrança indevida no EcoPonto Botafogo.
+  denunciar({
+    protocolo: 'DEN-K7Q2M',
+    autor: porEmail('elisa@email.com'),
+    alvo_tipo: 'ponto',
+    alvo_id: 8,
+    ponto_id: 8,
+    categoria: 'cobranca_indevida',
+    descricao:
+      'O atendente pediu R$ 5 "pela pesagem" e disse que sem pagar não recebia o vidro. Achei estranho porque o app diz que é gratuito.',
+    criada_em: agoraMenos(14),
+  });
+  // 2) Média, aberta há 30 h: pesagem suspeita na ReciclaRio Copacabana.
+  denunciar({
+    protocolo: 'DEN-P3X8T',
+    autor: porEmail('carla@email.com'),
+    alvo_tipo: 'ponto',
+    alvo_id: 3,
+    ponto_id: 3,
+    categoria: 'pesagem_suspeita',
+    descricao:
+      'Levei duas sacolas cheias de papelão e a balança marcou menos da metade do que pesei em casa. Não me deixaram ver o visor.',
+    criada_em: agoraMenos(30),
+  });
+  // 3) Em análise pela Renata: Marcos (gestor) denuncia faltas recorrentes do Felipe.
+  const faltaFelipe = coletas.find((c) => c.usuario_id === felipe.id && c.status === 'nao_compareceu');
+  const d3 = denunciar({
+    protocolo: 'DEN-M4R9B',
+    autor: porEmail('marcos@email.com'),
+    perfil: 'parceiro',
+    alvo_tipo: 'cidadao',
+    alvo_id: felipe.id,
+    ponto_id: faltaFelipe.ponto_id,
+    denunciado_id: felipe.id,
+    categoria: 'no_show',
+    descricao:
+      'É a segunda vez no mês que ele confirma e não aparece, ocupando a janela de sábado que é a mais disputada.',
+    criada_em: agoraMenos(40),
+    coleta_id: faltaFelipe.id,
+  });
+  d3.status = 'em_analise';
+  d3.moderador_id = renata.id;
+  d3.eventos.push(
+    { tipo: 'em_analise', texto: 'Sua denúncia está em análise.', publico: true, ator_id: null, em: agoraMenos(20) },
+    { tipo: 'assumida', texto: 'Caso assumido (Renata M.)', publico: false, ator_id: renata.id, em: agoraMenos(20) },
+  );
+  // 4) Decidida IMPROCEDENTE há 3 dias (Gabriela ainda pode recorrer).
+  const d4 = denunciar({
+    protocolo: 'DEN-W2H6C',
+    autor: porEmail('gabriela@email.com'),
+    alvo_tipo: 'ponto',
+    alvo_id: 7,
+    ponto_id: 7,
+    categoria: 'pesagem_suspeita',
+    descricao: 'Acho que a balança deles está descalibrada, o peso sempre dá um pouco menos do que eu espero.',
+    criada_em: agoraMenos(24 * 4),
+  });
+  Object.assign(d4, {
+    status: 'improcedente',
+    moderador_id: renata.id,
+    decidida_em: agoraMenos(24 * 3),
+    decisao: {
+      procedente: false,
+      sancao_id: null,
+      justificativa:
+        'Comparei as últimas 20 pesagens do ponto: diferenças pequenas e nos dois sentidos, compatíveis com estimativa caseira.',
+      fora_da_escala: false,
+      moderador_id: renata.id,
+      texto_publico:
+        'Analisamos e não encontramos violação das regras com as informações disponíveis. Se tiver algo novo, você pode recorrer em até 7 dias.',
+      texto_denunciado: null,
+    },
+  });
+  d4.eventos.push(
+    {
+      tipo: 'em_analise',
+      texto: 'Sua denúncia está em análise.',
+      publico: true,
+      ator_id: null,
+      em: agoraMenos(24 * 3.5),
+    },
+    { tipo: 'decidida', texto: 'Decisão: arquivada.', publico: true, ator_id: null, em: d4.decidida_em },
+  );
+  // 5) PROCEDENTE há 25 dias: advertência ao Henrique (histórico para a escala proporcional).
+  const henrique = porEmail('henrique@email.com');
+  const lucia = porEmail('lucia@email.com');
+  const daLucia = new Set(membros.filter((m) => m.usuario_id === lucia.id).map((m) => m.ponto_id));
+  const coletaHenrique = coletas.find((c) => c.usuario_id === henrique.id && daLucia.has(c.ponto_id));
+  if (coletaHenrique) {
+    const d5 = denunciar({
+      protocolo: 'DEN-T8N5V',
+      autor: lucia,
+      perfil: 'parceiro',
+      alvo_tipo: 'cidadao',
+      alvo_id: henrique.id,
+      ponto_id: coletaHenrique.ponto_id,
+      denunciado_id: henrique.id,
+      categoria: 'fraude',
+      descricao: 'Trouxe sacos de latinhas com areia no fundo para aumentar o peso. A equipe percebeu na conferência.',
+      criada_em: agoraMenos(24 * 26),
+      coleta_id: coletaHenrique.id,
+    });
+    const inicio = agoraMenos(24 * 25);
+    sancoes.push({
+      id: 1,
+      alvo_tipo: 'usuario',
+      alvo_id: henrique.id,
+      tipo: 'advertencia',
+      denuncia_id: d5.id,
+      protocolo: d5.protocolo,
+      motivo: d5.categoria_rotulo,
+      inicio,
+      fim: fimDaSancao('advertencia', inicio),
+      aplicada_por: renata.id,
+      revogada_em: null,
+      encerrada_em: null,
+    });
+    Object.assign(d5, {
+      status: 'procedente',
+      moderador_id: renata.id,
+      decidida_em: inicio,
+      decisao: {
+        procedente: true,
+        sancao_id: 1,
+        justificativa:
+          'Fotos da conferência e relato consistente da equipe. Primeira ocorrência: advertência, conforme a escala.',
+        fora_da_escala: false,
+        moderador_id: renata.id,
+        texto_publico:
+          'Sua denúncia foi considerada procedente. Medida aplicada: advertência. Obrigado por ajudar a manter a rede segura.',
+        texto_denunciado: 'Tentativa de fraude. Medida: advertência.',
+      },
+    });
+    d5.eventos.push({ tipo: 'decidida', texto: 'Decisão: procedente.', publico: true, ator_id: null, em: inicio });
+  }
+
+  /* Contestação de pesagem em aberto: a última entrega conferida da Gabriela. */
+  const gabriela = porEmail('gabriela@email.com');
+  const contestada = coletas
+    .filter((c) => c.usuario_id === gabriela.id && c.status === 'concluida')
+    .sort((a, b) => (a.concluida_em < b.concluida_em ? 1 : -1))[0];
+  if (contestada) {
+    const em = maisMin(contestada.concluida_em, 60 * 20);
+    contestada.status = 'contestada';
+    contestada.contestacao = {
+      motivo: 'O peso registrado é menor que o real',
+      detalhe:
+        'Pesei as sacolas em casa: dava uns 2 kg a mais de plástico. A balança estava virada para o lado de dentro do balcão.',
+      em,
+    };
+    coleta_eventos.push({
+      id: coleta_eventos.length + 1,
+      coleta_id: contestada.id,
+      acao: 'contestar',
+      de: 'concluida',
+      para: 'contestada',
+      ator: 'cidadao',
+      ator_id: gabriela.id,
+      motivo: 'O peso registrado é menor que o real',
+      em,
+    });
+  }
+
   return {
     meta: { schema_version: VERSAO_ATUAL, semeado_em: agora.toISOString() },
     seq: {
@@ -852,6 +1066,9 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
       organizacao: organizacoes.length,
       evento: coleta_eventos.length,
       avaliacao_cidadao: avaliacoes_cidadao.length,
+      denuncia: denuncias.length,
+      sancao: sancoes.length,
+      bloqueio: 0,
       extrato: extrato.length,
       sessao: 0,
       auditoria: 0,
@@ -865,6 +1082,9 @@ export function makeSeed({ agora = new Date(), semente = 2026 } = {}) {
     extrato,
     avaliacoes,
     avaliacoes_cidadao,
+    denuncias,
+    sancoes,
+    bloqueios: [],
     resgates,
     chats,
     notificacoes,

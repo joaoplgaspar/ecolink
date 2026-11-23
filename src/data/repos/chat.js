@@ -3,7 +3,8 @@
 //    conversa real, com o reciclador respondendo pelo painel dele.
 
 import { ler, transacao } from '../storage';
-import { naoEncontrado } from '../erros';
+import { ErroApi, naoEncontrado } from '../erros';
+import { exigirSemRestricao } from './_moderacao';
 import { chamarAutenticado, agoraISO, proximoId, texto } from './_rede';
 import { exigir } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
@@ -15,7 +16,9 @@ const MSG_PERFIL = 'Entre no perfil Cidadão para conversar com os pontos.';
 export function mensagens(pontoId) {
   return chamarAutenticado((ator) => {
     exigir(ator, 'chat.usar', {}, MSG_PERFIL);
-    return ler().chats[chave(ator.id, pontoId)] || [];
+    return (ler().chats[chave(ator.id, pontoId)] || []).map((m) =>
+      m.removida ? { id: m.id, de: m.de, em: m.em, removida: true, texto: 'Mensagem removida pela moderação.' } : m,
+    );
   });
 }
 
@@ -37,9 +40,12 @@ export function enviar(pontoId, conteudo) {
   return chamarAutenticado((ator) =>
     transacao((s) => {
       exigir(ator, 'chat.usar', {}, MSG_PERFIL);
+      exigirSemRestricao(s, ator.id, 'enviar mensagens');
       const t = texto(conteudo, { campo: 'uma mensagem', max: 1000 });
       const ponto = s.pontos.find((p) => p.id === Number(pontoId));
       if (!ponto) throw naoEncontrado('Ponto de coleta');
+      if (ponto.status === 'suspenso')
+        throw new ErroApi(409, 'Este ponto está suspenso pela moderação e não recebe mensagens.');
       const k = chave(ator.id, pontoId);
       s.chats[k] = s.chats[k] || [];
       s.chats[k].push({ id: proximoId(s, 'msg'), de: 'eu', texto: t, em: agoraISO() });

@@ -2,6 +2,7 @@
 // As FÓRMULAS ficam em domain/reputacao.js; aqui só juntamos os dados certos.
 
 import { reputacaoCidadao, reputacaoPonto } from '../../domain/reputacao';
+import { penalidadeDoCidadao, procedentesContraPonto } from './_moderacao';
 
 export function reputacaoDoCidadao(estado, usuarioId, agora = new Date()) {
   const usuario = estado.usuarios.find((u) => u.id === usuarioId);
@@ -10,6 +11,10 @@ export function reputacaoDoCidadao(estado, usuarioId, agora = new Date()) {
     coletas: estado.coletas.filter((c) => c.usuario_id === usuarioId),
     avaliacoesRecebidas: (estado.avaliacoes_cidadao || []).filter((a) => a.cidadao_id === usuarioId),
     agora,
+    // Fase 5: denúncias procedentes contra a pessoa e denúncias improcedentes em excesso.
+    ...(({ pontos, detalhe }) => ({ penalidades: pontos, detalhePenalidades: detalhe }))(
+      penalidadeDoCidadao(estado, usuarioId, agora),
+    ),
   });
 }
 
@@ -22,7 +27,8 @@ export function reputacaoDoPonto(estado, pontoId) {
     organizacao: estado.organizacoes.find((o) => o.id === ponto?.organizacao_id),
     coletas,
     eventos: estado.coleta_eventos.filter((e) => ids.has(e.coleta_id)),
-    avaliacoes: estado.avaliacoes.filter((a) => a.ponto_id === pontoId && a.verificada),
+    avaliacoes: estado.avaliacoes.filter((a) => a.ponto_id === pontoId && a.verificada && !a.removida),
+    procedentes: procedentesContraPonto(estado, pontoId),
   });
 }
 

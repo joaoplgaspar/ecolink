@@ -13,6 +13,7 @@ import { chamar, chamarAutenticado, agoraISO, proximoId, texto } from './_rede';
 import { exigir, auditar } from './_sessao';
 import { registrarNotificacao } from './notificacoes';
 import { notificarEquipe } from './_coleta';
+import { exigirSemRestricao } from './_moderacao';
 
 const publica = (a) => ({
   id: a.id,
@@ -29,7 +30,7 @@ const publica = (a) => ({
 export function listar(pontoId) {
   return chamar(() =>
     ler()
-      .avaliacoes.filter((a) => a.ponto_id === Number(pontoId))
+      .avaliacoes.filter((a) => a.ponto_id === Number(pontoId) && !a.removida)
       .sort((a, b) => (a.em < b.em ? 1 : -1))
       .map(publica),
   );
@@ -38,7 +39,7 @@ export function listar(pontoId) {
 /** Média simples e total das avaliações VERIFICADAS. */
 export function resumo(pontoId) {
   return chamar(() => {
-    const l = ler().avaliacoes.filter((a) => a.ponto_id === Number(pontoId) && a.verificada);
+    const l = ler().avaliacoes.filter((a) => a.ponto_id === Number(pontoId) && a.verificada && !a.removida);
     if (!l.length) return { media: 0, total: 0 };
     return { media: Math.round((l.reduce((t, a) => t + a.nota, 0) / l.length) * 10) / 10, total: l.length };
   });
@@ -71,6 +72,7 @@ export function avaliarPonto({ coleta_id, nota, tags = [], comentario = '' }) {
   return chamarAutenticado((ator) =>
     transacao((s) => {
       exigir(ator, 'avaliacao.salvar', {}, 'Entre no perfil Cidadão para avaliar pontos.');
+      exigirSemRestricao(s, ator.id, 'avaliar pontos');
       const c = s.coletas.find((x) => x.id === Number(coleta_id));
       if (!c) throw naoEncontrado('Entrega');
       exigir(ator, 'coleta.gerenciar_propria', c, 'Só quem fez a entrega pode avaliá-la.');
